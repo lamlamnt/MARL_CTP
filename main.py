@@ -6,6 +6,7 @@ import time
 
 if __name__ == "__main__":
     key = jax.random.PRNGKey(42)
+    #jax.jit this function?
     tree = CTP.generate_graph(5,key)
     jax.block_until_ready(tree)
 
