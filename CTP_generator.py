@@ -62,13 +62,19 @@ def _extract_edges(simplex):
                             [jnp.minimum(simplex[0], simplex[2]), jnp.maximum(simplex[0], simplex[2])]])
         return edges
 
+#Don't use JAX (vmap or otherwise here) because it will trigger tracing
 def convert_jraph_to_networkx(graph:jraph.GraphsTuple) -> nx.Graph:
     graph_NX = nx.Graph()
-    node_index = jnp.arange(graph.n_node)
-    jax.vmap(graph_NX.add_node,in_axes=(0))(node_index,pos=graph.nodes)
-    jax.vmap(graph_NX.add_edge,in_axes=(0,0))(graph.senders,graph.receivers)
-    nx.set_edge_attributes(graph_NX,values=graph.edges[:graph.n_edge], name='weight')
-    nx.set_edge_attributes(graph_NX,values=graph.edges[graph.n_edge:], name='blocked_prob')
+    for i in range(graph.n_node):
+        graph_NX.add_node(i,pos=tuple(graph.nodes[i].tolist()))
+    for i in range(graph.n_edge):
+        graph_NX.add_edge(graph.senders[i].item(),graph.receivers[i].item())
+    
+    #Should be of the format {(sender,receiver):weight}
+    weight_edge_dict = {(s, r): w for s, r, w in zip(graph.senders.tolist(), graph.receivers.tolist(), graph.edges[:graph.n_edge].tolist())}
+    blocking_prob_dict = {(s, r): w for s, r, w in zip(graph.senders.tolist(), graph.receivers.tolist(), graph.edges[graph.n_edge:].tolist())}
+    nx.set_edge_attributes(graph_NX,values=weight_edge_dict, name='weight')
+    nx.set_edge_attributes(graph_NX,values=blocking_prob_dict, name='blocked_prob')
     return graph_NX
 
 #This is a separate function from generate_graph because at some stage, we want to give the agent the same graph but
@@ -90,33 +96,35 @@ def make_edges_blocked(graph:jraph.GraphsTuple,key,prop_stoch=0.4) -> jraph.Grap
     return graph
 
 #Add an edge feature to the graph that stores whether an edge is blocked or not
-def sample_blocking_prob(key:jax.jax.random.PRNGKey,graph:jraph.GraphsTuple) -> jraph.GraphsTuple:
+def sample_blocking_prob(key:jax.random.PRNGKey,graph:jraph.GraphsTuple) -> jraph.GraphsTuple:
     #Global context = 2 means that the second edge feature stored in the graph is whether an edge is blocked or not
     global_context = jnp.array([[2]])
+    blocking_probability = graph.edges[graph.n_edge:]
+    keys = jax.random.split(key, num=graph.n_edge)
+    blocking_status = jax.vmap(jax.random.bernoulli, in_axes=(0,))(keys, p=blocking_probability)
+    graph = graph._replace(globals=global_context, edges=jnp.concatenate([graph.edges,blocking_status],axis=0))
+    #0 means not blocked, 1 means blocked
     return graph
 
 def _assign_prob_edge(subkey, is_stochastic_edge):
     prob = jax.random.uniform(subkey, minval=0.0, maxval=1.0)
     prob = jnp.round(prob, 2) #Round to 2 decimal places
-    return jax.lax.cond(is_stochastic_edge, lambda _:prob, lambda _: 1.0,prob)
+    return jax.lax.cond(is_stochastic_edge, lambda _:prob, lambda _:0.0,prob)
 
 #After the blocking status is assigned, check whether it's possible to reach the goal from the origin
 def solvability_check(graph:jraph.GraphsTuple,origin:int,goal:int) -> bool:
     pass
 
-#Copy the same from Alex's code
-#Currently does not work because of tracing issues
+#Copy from Alex's code
 def plot_nx_graph(G: nx.Graph, origin, goal):
     # Plot graph
     node_colour = []
     for node in G.nodes:
         c = "white"
-        """
         if node == goal:
             c = "#2ca02c"
         elif node == origin:
             c = "#ff7f0e"
-        """
         node_colour.append(c)
     edge_labels = []
     probs = nx.get_edge_attributes(G, "blocked_prob")
@@ -169,3 +177,6 @@ def find_goal_and_origin(grid_nodes):
     # Get the origin node using argmax on the distances
     origin = jnp.argmax(distances_from_goal)
     return goal,origin
+
+def convert_jraph_to_adj_matrix(graph:jraph.GraphsTuple) -> tuple[jnp.ndarray,jnp.ndarray]:
+    pass
