@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 #Generate a random graph 
 #With the same number of nodes, the total number of edges can be different.
 #Cannot jit this function because of the conversion to numpy array for Delauney
-def generate_graph(n_nodes: int, key: int, use_edge_weights=True, grid_size=10,
+def generate_graph(n_nodes: int, key: int, use_edge_weights=True, grid_size=10,prop_stoch=0.4
                    ) -> tuple[jraph.GraphsTuple, int, int]:
 
     xmax = grid_size
@@ -40,17 +40,17 @@ def generate_graph(n_nodes: int, key: int, use_edge_weights=True, grid_size=10,
     #Convert to jax.lax.cond
     #Make the edge feature include both the weight, which is the distance between the nodes and blocking probability
     if(use_edge_weights):
-        edges = jnp.linalg.norm(grid_nodes_jax[senders] - grid_nodes_jax[receivers], axis=1)
+        edge_weights = jnp.linalg.norm(grid_nodes_jax[senders] - grid_nodes_jax[receivers], axis=1)
     else:
-        edges = jnp.ones_like(senders)
+        edge_weights = jnp.ones_like(senders)
     
-    blocking_probability = jnp.zeros_like(edges)
+    blocking_probability = get_blocking_prob(len(senders),key,prop_stoch=prop_stoch)
     #The first n_nodes elements of edge features are the edge weights and the last n_nodes elements are the blocking probabilities
-    edge_features = jnp.concatenate([edges, blocking_probability], axis=0)
+    #edge_features = jnp.concatenate([edges, blocking_probability], axis=0)
 
     #Global context = 0 means all edges are not blocked. 1 for all edges
     global_context = jnp.array([[0]])
-    graph = jraph.GraphsTuple(nodes=grid_nodes_jax, senders=senders, receivers=receivers,edges=edge_features, n_node=n_nodes, n_edge=len(senders), globals=global_context)
+    graph = jraph.GraphsTuple(nodes=grid_nodes_jax, senders=senders, receivers=receivers,edges={'weight':edge_weights,'blocked_prob':blocking_probability}, n_node=n_nodes, n_edge=len(senders), globals=global_context)
 
     #All the edges in the graph are currently not blocked
     return graph, origin, goal
@@ -71,39 +71,32 @@ def convert_jraph_to_networkx(graph:jraph.GraphsTuple) -> nx.Graph:
         graph_NX.add_edge(graph.senders[i].item(),graph.receivers[i].item())
     
     #Should be of the format {(sender,receiver):weight}
-    weight_edge_dict = {(s, r): w for s, r, w in zip(graph.senders.tolist(), graph.receivers.tolist(), graph.edges[:graph.n_edge].tolist())}
-    blocking_prob_dict = {(s, r): w for s, r, w in zip(graph.senders.tolist(), graph.receivers.tolist(), graph.edges[graph.n_edge:].tolist())}
+    weight_edge_dict = {(s, r): w for s, r, w in zip(graph.senders.tolist(), graph.receivers.tolist(), graph.edges['weight'].tolist())}
+    #Only add to the blocking_prob attribute of the networkx graph if the blocking probability is greater than 0 (stochastic edge)
+    blocking_prob_dict = {(s, r): w for s, r, w in zip(graph.senders.tolist(), graph.receivers.tolist(), graph.edges['blocked_prob'].tolist()) if w>0}
     nx.set_edge_attributes(graph_NX,values=weight_edge_dict, name='weight')
     nx.set_edge_attributes(graph_NX,values=blocking_prob_dict, name='blocked_prob')
     return graph_NX
 
 #This is a separate function from generate_graph because at some stage, we want to give the agent the same graph but
 #with different edge blocking probabilities
-def make_edges_blocked(graph:jraph.GraphsTuple,key,prop_stoch=0.4) -> jraph.GraphsTuple:
-    #Global context = 1 means the second edge feature stored in the graph is the blocking probability
-    global_context = jnp.array([[1]])
-
+def get_blocking_prob(n_edge:int,key,prop_stoch=0.4) -> jnp.array:
     #Assign blocking probability to each edge
-    num_stoch_edges = jnp.round(prop_stoch * graph.n_edge).astype(int)
-    stoch_edge_idx = jax.random.choice(key, graph.n_edge, shape=(num_stoch_edges,), replace=False)
-    edge_indices = jnp.arange(graph.n_edge)
-    keys = jax.random.split(key, num=graph.n_edge)
+    num_stoch_edges = jnp.round(prop_stoch * n_edge).astype(int)
+    stoch_edge_idx = jax.random.choice(key, n_edge, shape=(num_stoch_edges,), replace=False)
+    edge_indices = jnp.arange(n_edge)
+    keys = jax.random.split(key, num=n_edge)
     is_stochastic_edges = jnp.isin(edge_indices, stoch_edge_idx)
     edge_probs = jax.vmap(_assign_prob_edge, in_axes=(0,0))(keys,is_stochastic_edges)
-
-    #Update the edge features in graph
-    graph = graph._replace(edges=jnp.concatenate([graph.edges[:graph.n_edge],edge_probs],axis=0), globals=global_context)
-    return graph
+    return edge_probs
 
 #Add an edge feature to the graph that stores whether an edge is blocked or not
 def sample_blocking_prob(key:jax.random.PRNGKey,graph:jraph.GraphsTuple) -> jraph.GraphsTuple:
-    #Global context = 2 means that the second edge feature stored in the graph is whether an edge is blocked or not
-    global_context = jnp.array([[2]])
-    blocking_probability = graph.edges[graph.n_edge:]
+    global_context = jnp.array([[1]])
     keys = jax.random.split(key, num=graph.n_edge)
-    blocking_status = jax.vmap(jax.random.bernoulli, in_axes=(0,))(keys, p=blocking_probability)
-    graph = graph._replace(globals=global_context, edges=jnp.concatenate([graph.edges,blocking_status],axis=0))
     #0 means not blocked, 1 means blocked
+    blocking_status = jax.vmap(jax.random.bernoulli, in_axes=(0,))(keys, p=graph.edges['blocked_prob'])
+    graph = graph._replace(globals=global_context, edges={**graph.edges,'blocked_status':blocking_status})
     return graph
 
 def _assign_prob_edge(subkey, is_stochastic_edge):
@@ -179,4 +172,41 @@ def find_goal_and_origin(grid_nodes):
     return goal,origin
 
 def convert_jraph_to_adj_matrix(graph:jraph.GraphsTuple) -> tuple[jnp.ndarray,jnp.ndarray]:
-    pass
+    weight_matrix = jnp.full((graph.n_node, graph.n_node), jnp.inf)
+    #0 means definitely not blocked, 1 means definitely blocked, inf means no edge
+    blocking_prob_matrix = jnp.full((graph.n_node, graph.n_node), jnp.inf)
+    # Set the diagonals to zero (a node to itself)
+    weight_matrix = weight_matrix.at[jnp.diag_indices(graph.n_node)].set(0)
+    blocking_prob_matrix = blocking_prob_matrix.at[jnp.diag_indices(graph.n_node)].set(0)
+    for i in range(graph.n_edge):
+        sender = graph.senders[i]
+        receiver = graph.receivers[i]
+        weight_matrix = weight_matrix.at[sender, receiver].set(graph.edges['weight'][i])
+        weight_matrix = weight_matrix.at[receiver, sender].set(graph.edges['weight'][i])
+        blocking_prob_matrix = blocking_prob_matrix.at[sender, receiver].set(graph.edges['blocked_prob'][i])
+        blocking_prob_matrix = blocking_prob_matrix.at[receiver, sender].set(graph.edges['blocked_prob'][i])
+    return weight_matrix, blocking_prob_matrix
+
+#Global context = 3 means the blocking status of some edges are unknown
+# Get starting agent graph given the true graph with true blocking status
+def get_agent_graph(true_graph: jraph.GraphsTuple) -> jraph.GraphsTuple:
+    # 0 means not blocked. 1 means blocked. 2 means unknown. 
+    stochastic_edges = jnp.where(true_graph.edges['blocked_prob'] == 0, 0,2)
+    agent_graph = true_graph._replace(edges={**true_graph.edges,'blocked_status':stochastic_edges})
+    return agent_graph
+
+def is_solvable(graph:jraph.GraphsTuple,origin:int,goal:int) -> bool:
+    #Return whether an unblocked path exists from origin to goal
+    networkx_graph = convert_jraph_to_networkx(graph)
+    solvable = nx.has_path(networkx_graph, origin, goal)
+    return solvable
+
+#Add expensive edge between origin and goal
+def add_expensive_edge(graph:jraph.GraphsTuple,weight:float,origin:int,goal:int) -> jraph.GraphsTuple:
+    senders = jnp.append(graph.senders, origin)
+    receivers = jnp.append(graph.receivers, goal)
+    weights = jnp.append(graph.edges['weight'], weight)
+    blocking_prob = jnp.append(graph.edges['blocked_prob'], 0)
+    blocking_status = jnp.append(graph.edges['blocked_status'], 0)
+    new_graph = graph._replace(n_edge=graph.n_edge+1,senders=senders,receivers=receivers,edges={'weight':weights,'blocked_prob':blocking_prob,'blocked_status':blocking_status})
+    return new_graph
