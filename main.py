@@ -17,6 +17,7 @@ if __name__ == "__main__":
     print(current_reward,terminate)
     print(current_state.agents_pos)
     print(current_observation)
+
     # log the action taken and the accumulated reward
 
     #While not at the goal

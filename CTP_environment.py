@@ -19,29 +19,29 @@ class EnvState:
 #the second key is the edge (sender,receiver) and the value is the blocking status (0 means not blocked).
 Observation = FrozenDict[int, FrozenDict[Tuple[int, int], bool]]
 
-#An action is just the index of the next node to move to
-#Action space is a discrete space of size num_nodes
-
 class CTP(MultiAgentEnv):
-    def __init__(self, num_agents:int, num_goals:int, num_nodes:int, key:chex.PRNGKey,prop_stoch=0.4,grid_size=10, add_expensive_edge=False):
+    def __init__(self, num_agents:int, num_goals:int, num_nodes:int, key:chex.PRNGKey,prop_stoch=0.4,grid_size=10, add_expensive_edge=True):
         self.num_agents = num_agents
         self.num_goals = num_goals
         self.add_expensive_edge = add_expensive_edge
         
         # Generate the graph and get origin and goal
         # Currently, choosing origin and goal for one agent only. 
-        # For multiple agents, origin will be an array of size n_agents and goal will be an array that can be of any size
         self.true_graph,self.origin,self.goal = CTP_generator.generate_graph(num_nodes, key, grid_size = grid_size, prop_stoch=prop_stoch)
 
+        # For multiple agents, origin will be an array of size n_agents and goal will be an array that can be of any size
         self.origin = jnp.array([self.origin])
         self.goal = jnp.array([self.goal])
 
+        # An action is just the index of the next node to move to.
         # An action changes agent_pos to a different node. 
+        # Jax.lax.cond doesn't work here because spaces. Discrete is not a valid jax type
         if(self.add_expensive_edge):
-            self.action_space = spaces.Discrete(num_nodes)
+            actions = [num_nodes for _ in range(self.num_agents)]
         else:
             #If action = self.num_nodes, the agent is saying it's not solvable
-            self.action_space = spaces.Discrete(num_nodes) #change to multi-discrete for multiple agents
+            actions = [num_nodes+1 for _ in range(self.num_agents)]
+        self.action_space = spaces.MultiDiscrete(actions) 
         
     def reset(self,key:chex.PRNGKey) -> tuple[Observation,EnvState]:
         starting_env_state = EnvState(agents_pos=self.origin,list_of_goals=self.goal,graph=self.true_graph)
@@ -50,8 +50,9 @@ class CTP(MultiAgentEnv):
         self.solvable = CTP_generator.is_solvable(self.true_graph,self.origin.item(),self.goal.item())
 
         if(self.solvable is False and self.add_expensive_edge is True):
-            # Add an expensive edge
-            self.true_graph = CTP_generator.add_expensive_edge(self.true_graph,50,self.origin,self.goal)
+            # Add an expensive edge. 
+            largest_edge_weight = jnp.max(self.true_graph.edges['weight'])
+            self.true_graph = CTP_generator.add_expensive_edge(self.true_graph,largest_edge_weight*3,self.origin,self.goal)
             self.solvable = True
 
         return self.get_obs(starting_env_state), starting_env_state
@@ -70,14 +71,14 @@ class CTP(MultiAgentEnv):
         # Valid if there exists an edge and it's not blocked
         index_of_edge = jax.vmap(self._valid_action)(state.agents_pos,action) 
 
-        # Loop over all agents here! If any of the agent has invalid action, terminate?
+        # Need to Loop over all agents here! If any of the agent has invalid action, terminate?
         if index_of_edge == self.true_graph.n_edge:
-            #Attempt to move through an edge that does not exist of a blocked edge
+            #Attempt to move through an edge that does not exist or is a blocked edge
             reward = -5000
             terminate = True
 
             # Whether returning different types like this affect performance?
-            new_state = 0
+            state = 0
             observation = 0
         else:
             #return the weight of the edge
@@ -86,12 +87,13 @@ class CTP(MultiAgentEnv):
             # If at goal, episode is done.
             if(action == self.goal[0]):
                 terminate = True
+                observation = 0
+            else:
+                terminate = False
+                observation = self.get_obs(state)
 
             # Update the state (change pos)
             state.agents_pos = action
-
-            # Get observation
-            observation = self.get_obs(state)
 
         return observation, state, reward, terminate
     
@@ -109,8 +111,8 @@ class CTP(MultiAgentEnv):
             edge_indices = jnp.where(jnp.logical_and(jnp.logical_or(self.true_graph.senders == state.agents_pos[agent_num],self.true_graph.receivers == state.agents_pos[agent_num]), self.true_graph.edges['blocked_prob'] > 0))
             observation = FrozenDict({
                 agent_num: FrozenDict({
-                    (int(self.true_graph.senders[edge_indices[i]]), int(self.true_graph.receivers[edge_indices[i]])): 
-                    int(self.true_graph.edges['blocked_status'][edge_indices[i]])  # Converting the edge status to int as well
+                    (int(self.true_graph.senders[edge_indices[0][i]]), int(self.true_graph.receivers[edge_indices[0][i]])): 
+                    int(self.true_graph.edges['blocked_status'][edge_indices[0][i]])  # Converting the edge status to int as well
                     for i in range(len(edge_indices[0]))
                 })
             })
