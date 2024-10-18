@@ -20,7 +20,7 @@ def run_episode(episode_num:int,environment:CTP_environment.CTP,subkey:jax.rando
         key,subkey=jax.random.split(subkey)
         #Loop over agents to get agents' actions and combine together into a joint action
         # Use observation to get the action
-        action = agent.act(state,observation,subkey)
+        action = agent.act(subkey,state,observation)
         observation, state, current_reward, terminate = environment.step(state,jnp.array(action))
         cumulative_reward += current_reward
         # Assign observation and position to each agent
@@ -31,14 +31,7 @@ def run_episode(episode_num:int,environment:CTP_environment.CTP,subkey:jax.rando
     initial_loop_vars = (observation,state,terminate,cumulative_reward, action_sequence,subkey)
     def run_step(loop_vars):
         observation, state, terminate, cumulative_reward, action_sequence, subkey = loop_vars
-        key,subkey=jax.random.split(subkey)
-        #Loop over agents to get agents' actions and combine together into a joint action
-        # Use observation to get the action
-        action = environment.action_spaces.sample(subkey)
-        observation, state, current_reward, terminate = environment.step(state,jnp.array(action))
-        cumulative_reward += current_reward
-        # Assign observation and position to each agent
-        action_sequence = jnp.concatenate([action_sequence, jnp.array(action)])
+        #...the rest of the code in the while loop
         return observation, state, terminate, cumulative_reward, action_sequence, subkey
 
     def condition(loop_vars):
@@ -59,7 +52,7 @@ if __name__ == "__main__":
     parser.add_argument('--n_node', type=int, help='Number of nodes in the graph', required=False, default=5)
     parser.add_argument('--n_agent', type=int, help='Number of agents in the environment', required=False, default=1)
     parser.add_argument('--n_episode', type=int, help='Number of episodes to run', required=False, default=10)
-    parser.add_argument('--agent_algorithm',type=str,help='Random, DQN',required=False,default='Random')
+    parser.add_argument('--agent_algorithm',type=str,help='Random, DQN',required=False,default='DQN')
     args = parser.parse_args()
 
     key = jax.random.PRNGKey(40)
@@ -74,7 +67,7 @@ if __name__ == "__main__":
     if args.agent_algorithm == "Random":
         agent = random_agent.RandomAgent(environment.action_spaces)
     elif args.agent_algorithm == "DQN":
-        agent = dqn.DQN_Agent(environment.action_spaces)
+        agent = dqn.DQN_Agent(environment.action_spaces.num_categories[0])
     else:
         raise ValueError("Invalid agent algorithm")
 
