@@ -1,13 +1,12 @@
-import jax
+import agent
+import jax 
 import jax.numpy as jnp
+import jaxmarl
 import CTP_environment
 
-class Agent:
-    def __init__(self, action_space,discount_factor=0.99, learning_rate=0.1,epsilon=0.1):
-        self.discount_factor = discount_factor
-        self.learning_rate = learning_rate
-        self.epsilon = epsilon #epsilon-greedy policy
-        self.action_space = action_space
+class DQN_Agent(agent.Agent):
+    def __init__(self, action_space):
+        super().__init__(action_space)
 
     def reset(self):
         # Reset network and hyperparameters
@@ -20,3 +19,4 @@ class Agent:
     def update(self,state:CTP_environment.EnvState,observation:CTP_environment.Observation,action:int,reward:float,next_state:CTP_environment.EnvState,next_observation:CTP_environment.Observation,terminate:bool):
         # Update the network
         pass
+

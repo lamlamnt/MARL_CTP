@@ -1,0 +1,31 @@
+Random agent 
+Episode 1:
+Total reward:-5000
+[1.]
+Episode 2:
+Total reward:-5008.280109882355
+[4. 3. 1.]
+Episode 3:
+Total reward:-12.379129409790039
+[4. 0.]
+Episode 4:
+Total reward:-5016.5602197647095
+[4. 3. 4. 1. 1.]
+Episode 5:
+Total reward:-5014.5602197647095
+[4. 1. 0.]
+Episode 6:
+Total reward:-5007.2803
+[4. 5.]
+Episode 7:
+Total reward:-5000
+[5.]
+Episode 8:
+Total reward:-5008.0
+[2. 2.]
+Episode 9:
+Total reward:-5000
+[5.]
+Episode 10:
+Total reward:-5000
+[5.]
