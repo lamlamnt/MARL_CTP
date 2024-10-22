@@ -1,9 +1,9 @@
 import jax
 import jax.numpy as jnp
-import CTP_environment
+from Environment import CTP_environment
 from functools import partial
 
-class Agent:
+class BaseAgent:
     def __init__(self):
         pass
 

@@ -6,6 +6,7 @@ from scipy.spatial import Delaunay
 from functools import partial
 import networkx as nx
 import matplotlib.pyplot as plt
+import os
 
 #Generate a random graph 
 #With the same number of nodes, the total number of edges can be different.
@@ -96,7 +97,7 @@ def _assign_prob_edge(subkey, is_stochastic_edge):
     return jax.lax.cond(is_stochastic_edge, lambda _:prob, lambda _:0.0,prob)
 
 #Copy from Alex's code
-def plot_nx_graph(G: nx.Graph, origin, goal, file_name="Logs/graph.png"):
+def plot_nx_graph(G: nx.Graph, origin, goal, directory,file_name="graph.png"):
     node_colour = []
     for node in G.nodes:
         c = "white"
@@ -134,7 +135,7 @@ def plot_nx_graph(G: nx.Graph, origin, goal, file_name="Logs/graph.png"):
     )
     ax = plt.gca()
     ax.set_aspect("equal", adjustable="box")
-    plt.savefig(file_name)
+    plt.savefig(os.path.join(directory,file_name))
     plt.close()
 
 def _convert_to_grid(i,ymax):

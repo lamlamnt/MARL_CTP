@@ -1,14 +1,13 @@
 import jax
 import jax.numpy as jnp
-import CTP_environment 
-import CTP_generator
+from Environment import CTP_environment, CTP_generator
 import timeit
 import time
 import argparse
 import numpy as np    
 import matplotlib.pyplot as plt
-import random_agent
-import dqn
+from Agents.random_agent import RandomAgent
+from Agents.dqn import DQN_Agent
 
 def run_episode(episode_num:int,environment:CTP_environment.CTP,subkey:jax.random.PRNGKey) -> float:
     observation, state = environment.reset(subkey)
@@ -53,6 +52,7 @@ if __name__ == "__main__":
     parser.add_argument('--n_agent', type=int, help='Number of agents in the environment', required=False, default=1)
     parser.add_argument('--n_episode', type=int, help='Number of episodes to run', required=False, default=10)
     parser.add_argument('--agent_algorithm',type=str,help='Random, DQN',required=False,default='DQN')
+    parser.add_argument('--directory', type=str, help='Directory to save results', required=False, default="C:\\Users\\shala\\Documents\\Oxford Undergrad\\4th Year\\4YP\\Code\\MARL_CTP\\Logs")
     args = parser.parse_args()
 
     key = jax.random.PRNGKey(40)
@@ -61,13 +61,13 @@ if __name__ == "__main__":
     subkeys = jax.random.split(key, args.n_episode)
     
     nx_graph = CTP_generator.convert_jraph_to_networkx(environment.agent_graph)
-    CTP_generator.plot_nx_graph(nx_graph,environment.goal.item(),environment.origin.item(),file_name="Logs/graph.png")
+    CTP_generator.plot_nx_graph(nx_graph,environment.goal.item(),environment.origin.item(),args.directory)
     
     #Intialize the agent
     if args.agent_algorithm == "Random":
-        agent = random_agent.RandomAgent(environment.action_spaces)
+        agent = RandomAgent(environment.action_spaces)
     elif args.agent_algorithm == "DQN":
-        agent = dqn.DQN_Agent(environment.action_spaces.num_categories[0])
+        agent = DQN_Agent(environment.action_spaces.num_categories[0])
     else:
         raise ValueError("Invalid agent algorithm")
 

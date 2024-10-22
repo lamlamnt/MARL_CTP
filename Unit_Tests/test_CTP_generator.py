@@ -1,6 +1,8 @@
 import jax
 import jax.numpy as jnp
-import CTP_generator 
+import sys
+sys.path.append('..')
+from Environment import CTP_generator
 import timeit
 import time
 import argparse
@@ -9,6 +11,7 @@ import argparse
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parse command-line arguments for this unit test")
     parser.add_argument('--n_node', type=int, help='Number of nodes in the graph', required=False, default=5)
+    parser.add_argument('--directory', type=str, help='Directory to save results', required=False, default="C:\\Users\\shala\\Documents\\Oxford Undergrad\\4th Year\\4YP\\Code\\MARL_CTP\\Logs")
     args = parser.parse_args()
 
     key = jax.random.PRNGKey(40)
@@ -32,7 +35,7 @@ if __name__ == "__main__":
 
     new_graph = CTP_generator.add_expensive_edge(complete_graph,50,origin,goal)
     new_graph_NX = CTP_generator.convert_jraph_to_networkx(new_graph)
-    CTP_generator.plot_nx_graph(new_graph_NX,goal_int,origin_int)
+    CTP_generator.plot_nx_graph(new_graph_NX,goal_int,origin_int,args.directory)
 
     #Put the timed code (for large graphs), wrapped in block_until_ready into a function and then timeit that function
     #timeit.timeit(jax.block_until_ready(CTP.generate_graph(5,key)),number=100)

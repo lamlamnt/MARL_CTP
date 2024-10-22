@@ -1,13 +1,13 @@
-import agent
+from Agents.base_agent import BaseAgent
 import jax 
 import jax.numpy as jnp
 import jaxmarl
 from jaxmarl.environments import spaces
-import CTP_environment
+from Environment import CTP_environment
 from functools import partial
 import optax
 
-class DQN_Agent(agent.Agent):
+class DQN_Agent(BaseAgent):
     def __init__(self, n_actions:int,discount_factor=0.99, learning_rate=0.1,epsilon=0.1):
         self.discount_factor = discount_factor
         self.learning_rate = learning_rate

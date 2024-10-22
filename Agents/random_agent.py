@@ -1,11 +1,11 @@
-import agent
+from Agents.base_agent import BaseAgent
 import jax 
 import jax.numpy as jnp
 import jaxmarl
 from functools import partial
-import CTP_environment
+from Environment import CTP_environment
 
-class RandomAgent(agent.Agent):
+class RandomAgent(BaseAgent):
     def __init__(self, action_space):
         self.action_space = action_space
     
