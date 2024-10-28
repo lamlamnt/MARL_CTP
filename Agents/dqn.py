@@ -27,7 +27,7 @@ class DQN_Agent(BaseAgent):
     def act(self, key: jax.random.PRNGKey,state:CTP_environment.EnvState,observation:CTP_environment.Observation,online_net_params:dict) -> int:
         def _forward_pass():
             # Convert the observation sequence to matrix form -> Combine with weight and blocking probability matrices to get input to network
-            # Dummy input for now
+            # Dummy input for now. Need the goals position too
             x = jax.random.uniform(key, (1,5,5,3))
             # Use online network to do action selection (max Q value)
             q_values = self.model.apply(online_net_params, x)
