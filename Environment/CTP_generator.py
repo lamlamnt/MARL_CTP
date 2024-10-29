@@ -137,7 +137,12 @@ def sample_blocking_prob(
 ) -> jraph.GraphsTuple:
     # Global context = 1 means the Graph contains the blocking status of all edges
     global_context = jnp.array([[1]])
-    keys = jax.random.split(key, num=graph.n_edge)
+    # This is bad but leave it for now
+    if isinstance(graph.n_edge, jnp.ndarray):
+        num_edges = graph.n_edge.astype(int).item()
+    else:
+        num_edges = graph.n_edge
+    keys = jax.random.split(key, num=num_edges)
     # 0 means not blocked, 1 means blocked
     blocking_status = jax.vmap(jax.random.bernoulli, in_axes=(0,))(
         keys, p=graph.edges["blocked_prob"]
@@ -160,9 +165,9 @@ def plot_nx_graph(G: nx.Graph, origin, goal, directory, file_name="graph.png"):
     for node in G.nodes:
         c = "white"
         if node == goal:
-            c = "#2ca02c"
+            c = "#2ca02c"  # orange
         elif node == origin:
-            c = "#ff7f0e"
+            c = "#ff7f0e"  # green
         node_colour.append(c)
     edge_labels = []
     probs = nx.get_edge_attributes(G, "blocked_prob")
@@ -269,24 +274,32 @@ def is_solvable(graph: jraph.GraphsTuple, origin: int, goal: int) -> bool:
 
 
 # Add expensive edge between origin and goal
-@jax.jit
+# Need to add so that it's sorted
+# @jax.jit
 def add_expensive_edge(
     graph: jraph.GraphsTuple, weight: float, origin: int, goal: int
 ) -> jraph.GraphsTuple:
+    (origin, goal) = jax.lax.cond(
+        (origin < goal).item(), lambda _: (origin, goal), lambda _: (goal, origin), None
+    )
+
     senders = jnp.append(graph.senders, origin)
     receivers = jnp.append(graph.receivers, goal)
     weights = jnp.append(graph.edges["weight"], weight)
     blocking_prob = jnp.append(graph.edges["blocked_prob"], 0)
-    blocking_status = jnp.append(graph.edges["blocked_status"], 0)
+
+    # Make sure that sender, receiver still sorted after expensive edge is added
+    sort_indices = jnp.lexsort([receivers, senders])
+    senders = senders[sort_indices]
+    receivers = receivers[sort_indices]
+    weights = weights[sort_indices]
+    blocking_prob = blocking_prob[sort_indices]
+
     new_graph = graph._replace(
         n_edge=graph.n_edge + 1,
         senders=senders,
         receivers=receivers,
-        edges={
-            "weight": weights,
-            "blocked_prob": blocking_prob,
-            "blocked_status": blocking_status,
-        },
+        edges={"weight": weights, "blocked_prob": blocking_prob},
     )
     return new_graph
 

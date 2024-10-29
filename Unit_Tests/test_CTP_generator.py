@@ -30,7 +30,7 @@ if __name__ == "__main__":
     if not os.path.exists(log_directory):
         os.makedirs(log_directory)
 
-    key = jax.random.PRNGKey(30)
+    key = jax.random.PRNGKey(100)
     graph = CTP_generator.generate_graph(args.n_node, key, prop_stoch=0.4)
     origin, goal = CTP_generator.find_single_goal_and_origin(graph)
 

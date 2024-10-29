@@ -19,7 +19,12 @@ class EnvState:
 
 # Each observation is a dictionary of dictionaries, where the first key is the agent index and
 # the second key is the edge (sender,receiver) and the value is the blocking status (0 means not blocked).
-Observation = FrozenDict[int, FrozenDict[Tuple[int, int], bool]]
+# Observation = FrozenDict[int, FrozenDict[Tuple[int, int], bool]]
+
+
+@chex.dataclass
+class Observation:
+    blocked_status: jnp.ndarray
 
 
 class CTP(MultiAgentEnv):
@@ -34,6 +39,7 @@ class CTP(MultiAgentEnv):
         grid_size=10,
         add_expensive_edge=True,
         reward_for_invalid_action=-500,
+        factor_for_expensive_edge=3,
     ):
         super().__init__(num_agents=num_agents)
         self.num_goals = num_goals
@@ -59,28 +65,32 @@ class CTP(MultiAgentEnv):
         # Jax.lax.cond doesn't work here because spaces. Discrete is not a valid jax type
         if self.add_expensive_edge:
             actions = [num_nodes for _ in range(self.num_agents)]
+            # Add an expensive edge.
+            largest_edge_weight = jnp.max(self.agent_graph.edges["weight"])
+            self.agent_graph = CTP_generator.add_expensive_edge(
+                self.agent_graph,
+                largest_edge_weight * factor_for_expensive_edge,
+                self.origin,
+                self.goal,
+            )
         else:
             # If action = self.num_nodes, the agent is saying it's not solvable
             actions = [num_nodes + 1 for _ in range(self.num_agents)]
         self.action_spaces = spaces.MultiDiscrete(actions)
+        self.max_edges = CTP_generator.get_max_edges(self.agent_graph)
 
     def reset(self, key: chex.PRNGKey) -> tuple[Observation, EnvState]:
         starting_env_state = EnvState(agents_pos=self.origin)
         # Sample the blocking status
         # self.agent_graph is the graph without the blocking status. self.true_graph contains blocking status
         self.true_graph = CTP_generator.sample_blocking_prob(key, self.agent_graph)
-        self.solvable = CTP_generator.is_solvable(
-            self.true_graph, self.origin.item(), self.goal.item()
-        )
-
-        if self.add_expensive_edge is True:
-            # Add an expensive edge.
-            largest_edge_weight = jnp.max(self.true_graph.edges["weight"])
-            self.true_graph = CTP_generator.add_expensive_edge(
-                self.true_graph, largest_edge_weight * 3, self.origin, self.goal
-            )
+        # This if-else statement cannot be converted to jax.lax.cond because requires converting to networkx graph
+        if (self.add_expensive_edge) is True:
             self.solvable = True
-
+        else:
+            self.solvable = CTP_generator.is_solvable(
+                self.true_graph, self.origin.item(), self.goal.item()
+            )
         return self.get_obs(starting_env_state), starting_env_state
 
     # change the if statements in this function to jax.lax.cond/make this important function more jax-compatible
@@ -89,8 +99,11 @@ class CTP(MultiAgentEnv):
         self, state: EnvState, action: jnp.array
     ) -> tuple[Observation, EnvState, int, bool]:
         # Return observation, state, reward, and whether the episode is done
-        index_of_edge = jax.vmap(self._valid_action)(state.agents_pos, action)
+        index_of_edge = jax.vmap(self._valid_action, in_axes=(0, 0, None))(
+            state.agents_pos, action, self.true_graph
+        )
 
+        # Can easily be converted to jax.lax.cond but less readable
         if (
             self.add_expensive_edge is False
             and action == self.true_graph.n_node
@@ -125,17 +138,19 @@ class CTP(MultiAgentEnv):
 
         return observation, state, reward, terminate
 
-    def _valid_action(self, node1: int, node2: int) -> Tuple[bool, int]:
+    def _valid_action(
+        self, node1: int, node2: int, true_graph: jraph.GraphsTuple
+    ) -> Tuple[bool, int]:
         index_of_edge = jax.lax.cond(
             node2 > node1,
             lambda node1, node2: jnp.argmax(
                 jnp.append(
                     jnp.logical_and(
                         jnp.logical_and(
-                            self.true_graph.senders == node1,
-                            self.true_graph.receivers == node2,
+                            true_graph.senders == node1,
+                            true_graph.receivers == node2,
                         ),
-                        self.true_graph.edges["blocked_status"] == 0,
+                        true_graph.edges["blocked_status"] == 0,
                     ),
                     True,
                 )
@@ -144,10 +159,10 @@ class CTP(MultiAgentEnv):
                 jnp.append(
                     jnp.logical_and(
                         jnp.logical_and(
-                            self.true_graph.senders == node2,
-                            self.true_graph.receivers == node1,
+                            true_graph.senders == node2,
+                            true_graph.receivers == node1,
                         ),
-                        self.true_graph.edges["blocked_status"] == 0,
+                        true_graph.edges["blocked_status"] == 0,
                     ),
                     True,
                 )
@@ -157,6 +172,7 @@ class CTP(MultiAgentEnv):
         )
         return index_of_edge
 
+    """
     # This is currently not jax-compatible because edge_indices size varies
     def get_obs(self, state: EnvState) -> Observation:
         # Get the blocking status of the stochastic edges connected to a node
@@ -188,3 +204,30 @@ class CTP(MultiAgentEnv):
                 }
             )
         return observation
+        """
+
+    # Loop over all agents, not just agent 0
+    def get_obs(self, state: EnvState) -> Observation:
+        # Get the blocking status of the stochastic edges connected to a node
+        current_location = state.agents_pos[0]
+        current_observation = Observation(
+            blocked_status=jnp.full((self.max_edges + 1,), 2)
+        )
+        # Check for node in both sender and receiver (get indices)
+        edge_indices = jnp.where(
+            jnp.logical_or(
+                self.true_graph.senders == current_location,
+                self.true_graph.receivers == current_location,
+            )
+        )
+        for i in range(len(edge_indices[0])):
+            # Get the blocking status
+            current_observation.blocked_status = current_observation.blocked_status.at[
+                i
+            ].set(self.true_graph.edges["blocked_status"][edge_indices[0][i]])
+        """
+        current_observation.blocked_status = current_observation.blocked_status.at[
+            edge_indices[0]
+        ].set(self.true_graph.edges["blocked_status"][edge_indices[0]])
+        """
+        return current_observation

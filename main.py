@@ -120,7 +120,7 @@ if __name__ == "__main__":
     if not os.path.exists(log_directory):
         os.makedirs(log_directory)
 
-    key = jax.random.PRNGKey(100)
+    key = jax.random.PRNGKey(30)
     # Each episode uses the same graph (same connectivity and blocking probabilities)
     environment = CTP_environment.CTP(
         args.n_agent,
