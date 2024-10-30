@@ -1,8 +1,8 @@
 Things currently in progress:
-<br>-Make the step function more JAX-compatible
-<br>-requirements.txt and setup.py files and making the project into a package and removing sys.path.append("..")
 <br>-Separate into CTPGraph and Realisation
 <br>-Use pytest for unit testing
+<br>-Make the step function and run_episode function more JAX-compatible (just use jax.lax.cond)
+<br>-requirements.txt and setup.py files and making the project into a package and removing sys.path.append("..")
 <br>-Do blocked_status.Blocked and blocked_status.Unblocked instead of 0 and 1 to prevent confusion
 <br>-Some environment functions need some changes to work for multi-agent (ex. get_obs)
 

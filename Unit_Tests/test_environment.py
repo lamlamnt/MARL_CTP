@@ -50,7 +50,6 @@ if __name__ == "__main__":
     print(environment.true_graph.senders)
     print(environment.true_graph.receivers)
     print(environment.true_graph.edges["blocked_status"])
-    print(state.agents_pos)
     observation, state, current_reward, terminate = environment.step(
         state, jnp.array([0])
     )

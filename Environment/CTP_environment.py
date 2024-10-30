@@ -24,6 +24,7 @@ class EnvState:
 
 @chex.dataclass
 class Observation:
+    location: jnp.ndarray
     blocked_status: jnp.ndarray
 
 
@@ -211,7 +212,7 @@ class CTP(MultiAgentEnv):
         # Get the blocking status of the stochastic edges connected to a node
         current_location = state.agents_pos[0]
         current_observation = Observation(
-            blocked_status=jnp.full((self.max_edges + 1,), 2)
+            location=current_location, blocked_status=jnp.full((self.max_edges + 1,), 2)
         )
         # Check for node in both sender and receiver (get indices)
         edge_indices = jnp.where(
@@ -226,8 +227,10 @@ class CTP(MultiAgentEnv):
                 i
             ].set(self.true_graph.edges["blocked_status"][edge_indices[0][i]])
         """
-        current_observation.blocked_status = current_observation.blocked_status.at[
-            edge_indices[0]
-        ].set(self.true_graph.edges["blocked_status"][edge_indices[0]])
+        current_observation.blocked_status = jax.vmap(
+            lambda i: current_observation.blocked_status.at[i].set(
+                self.true_graph.edges["blocked_status"][edge_indices][0][i]
+            )
+        )(jnp.arange(len(edge_indices[0])))
         """
         return current_observation
