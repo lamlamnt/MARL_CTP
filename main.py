@@ -1,6 +1,6 @@
 import jax
 import jax.numpy as jnp
-from Environment import CTP_environment, CTP_generator
+from Environment import CTP_environment_old, CTP_generator
 import timeit
 import time
 import argparse
@@ -16,7 +16,7 @@ import os
 # instead of passing environment in, treat it as global variable
 def run_episode(
     episode_num: int,
-    environment: CTP_environment.CTP,
+    environment: CTP_environment_old.CTP,
     subkey: jax.random.PRNGKey,
     model_params,
 ) -> float:
@@ -122,7 +122,7 @@ if __name__ == "__main__":
 
     key = jax.random.PRNGKey(30)
     # Each episode uses the same graph (same connectivity and blocking probabilities)
-    environment = CTP_environment.CTP(
+    environment = CTP_environment_old.CTP(
         args.n_agent,
         1,
         args.n_node,

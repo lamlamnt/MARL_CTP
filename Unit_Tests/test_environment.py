@@ -3,7 +3,7 @@ import jax.numpy as jnp
 import sys
 
 sys.path.append("..")
-from Environment import CTP_environment
+from Environment import CTP_environment_old
 from Environment import CTP_generator
 import argparse
 import os
@@ -37,7 +37,7 @@ if __name__ == "__main__":
         os.makedirs(log_directory)
     key = jax.random.PRNGKey(30)
     # Each episode uses the same graph (same connectivity and blocking probabilities)
-    environment = CTP_environment.CTP(
+    environment = CTP_environment_old.CTP(
         args.n_agent, 1, args.n_node, key, prop_stoch=0.8, add_expensive_edge=True
     )
     key, subkey = jax.random.split(key)

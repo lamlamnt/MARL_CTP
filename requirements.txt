@@ -4,3 +4,4 @@ flax=0.7.4
 jaxmarl
 numpy
 matplotlib
+pytest

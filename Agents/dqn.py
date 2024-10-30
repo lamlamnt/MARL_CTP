@@ -3,7 +3,7 @@ import jax
 import jax.numpy as jnp
 import jaxmarl
 from jaxmarl.environments import spaces
-from Environment import CTP_environment
+from Environment import CTP_environment_old
 from functools import partial
 import optax
 import flax.linen as nn
@@ -36,8 +36,8 @@ class DQN_Agent(BaseAgent):
     def act(
         self,
         key: jax.random.PRNGKey,
-        state: CTP_environment.EnvState,
-        observation: CTP_environment.Observation,
+        state: CTP_environment_old.EnvState,
+        observation: CTP_environment_old.Observation,
         online_net_params: dict,
     ) -> int:
         def _forward_pass():
@@ -64,12 +64,12 @@ class DQN_Agent(BaseAgent):
 
     def update(
         self,
-        state: CTP_environment.EnvState,
-        observation: CTP_environment.Observation,
+        state: CTP_environment_old.EnvState,
+        observation: CTP_environment_old.Observation,
         action: int,
         reward: float,
-        next_state: CTP_environment.EnvState,
-        next_observation: CTP_environment.Observation,
+        next_state: CTP_environment_old.EnvState,
+        next_observation: CTP_environment_old.Observation,
         terminate: bool,
     ):
         # Update the network
