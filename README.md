@@ -1,6 +1,6 @@
 Things currently in progress:
 <br> Figure out how to do Logging with pytest
-<br>-Make the step function and run_episode function more JAX-compatible (just use jax.lax.cond)
+<br>-Change the step function to be more JAX-compatible (just use jax.lax.cond)
 <br>-requirements.txt and setup.py files and making the project into a package and removing sys.path.append("..")
 <br>-Some environment functions need some changes to work for multi-agent (ex. get_obs)
 
@@ -18,5 +18,6 @@ New:
 <br> Using setters and getters - property in Python
 <br> Whether to use self's properties in functions or pass them in as as arguments (try to follow functional programming paradigm?)
 
+<br>-Didn't do the adding (adding maybe better for multi-agent)
 
 
