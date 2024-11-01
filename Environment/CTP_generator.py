@@ -8,6 +8,12 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import os
+from typing import Literal
+
+Status = Literal[1, -1, 0]
+unblocked: Status = 0
+blocked: Status = 1
+unknown: Status = -1
 
 
 class CTPGraph:
@@ -19,7 +25,6 @@ class CTPGraph:
         prop_stoch=None,
         k_edges=None,
         num_goals=1,
-        num_origins=1,
     ):
         """
         List of properties:
@@ -54,7 +59,7 @@ class CTPGraph:
         )
 
         # Get goal and origin
-        if num_goals == 1 and num_origins == 1:
+        if num_goals == 1:
             self.goal, self.origin = self.__find_single_goal_and_origin(self.node_pos)
             self.goal = jnp.array([self.goal])
             self.origin = jnp.array([self.origin])
@@ -262,7 +267,6 @@ class CTPGraph_Realisation:
         prop_stoch=None,
         k_edges=None,
         num_goals=1,
-        num_origins=1,
     ):
         """
         List of properties:
@@ -270,9 +274,7 @@ class CTPGraph_Realisation:
         blocking_status: Blocking status of the edges in the graph
         is_solvable: Whether there exists a path from origin to goal
         """
-        self.graph = CTPGraph(
-            key, n_nodes, grid_size, prop_stoch, k_edges, num_goals, num_origins
-        )
+        self.graph = CTPGraph(key, n_nodes, grid_size, prop_stoch, k_edges, num_goals)
         key, subkey = jax.random.split(key)
         self.blocking_status = self.resample_blocking_prob(subkey)
         self.solvable = self.is_solvable()
@@ -280,7 +282,7 @@ class CTPGraph_Realisation:
     def resample_blocking_prob(self, key: jax.random.PRNGKey) -> jnp.ndarray:
         keys = jax.random.split(key, num=self.graph.n_edges)
         blocking_status = jnp.full(
-            (self.graph.n_nodes, self.graph.n_nodes), True, dtype=bool
+            (self.graph.n_nodes, self.graph.n_nodes), blocked, dtype=int
         )
         # 0 means not blocked, 1 means blocked
         for i in range(self.graph.n_edges):
@@ -296,6 +298,7 @@ class CTPGraph_Realisation:
             blocking_status = blocking_status.at[
                 self.graph.receivers[i], self.graph.senders[i]
             ].set(element_blocking_status)
+        self.blocking_status = blocking_status
         return blocking_status
 
     # for single agent only
@@ -325,7 +328,7 @@ class CTPGraph_Realisation:
             for i in range(self.graph.n_edges):
                 if (
                     self.blocking_status[unblocked_senders[i], unblocked_receivers[i]]
-                    == 0
+                    == unblocked
                 ):
                     graph_NX.add_edge(
                         unblocked_senders[i].item(), unblocked_receivers[i].item()
@@ -333,6 +336,7 @@ class CTPGraph_Realisation:
         solvable = nx.has_path(
             graph_NX, self.graph.origin.item(), self.graph.goal.item()
         )
+        self.solvable = solvable
         return solvable
 
     # Dashed if blocked, solid if unblocked

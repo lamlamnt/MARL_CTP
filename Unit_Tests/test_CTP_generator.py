@@ -66,3 +66,10 @@ def test_is_solvable(graphRealisation: CTP_generator.CTPGraph_Realisation):
     )
     assert graphRealisation.is_solvable() is False
     graphRealisation.blocking_status = temp
+
+
+def test_resample(graphRealisation: CTP_generator.CTPGraph_Realisation):
+    key = jax.random.PRNGKey(50)
+    old_blocking_status = graphRealisation.blocking_status
+    graphRealisation.resample_blocking_prob(key)
+    assert not jnp.array_equal(old_blocking_status, graphRealisation.blocking_status)
