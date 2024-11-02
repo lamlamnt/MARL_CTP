@@ -21,3 +21,5 @@ def test_symmetric():
 
 
 # Two consecutive resamples are different
+
+# Check reward is always negative

@@ -19,5 +19,6 @@ New:
 <br> Whether to use self's properties in functions or pass them in as as arguments (try to follow functional programming paradigm?)
 
 <br>-Didn't do the adding (adding maybe better for multi-agent)
+<br>-Try jitting the environment
 
 
