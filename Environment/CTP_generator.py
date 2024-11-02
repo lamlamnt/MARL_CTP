@@ -200,9 +200,9 @@ class CTPGraph:
         for node in G.nodes:
             c = "white"
             if node in self.goal:
-                c = "#2ca02c"  # orange
+                c = "#2ca02c"  # green
             elif node in self.origin:
-                c = "#ff7f0e"  # green
+                c = "#ff7f0e"  # orange
             node_colour.append(c)
         edge_labels = []
         probs = nx.get_edge_attributes(G, "blocked_prob")
@@ -347,9 +347,9 @@ class CTPGraph_Realisation:
         for node in G.nodes:
             c = "white"
             if node in self.graph.goal:
-                c = "#2ca02c"  # orange
+                c = "#2ca02c"  # green
             elif node in self.graph.origin:
-                c = "#ff7f0e"  # green
+                c = "#ff7f0e"  # orange
             node_colour.append(c)
         edge_labels = []
         probs = nx.get_edge_attributes(G, "blocked_prob")

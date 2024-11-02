@@ -101,7 +101,7 @@ class CTP(MultiAgentEnv):
         return initial_belief_state
 
     # If want to speed up, then don't need to recompute belief state for invalid actions
-    # @partial(jax.jit, static_argnums=(0,))
+    # @partial(jax.jit, static_argnums=(0,)) because of the first if statement
     def step(
         self, actions: jnp.ndarray, current_belief_state
     ) -> tuple[Belief_State, int, bool]:
@@ -120,7 +120,7 @@ class CTP(MultiAgentEnv):
             terminate = False
         # if at goal
         elif actions[0] == self.graph_realisation.graph.goal[0]:
-            self.agents_pos.at[0].set(actions[0])
+            self.agents_pos = self.agents_pos.at[0].set(actions[0])
             reward = 0
             terminate = True
         else:

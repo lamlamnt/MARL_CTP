@@ -3,6 +3,7 @@ Things currently in progress:
 <br>-Change the step function to be more JAX-compatible (just use jax.lax.cond)
 <br>-requirements.txt and setup.py files and making the project into a package and removing sys.path.append("..")
 <br>-Some environment functions need some changes to work for multi-agent (ex. get_obs)
+<br>-Fix the warnings
 
 Things that will be changed in the future if needed
 <br>-Write a jittable version of Delauney triangulation if environment creation becomes a bottleneck
@@ -20,5 +21,7 @@ New:
 
 <br>-Didn't do the adding (adding maybe better for multi-agent)
 <br>-Try jitting the environment
+
+<br>-use printer to debug unit tests that fail (use pytest_print and input printer as argument and then do printer("thing to print"))
 
 

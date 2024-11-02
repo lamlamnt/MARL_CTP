@@ -7,9 +7,6 @@ from Environment import CTP_generator
 import argparse
 import os
 import pytest
-import logging
-
-logging.basicConfig(level=logging.INFO)
 
 
 @pytest.fixture
@@ -73,3 +70,19 @@ def test_resample(graphRealisation: CTP_generator.CTPGraph_Realisation):
     old_blocking_status = graphRealisation.blocking_status
     graphRealisation.resample_blocking_prob(key)
     assert not jnp.array_equal(old_blocking_status, graphRealisation.blocking_status)
+
+
+def test_check_blocking_status(graphRealisation: CTP_generator.CTPGraph_Realisation):
+    # Check that non-existent edges have blocking status of True
+    # Check that deterministic edges have blocking status of False
+    for i in range(graphRealisation.graph.n_nodes):
+        for j in range(graphRealisation.graph.n_nodes):
+            if graphRealisation.graph.weights[i, j] == -1:
+                assert (
+                    int(graphRealisation.blocking_status[i, j]) is CTP_generator.blocked
+                )
+            if graphRealisation.graph.blocking_prob[i, j] == 0:
+                assert (
+                    int(graphRealisation.blocking_status[i, j])
+                    is CTP_generator.unblocked
+                )

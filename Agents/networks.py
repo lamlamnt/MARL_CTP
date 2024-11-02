@@ -23,15 +23,3 @@ class QNetwork(nn.Module):
         # Output has shape (batch_size, num_actions)
         # Maybe add softmax here
         return x
-
-
-# LSTM network
-class LSTM_Network(nn.Module):
-    hidden_dims_lstm: int
-    hidden_dims_FC: Sequence[int]
-    num_actions: int
-
-    @nn.compact
-    def __call__(self, observation: jnp.ndarray, state: jnp.ndarray):
-
-        return
