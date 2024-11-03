@@ -110,7 +110,9 @@ class CTPGraph:
         unique_edges = jnp.unique(all_edges, axis=0)
         senders = unique_edges[:, 0]
         receivers = unique_edges[:, 1]
-        weights = jnp.full((self.n_nodes, self.n_nodes), NOT_CONNECTED)
+        weights = jnp.full(
+            (self.n_nodes, self.n_nodes), NOT_CONNECTED, dtype=jnp.float32
+        )
 
         # Ideally use vmap or fori_loop here
         for sender, receiver in all_edges:

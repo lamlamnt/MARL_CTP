@@ -17,6 +17,12 @@ Belief_State: TypeAlias = jnp.ndarray
 Observation: TypeAlias = jnp.ndarray
 
 
+@chex.dataclass
+class EnvState:
+    graph_realisation: CTP_generator.CTPGraph_Realisation
+    agents_pos: jnp.array
+
+
 class CTP(MultiAgentEnv):
     def __init__(
         self,
@@ -27,12 +33,11 @@ class CTP(MultiAgentEnv):
         prop_stoch=None,
         k_edges=None,
         grid_size=10,
-        reward_for_invalid_action=-200,
+        reward_for_invalid_action=-200.0,
     ):
         """
         List of attributes:
         Part of the environment state:
-        num_agents: int
         graph_realisation: a CTPGraph_Realisation object
         agents_pos: 1d array of size num_agents, where each element is the position of the agent
 
@@ -40,6 +45,7 @@ class CTP(MultiAgentEnv):
         reward_for_invalid_action: int
 
         Others:
+        num_agents: int
         action_spaces
         """
         super().__init__(num_agents=num_agents)
@@ -96,16 +102,19 @@ class CTP(MultiAgentEnv):
             (empty, self.graph_realisation.graph.blocking_prob), axis=0
         )
         initial_belief_state = jnp.stack(
-            (pos_and_blocking_status, edge_weights, edge_probs), axis=0
+            (pos_and_blocking_status, edge_weights, edge_probs),
+            axis=0,
+            dtype=jnp.float32,
         )
         return initial_belief_state
 
     # If want to speed up, then don't need to recompute belief state for invalid actions
-    # @partial(jax.jit, static_argnums=(0, 2))
+    # @partial(jax.jit, static_argnums=(0,))
     def step(
-        self, current_belief_state, actions: jnp.ndarray
+        self, key: jax.random.PRNGKey, current_belief_state, actions: jnp.ndarray
     ) -> tuple[Belief_State, int, bool]:
         # return the next belief state, reward, and whether the episode is done
+
         # Use environment state and actions to determine if the action is valid
         def _is_invalid_action(actions: jnp.ndarray) -> bool:
             return jnp.logical_or(
@@ -120,22 +129,48 @@ class CTP(MultiAgentEnv):
                 ),
             )
 
-        if _is_invalid_action(actions):
+        # If invalid action, then return the same state, reward is very negative, and terminate=False
+        def _step_invalid_action(args) -> tuple[jnp.array, int, bool]:
+            agents_pos, actions = args
             reward = self.reward_for_invalid_action
-            terminate = False
-        # if at goal
-        elif actions[0] == self.graph_realisation.graph.goal[0]:
-            self.agents_pos = self.agents_pos.at[0].set(actions[0])
-            reward = 0
-            terminate = True
-        else:
+            terminate = jnp.bool_(False)
+            return agents_pos, reward, terminate
+
+        # Function that gets called if at goal
+        def _at_goal(args) -> tuple[jnp.array, int, bool]:
+            agents_pos, actions = args
+            agents_pos = agents_pos.at[0].set(actions[0])
+            reward = 0.0
+            terminate = jnp.bool_(True)
+            return agents_pos, reward, terminate
+
+        # Function that gets called if valid action and not at goal -> move to new node
+        def _move_to_new_node(args) -> tuple[jnp.array, int, bool]:
+            agents_pos, actions = args
             reward = -(
                 self.graph_realisation.graph.weights[self.agents_pos[0], actions[0]]
             )
-            self.agents_pos = self.agents_pos.at[0].set(actions[0])
-            terminate = False
+            agents_pos = agents_pos.at[0].set(actions[0])
+            terminate = jnp.bool_(False)
+            return agents_pos, reward, terminate
+
+        self.agents_pos, reward, terminate = jax.lax.cond(
+            _is_invalid_action(actions),
+            _step_invalid_action,
+            lambda args: jax.lax.cond(
+                actions[0] == self.graph_realisation.graph.goal[0],
+                _at_goal,
+                _move_to_new_node,
+                args,
+            ),
+            (self.agents_pos, actions),
+        )
         new_observation = self.get_obs()
         next_belief_state = self.get_belief_state(current_belief_state, new_observation)
+        # Reset if episode is done
+
+        key, subkey = jax.random.split(key)
+
         return next_belief_state, reward, terminate
 
     # use current state to get observation

@@ -41,12 +41,13 @@ def resample(environment: CTP_environment.CTP):
 # Check reward is always negative
 def test_reward(environment: CTP_environment.CTP):
     key = jax.random.PRNGKey(30)
+    key, subkey = jax.random.split(key)
     initial_belief_state = environment.reset(key)
     belief_state_1, reward_1, terminate = environment.step(
-        initial_belief_state, jnp.array([3])
+        subkey, initial_belief_state, jnp.array([3])
     )
     belief_state_2, reward_2, terminate = environment.step(
-        belief_state_1, jnp.array([1])
+        subkey, belief_state_1, jnp.array([1])
     )
     assert reward_1 < 0
     assert reward_2 < 0
@@ -56,29 +57,30 @@ def test_reward(environment: CTP_environment.CTP):
 # Check that belief state's current knowledge same as blocking status after visiting enough nodes
 # Check that agent's position is updated
 # Check that reward and terminate are correct
-def test_belief_state(environment: CTP_environment.CTP):
+def test_belief_state(printer, environment: CTP_environment.CTP):
     key = jax.random.PRNGKey(30)
+    key, subkey = jax.random.split(key)
     initial_belief_state = environment.reset(key)
 
     current_directory = os.getcwd()
     parent_dir = os.path.dirname(current_directory)
     log_directory = os.path.join(parent_dir, "Logs")
-    environment.graph_realisation.plot_realised_graph(log_directory)
+    environment.graph_realisation.plot_realised_graph(log_directory, "test_graph.png")
     belief_state_1, reward_1, terminate = environment.step(
-        initial_belief_state, jnp.array([4])
+        subkey, initial_belief_state, jnp.array([4])
     )
     belief_state_2, reward_2, terminate = environment.step(
-        belief_state_1, jnp.array([3])
+        subkey, belief_state_1, jnp.array([3])
     )
     belief_state_3, reward_3, terminate = environment.step(
-        belief_state_2, jnp.array([2])
+        subkey, belief_state_2, jnp.array([2])
     )
     # Check that agents position is updated
     assert not jnp.array_equal(belief_state_1[0, :1, :], belief_state_2[0, :1, :])
     assert not jnp.array_equal(belief_state_2[0, :1, :], belief_state_3[0, :1, :])
     # Empty/null for agent_pos part of edge_probs and weights
     assert jnp.sum(belief_state_1[1:, :1, :]) == 0
-    assert terminate is True
+    assert terminate == jnp.bool_(True)
     assert reward_3 == 0
     assert jnp.all(
         belief_state_3[0, 1:, :] == environment.graph_realisation.blocking_status
@@ -89,13 +91,21 @@ def test_belief_state(environment: CTP_environment.CTP):
 # Go to the same node twice
 def test_invalid_action(environment: CTP_environment.CTP):
     key = jax.random.PRNGKey(30)
+    key, subkey = jax.random.split(key)
     initial_belief_state = environment.reset(key)
     belief_state_1, reward_1, terminate = environment.step(
-        initial_belief_state, jnp.array([4])
+        subkey, initial_belief_state, jnp.array([4])
     )
     belief_state_2, reward_2, terminate = environment.step(
-        belief_state_1, jnp.array([4])
+        subkey, belief_state_1, jnp.array([4])
     )
-    assert reward_2 < reward_1
-    assert terminate is False
+    assert (reward_2 + reward_1) < reward_1
+    assert terminate == jnp.bool_(False)
     assert jnp.all(belief_state_1 == belief_state_2)
+
+
+# Check that the graph's edge weights contain some floats
+
+# Test reproducibility (same key - call function twice)
+
+# Test environment automatically set when episode is done (in the function above)

@@ -1,6 +1,6 @@
 Things currently in progress:
 <br> Pycache keeps being uploaded 
-<br>-Change the step function to be more JAX-compatible 
+<br>-Change the reset and step function to be more JAX-compatible and do jax.jit
 <br>-requirements.txt and setup.py files and making the project into a package and removing sys.path.append("..") OR make unit_tests a module and then do from .Unit_Tests import Environment
 <br>-Some environment functions need some changes to work for multi-agent (ex. get_obs)
 <br>-Fix the warnings when running pytest and main_training

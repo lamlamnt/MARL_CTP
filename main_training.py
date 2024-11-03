@@ -73,7 +73,7 @@ def main(args):
     )
 
     # Initialize the replay buffer with random samples (not necessary/optional)
-    init_key, action_key, buffer_key = jax.vmap(jax.random.PRNGKey)(
+    init_key, action_key, env_key = jax.vmap(jax.random.PRNGKey)(
         jnp.arange(3) + args.random_seed
     )
     new_state = environment.reset(init_key)
@@ -86,7 +86,7 @@ def main(args):
         action, action_key = agent.act(action_key, online_net_params, state, 1)
         # For multi-agent, we would concatenate all the agents' actions together here
         action = jnp.array([action])
-        new_state, reward, done = environment.step(state, action)
+        new_state, reward, done, env_key = environment.step(env_key, state, action)
         action = action[0]
         experience = (state, action, reward, new_state, done)
         buffer_state = replay_buffer.add(buffer_state, experience, i)
@@ -150,6 +150,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--batch_size", type=int, help="Batch size", required=False, default=5
+    )
+    parser.add_argument(
+        "--reward_for_invalid_action", type=float, required=False, default=-200.0
     )
 
     # Hyperparameters specific to DQN
