@@ -111,9 +111,9 @@ class CTP(MultiAgentEnv):
             actions[0] == self.agents_pos[0],
             jnp.logical_or(
                 self.graph_realisation.graph.weights[self.agents_pos[0], actions[0]]
-                == -1,
+                == CTP_generator.NOT_CONNECTED,
                 self.graph_realisation.blocking_status[self.agents_pos[0], actions[0]]
-                == CTP_generator.blocked,
+                == CTP_generator.BLOCKED,
             ),
         ):
             reward = self.reward_for_invalid_action
@@ -141,7 +141,7 @@ class CTP(MultiAgentEnv):
                 self.graph_realisation.graph.n_nodes,
                 self.graph_realisation.graph.n_nodes,
             ),
-            CTP_generator.unknown,
+            CTP_generator.UNKNOWN,
         )
         # replace 1 row and column corresponding to agent's position
         obs_blocking_status = obs_blocking_status.at[self.agents_pos[0], :].set(
@@ -168,7 +168,7 @@ class CTP(MultiAgentEnv):
     ) -> Belief_State:
         # Combine current_blocking_status with new_observation
         new_blocking_knowledge = jnp.where(
-            old_belief_state[0, self.num_agents :, :] == CTP_generator.unknown,
+            old_belief_state[0, self.num_agents :, :] == CTP_generator.UNKNOWN,
             new_observation[self.num_agents :, :],
             old_belief_state[0, self.num_agents :, :],
         )

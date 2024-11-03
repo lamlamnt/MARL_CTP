@@ -77,12 +77,12 @@ def test_check_blocking_status(graphRealisation: CTP_generator.CTPGraph_Realisat
     # Check that deterministic edges have blocking status of False
     for i in range(graphRealisation.graph.n_nodes):
         for j in range(graphRealisation.graph.n_nodes):
-            if graphRealisation.graph.weights[i, j] == -1:
+            if graphRealisation.graph.weights[i, j] == CTP_generator.NOT_CONNECTED:
                 assert (
-                    int(graphRealisation.blocking_status[i, j]) is CTP_generator.blocked
+                    int(graphRealisation.blocking_status[i, j]) is CTP_generator.BLOCKED
                 )
             if graphRealisation.graph.blocking_prob[i, j] == 0:
                 assert (
                     int(graphRealisation.blocking_status[i, j])
-                    is CTP_generator.unblocked
+                    is CTP_generator.UNBLOCKED
                 )

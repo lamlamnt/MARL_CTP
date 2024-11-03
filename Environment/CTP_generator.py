@@ -8,12 +8,14 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import os
-from typing import Literal
+from typing import Literal, Final
 
 Status = Literal[1, -1, 0]
-unblocked: Status = 0
-blocked: Status = 1
-unknown: Status = -1
+UNBLOCKED: Status = 0
+BLOCKED: Status = 1
+UNKNOWN: Status = -1
+
+NOT_CONNECTED: Final[int] = -1
 
 
 class CTPGraph:
@@ -65,7 +67,6 @@ class CTPGraph:
             self.origin = jnp.array([self.origin])
 
     # Returns the weight adjacency matrix and n_edges
-    # -1 if no edge between 2 nodes
     def __generate_connectivity_weight(
         self, key, grid_size
     ) -> tuple[jnp.ndarray, int, jnp.array, jnp.array, jnp.ndarray]:
@@ -109,7 +110,7 @@ class CTPGraph:
         unique_edges = jnp.unique(all_edges, axis=0)
         senders = unique_edges[:, 0]
         receivers = unique_edges[:, 1]
-        weights = jnp.full((self.n_nodes, self.n_nodes), -1.0)
+        weights = jnp.full((self.n_nodes, self.n_nodes), NOT_CONNECTED)
 
         # Ideally use vmap or fori_loop here
         for sender, receiver in all_edges:
@@ -282,7 +283,7 @@ class CTPGraph_Realisation:
     def resample_blocking_prob(self, key: jax.random.PRNGKey) -> jnp.ndarray:
         keys = jax.random.split(key, num=self.graph.n_edges)
         blocking_status = jnp.full(
-            (self.graph.n_nodes, self.graph.n_nodes), blocked, dtype=int
+            (self.graph.n_nodes, self.graph.n_nodes), BLOCKED, dtype=int
         )
         # 0 means not blocked, 1 means blocked
         for i in range(self.graph.n_edges):
@@ -311,7 +312,7 @@ class CTPGraph_Realisation:
             return jax.lax.cond(
                 status[sender, receiver] == False,  # Check if the edge is not blocked
                 lambda _: sender,  # Include the sender if unblocked
-                lambda _: -1,  # Use -1 as a placeholder for blocked edges
+                lambda _: NOT_CONNECTED,  # Use -1 as a placeholder for blocked edges
                 operand=None,
             )
 
@@ -320,8 +321,8 @@ class CTPGraph_Realisation:
         )
 
         # Remove placeholder values (-1) and return only valid sender values
-        unblocked_senders = self.graph.senders[filtered_senders != -1]
-        unblocked_receivers = self.graph.receivers[filtered_senders != -1]
+        unblocked_senders = self.graph.senders[filtered_senders != NOT_CONNECTED]
+        unblocked_receivers = self.graph.receivers[filtered_senders != NOT_CONNECTED]
         graph_NX = nx.Graph()
         for i in range(self.graph.n_nodes):
             graph_NX.add_node(i, pos=tuple(self.graph.node_pos[i].tolist()))
@@ -329,7 +330,7 @@ class CTPGraph_Realisation:
             for i in range(self.graph.n_edges):
                 if (
                     self.blocking_status[unblocked_senders[i], unblocked_receivers[i]]
-                    == unblocked
+                    == UNBLOCKED
                 ):
                     graph_NX.add_edge(
                         unblocked_senders[i].item(), unblocked_receivers[i].item()

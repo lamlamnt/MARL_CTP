@@ -1,9 +1,9 @@
 Things currently in progress:
-<br> Figure out how to do Logging with pytest
-<br>-Change the step function to be more JAX-compatible (just use jax.lax.cond)
-<br>-requirements.txt and setup.py files and making the project into a package and removing sys.path.append("..")
+<br> Pycache keeps being uploaded 
+<br>-Change the step function to be more JAX-compatible 
+<br>-requirements.txt and setup.py files and making the project into a package and removing sys.path.append("..") OR make unit_tests a module and then do from .Unit_Tests import Environment
 <br>-Some environment functions need some changes to work for multi-agent (ex. get_obs)
-<br>-Fix the warnings
+<br>-Fix the warnings when running pytest and main_training
 
 Things that will be changed in the future if needed
 <br>-Write a jittable version of Delauney triangulation if environment creation becomes a bottleneck
