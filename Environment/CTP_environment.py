@@ -17,10 +17,6 @@ Belief_State: TypeAlias = jnp.ndarray
 # current location of agents and knowledge of blocking status of connected edges
 Observation: TypeAlias = jnp.ndarray
 EnvState: TypeAlias = jnp.ndarray
-EnvState_agents_pos: TypeAlias = jnp.array
-# Technically, env_state should contain the graph_realisation and agents_pos, but I so far cannot jax jit
-# a function when graph realisation is passed in as part of the argument, so graph_realisation will be a
-# class attribute for now
 
 
 class CTP(MultiAgentEnv):
@@ -60,9 +56,11 @@ class CTP(MultiAgentEnv):
         self.action_spaces = spaces.MultiDiscrete(actions)
 
     # Cannot not jax.jit or use jax.while_loop because is_solvable the way unblocked_senders and unblocked_receivers are computed is not jax compatible (not static shape)
-    def reset(self, key: chex.PRNGKey) -> tuple[EnvState_agents_pos, Belief_State]:
+    @partial(jax.jit, static_argnums=(0,))
+    def reset(self, key: chex.PRNGKey) -> tuple[EnvState, Belief_State]:
         key, subkey = jax.random.split(key)
-        new_blocking_status = self.graph_realisation.resample_blocking_prob(subkey)
+        # new_blocking_status = self.graph_realisation.resample_blocking_prob(subkey)
+        """
         # Resample until the graph is solvable
         times_resample = 0
         while (
@@ -72,85 +70,95 @@ class CTP(MultiAgentEnv):
             new_blocking_status = self.graph_realisation.resample_blocking_prob(subkey)
             key, subkey = jax.random.split(subkey)
             times_resample += 1
+        """
         # update agents' positions (array)
-        env_state_agents_pos = self.graph_realisation.graph.origin
+        agents_pos = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.int32)
+        agents_pos = agents_pos.at[0, self.graph_realisation.graph.origin[0]].set(1)
+        env_state = self.__convert_graph_realisation_to_matrix(
+            self.graph_realisation, agents_pos
+        )
 
         # return the initial belief state
-        original_observation = self.get_obs(env_state_agents_pos)
+        original_observation = self.get_obs(env_state)
         # Incorporate info that non-existent edges are blocked and deterministic edges are not blocked
         blocking_status_knowledge = jnp.where(
             jnp.logical_or(
-                self.graph_realisation.graph.blocking_prob == 0,
-                self.graph_realisation.graph.blocking_prob == 1,
+                env_state[2, self.num_agents :, :] == 0,
+                env_state[2, self.num_agents :, :] == 1,
             ),
-            self.graph_realisation.blocking_status,
+            env_state[0, self.num_agents :, :],
             original_observation[self.num_agents :, :],
         )
         pos_and_blocking_status = original_observation.at[self.num_agents :, :].set(
             blocking_status_knowledge
         )
-
-        empty = jnp.zeros((self.num_agents, self.graph_realisation.graph.n_nodes))
-        edge_weights = jnp.concatenate(
-            (empty, self.graph_realisation.graph.weights), axis=0
-        )
-        edge_probs = jnp.concatenate(
-            (empty, self.graph_realisation.graph.blocking_prob), axis=0
-        )
         initial_belief_state = jnp.stack(
-            (pos_and_blocking_status, edge_weights, edge_probs),
+            (pos_and_blocking_status, env_state[1, :, :], env_state[2, :, :]),
             axis=0,
             dtype=jnp.float32,
         )
-        return env_state_agents_pos, initial_belief_state
+        return env_state, initial_belief_state
 
     @partial(jax.jit, static_argnums=(0,))
     def step(
         self,
         key: jax.random.PRNGKey,
-        old_env_state_agents_pos: EnvState_agents_pos,
-        current_belief_state,
+        current_env_state: EnvState,
+        current_belief_state: Belief_State,
         actions: jnp.ndarray,
-    ) -> tuple[EnvState_agents_pos, Belief_State, int, bool]:
+    ) -> tuple[EnvState, Belief_State, int, bool]:
         # return the new environment state, next belief state, reward, and whether the episode is done
+        weights = current_env_state[1, self.num_agents :, :]
+        blocking_prob = current_env_state[2, self.num_agents :, :]
+        blocking_status = current_env_state[0, self.num_agents :, :]
 
         # Use environment state and actions to determine if the action is valid
-        def _is_invalid_action(actions: jnp.ndarray, agents_pos: jnp.array) -> bool:
+        def _is_invalid_action(
+            actions: jnp.ndarray, current_env_state: jnp.array
+        ) -> bool:
             return jnp.logical_or(
-                actions[0] == agents_pos[0],
+                actions[0] == jnp.argmax(current_env_state[0, :1, :]),
                 jnp.logical_or(
-                    self.graph_realisation.graph.weights[agents_pos[0], actions[0]]
+                    weights[jnp.argmax(current_env_state[0, :1, :]), actions[0]]
                     == CTP_generator.NOT_CONNECTED,
-                    self.graph_realisation.blocking_status[agents_pos[0], actions[0]]
+                    blocking_status[jnp.argmax(current_env_state[0, :1, :]), actions[0]]
                     == CTP_generator.BLOCKED,
                 ),
             )
 
         # If invalid action, then return the same state, reward is very negative, and terminate=False
         def _step_invalid_action(args) -> tuple[jnp.array, int, bool]:
-            agents_pos, actions = args
+            current_env_state, actions = args
             reward = self.reward_for_invalid_action
             terminate = jnp.bool_(False)
-            return agents_pos, reward, terminate
+            return current_env_state, reward, terminate
 
         # Function that gets called if at goal -> reset to origin
         def _at_goal(args) -> tuple[jnp.array, int, bool]:
-            agents_pos, actions = args
-            agents_pos = agents_pos.at[0].set(actions[0])
+            current_env_state, actions = args
+            agents_pos = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.int32)
+            agents_pos = agents_pos.at[0, actions[0]].set(1)
+            new_env_state = current_env_state.at[0, : self.num_agents, :].set(
+                agents_pos
+            )
             reward = 0.0
             terminate = jnp.bool_(True)
-            return agents_pos, reward, terminate
+            return new_env_state, reward, terminate
 
         # Function that gets called if valid action and not at goal -> move to new node
         def _move_to_new_node(args) -> tuple[jnp.array, int, bool]:
-            agents_pos, actions = args
-            reward = -(self.graph_realisation.graph.weights[agents_pos[0], actions[0]])
-            agents_pos = agents_pos.at[0].set(actions[0])
+            current_env_state, actions = args
+            reward = -(weights[jnp.argmax(current_env_state[0, :1, :]), actions[0]])
+            agents_pos = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.int32)
+            agents_pos = agents_pos.at[0, actions[0]].set(1)
+            new_env_state = current_env_state.at[0, : self.num_agents, :].set(
+                agents_pos
+            )
             terminate = jnp.bool_(False)
-            return agents_pos, reward, terminate
+            return new_env_state, reward, terminate
 
-        new_agents_pos, reward, terminate = jax.lax.cond(
-            _is_invalid_action(actions, old_env_state_agents_pos),
+        new_env_state, reward, terminate = jax.lax.cond(
+            _is_invalid_action(actions, current_env_state),
             _step_invalid_action,
             lambda args: jax.lax.cond(
                 actions[0] == self.graph_realisation.graph.goal[0],
@@ -158,41 +166,43 @@ class CTP(MultiAgentEnv):
                 _move_to_new_node,
                 args,
             ),
-            (old_env_state_agents_pos, actions),
+            (current_env_state, actions),
         )
-        new_env_state_agent_pos = new_agents_pos
-        new_observation = self.get_obs(new_env_state_agent_pos)
+        new_observation = self.get_obs(new_env_state)
         next_belief_state = self.get_belief_state(current_belief_state, new_observation)
         key, subkey = jax.random.split(key)
+
+        origin_state, origin_belief = jax.lax.cond(
+            terminate,
+            lambda x: self.reset(x),
+            lambda x: (new_env_state, next_belief_state),
+            key,
+        )
+
         # The subkey was initially for resetting the environment (not being used here)
-        return new_env_state_agent_pos, next_belief_state, reward, terminate, subkey
+        return new_env_state, next_belief_state, reward, terminate, subkey
 
     # use current state to get observation
-    def get_obs(self, env_state_agents_pos: EnvState_agents_pos) -> jnp.ndarray:
+    def get_obs(self, env_state: EnvState) -> jnp.ndarray:
+        agents_pos = env_state[0, : self.num_agents, :]
+        blocking_status = env_state[0, self.num_agents :, :]
         # Get edges connected to agent's current position
         obs_blocking_status = jnp.full(
             (
-                self.graph_realisation.graph.n_nodes,
-                self.graph_realisation.graph.n_nodes,
+                self.num_nodes,
+                self.num_nodes,
             ),
             CTP_generator.UNKNOWN,
         )
         # replace 1 row and column corresponding to agent's position
-        obs_blocking_status = obs_blocking_status.at[env_state_agents_pos[0], :].set(
-            self.graph_realisation.blocking_status[env_state_agents_pos[0], :]
+        obs_blocking_status = obs_blocking_status.at[jnp.argmax(agents_pos[0]), :].set(
+            blocking_status[jnp.argmax(agents_pos[0]), :]
         )
-        obs_blocking_status = obs_blocking_status.at[:, env_state_agents_pos[0]].set(
-            self.graph_realisation.blocking_status[env_state_agents_pos[0], :]
+        obs_blocking_status = obs_blocking_status.at[:, jnp.argmax(agents_pos[0])].set(
+            blocking_status[jnp.argmax(agents_pos[0]), :]
         )
-
-        # Convert agent's position to one-hot encoding
-        obs_agent_pos = jnp.zeros(
-            (self.num_agents, self.graph_realisation.graph.n_nodes)
-        )
-        obs_agent_pos = obs_agent_pos.at[0, env_state_agents_pos[0]].add(1)
-
         # Concatenate
-        new_observation = jnp.concatenate((obs_agent_pos, obs_blocking_status), axis=0)
+        new_observation = jnp.concatenate((agents_pos, obs_blocking_status), axis=0)
         return new_observation
 
     # Need to use previous belief state and current state
@@ -218,3 +228,21 @@ class CTP(MultiAgentEnv):
         )
 
         return new_belief_state
+
+    def __convert_graph_realisation_to_matrix(
+        self, graph_realisation: CTP_generator.CTPGraph_Realisation, agents_pos
+    ) -> EnvState:
+        # Convert graph realisation to matrix
+        empty = jnp.zeros((self.num_agents, self.num_nodes))
+        edge_weights = jnp.concatenate((empty, graph_realisation.graph.weights), axis=0)
+        edge_probs = jnp.concatenate(
+            (empty, graph_realisation.graph.blocking_prob), axis=0
+        )
+        pos_and_blocking_status = jnp.concatenate(
+            (agents_pos, graph_realisation.blocking_status), axis=0
+        )
+        return jnp.stack(
+            (pos_and_blocking_status, edge_weights, edge_probs),
+            axis=0,
+            dtype=jnp.float32,
+        )

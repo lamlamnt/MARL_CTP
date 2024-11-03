@@ -38,11 +38,11 @@ def test_symmetric(environment: CTP_environment.CTP):
 
 
 # Two consecutive resamples are different
-def resample(environment: CTP_environment.CTP):
+def test_resample(printer, environment: CTP_environment.CTP):
     key = jax.random.PRNGKey(30)
     key, subkey = jax.random.split(key)
-    initial_env_state_agents_pos, initial_belief_state = environment.reset(key)
-    next_env_state_agents_pos, next_initial_belief_state = environment.reset(subkey)
+    initial_env_state, initial_belief_state = environment.reset(key)
+    next_env_state, next_initial_belief_state = environment.reset(subkey)
     assert not jnp.array_equal(initial_belief_state, next_initial_belief_state)
     assert jnp.array_equal(
         environment.graph_realisation.graph.weights,
@@ -52,22 +52,23 @@ def resample(environment: CTP_environment.CTP):
         environment.graph_realisation.graph.blocking_prob,
         environment.graph_realisation.graph.blocking_prob,
     )
-    # start at the same origin
-    assert jnp.array_equal(initial_env_state_agents_pos, next_env_state_agents_pos)
+    # start at the same origin but not necessarily same blocking status
+    assert jnp.array_equal(initial_env_state[0, :1, :], next_env_state[0, :1, :])
+    assert jnp.array_equal(initial_env_state[1, :, :], next_env_state[1, :, :])
+    assert jnp.array_equal(initial_env_state[2, :, :], next_env_state[2, :, :])
+    assert not jnp.array_equal(initial_env_state, next_env_state)
 
 
 # Check reward is always negative
 def test_reward(environment: CTP_environment.CTP):
     key = jax.random.PRNGKey(30)
     key, subkey = jax.random.split(key)
-    initial_env_state_agent_pos, initial_belief_state = environment.reset(key)
-    env_state_agent_pos_1, belief_state_1, reward_1, terminate, subkey = (
-        environment.step(
-            subkey, initial_env_state_agent_pos, initial_belief_state, jnp.array([3])
-        )
+    initial_env_state, initial_belief_state = environment.reset(key)
+    env_state_1, belief_state_1, reward_1, terminate, subkey = environment.step(
+        subkey, initial_env_state, initial_belief_state, jnp.array([3])
     )
-    env_state_agent_pos_2, belief_state_2, reward_2, terminate, subkey = (
-        environment.step(subkey, env_state_agent_pos_1, belief_state_1, jnp.array([1]))
+    env_state_2, belief_state_2, reward_2, terminate, subkey = environment.step(
+        subkey, env_state_1, belief_state_1, jnp.array([1])
     )
     assert reward_1 < 0
     assert reward_2 < 0
@@ -80,23 +81,21 @@ def test_reward(environment: CTP_environment.CTP):
 def test_belief_state(printer, environment: CTP_environment.CTP):
     key = jax.random.PRNGKey(30)
     key, subkey = jax.random.split(key)
-    initial_env_state_agent_pos, initial_belief_state = environment.reset(key)
+    initial_env_state, initial_belief_state = environment.reset(key)
     old_blocking_status = environment.graph_realisation.blocking_status
 
     current_directory = os.getcwd()
     parent_dir = os.path.dirname(current_directory)
     log_directory = os.path.join(parent_dir, "Logs")
     environment.graph_realisation.plot_realised_graph(log_directory, "test_graph.png")
-    env_state_agent_pos_1, belief_state_1, reward_1, terminate, subkey = (
-        environment.step(
-            subkey, initial_env_state_agent_pos, initial_belief_state, jnp.array([4])
-        )
+    env_state_1, belief_state_1, reward_1, terminate, subkey = environment.step(
+        subkey, initial_env_state, initial_belief_state, jnp.array([4])
     )
-    env_state_agent_pos_2, belief_state_2, reward_2, terminate, subkey = (
-        environment.step(subkey, env_state_agent_pos_1, belief_state_1, jnp.array([3]))
+    env_state_2, belief_state_2, reward_2, terminate, subkey = environment.step(
+        subkey, env_state_1, belief_state_1, jnp.array([3])
     )
-    env_state_agent_pos_3, belief_state_3, reward_3, terminate, subkey = (
-        environment.step(subkey, env_state_agent_pos_2, belief_state_2, jnp.array([2]))
+    env_state_3, belief_state_3, reward_3, terminate, subkey = environment.step(
+        subkey, env_state_2, belief_state_2, jnp.array([2])
     )
     # Check that agents position is updated
     assert not jnp.array_equal(belief_state_1[0, :1, :], belief_state_2[0, :1, :])
@@ -125,20 +124,18 @@ def test_belief_state(printer, environment: CTP_environment.CTP):
 def test_invalid_action(environment: CTP_environment.CTP):
     key = jax.random.PRNGKey(30)
     key, subkey = jax.random.split(key)
-    initial_env_state_agent_pos, initial_belief_state = environment.reset(key)
+    initial_env_state, initial_belief_state = environment.reset(key)
     old_blocking_status = environment.graph_realisation.blocking_status
-    env_state_agent_pos_1, belief_state_1, reward_1, terminate, subkey = (
-        environment.step(
-            subkey, initial_env_state_agent_pos, initial_belief_state, jnp.array([4])
-        )
+    env_state_1, belief_state_1, reward_1, terminate, subkey = environment.step(
+        subkey, initial_env_state, initial_belief_state, jnp.array([4])
     )
-    env_state_agent_pos_2, belief_state_2, reward_2, terminate, subkey = (
-        environment.step(subkey, env_state_agent_pos_1, belief_state_1, jnp.array([4]))
+    env_state_2, belief_state_2, reward_2, terminate, subkey = environment.step(
+        subkey, env_state_1, belief_state_1, jnp.array([4])
     )
     assert (reward_2 + reward_1) < reward_1
     assert terminate == jnp.bool_(False)
     assert jnp.all(belief_state_1 == belief_state_2)
-    assert jnp.array_equal(env_state_agent_pos_1, env_state_agent_pos_2)
+    assert jnp.array_equal(env_state_1[0, :1, :], env_state_2[0, :1, :])
     assert jnp.array_equal(
         old_blocking_status, environment.graph_realisation.blocking_status
     )
@@ -175,4 +172,24 @@ def test_reproducibility(environment: CTP_environment.CTP):
     assert jnp.array_equal(
         environment_old.graph_realisation.blocking_status,
         environment_new.graph_realisation.blocking_status,
+    )
+
+
+def test_env_state(environment: CTP_environment.CTP):
+    key = jax.random.PRNGKey(30)
+    key, subkey = jax.random.split(key)
+    initial_env_state, initial_belief_state = environment.reset(key)
+    env_state_1, belief_state_1, reward_1, terminate, subkey = environment.step(
+        subkey, initial_env_state, initial_belief_state, jnp.array([4])
+    )
+    assert jnp.array_equal(initial_env_state[0, :1, :], initial_belief_state[0, :1, :])
+    assert jnp.array_equal(env_state_1[0, :1, :], belief_state_1[0, :1, :])
+    assert jnp.array_equal(
+        env_state_1[0, 1:, :], environment.graph_realisation.blocking_status
+    )
+    assert jnp.array_equal(
+        env_state_1[1, 1:, :], environment.graph_realisation.graph.weights
+    )
+    assert jnp.array_equal(
+        env_state_1[2, 1:, :], environment.graph_realisation.graph.blocking_prob
     )

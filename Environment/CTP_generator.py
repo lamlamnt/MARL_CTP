@@ -302,7 +302,7 @@ class CTPGraph_Realisation:
                 self.graph.receivers[i], self.graph.senders[i]
             ].set(element_blocking_status)
         self.blocking_status = blocking_status
-        self.solvable = self.is_solvable()
+        # self.solvable = self.is_solvable()
         return blocking_status
 
     # for single agent only
