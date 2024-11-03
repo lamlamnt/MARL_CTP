@@ -17,9 +17,14 @@ def test_mlp(printer):
     params = MLP.forward_fn_FC.init(key, dummy_input)
     output_1 = MLP.forward_fn_FC.apply(params, dummy_input)
 
-    simple_params = MLP.simplest_model.init(key, dummy_input)
-    output_2 = MLP.simplest_model.apply(simple_params, subkey, dummy_input)
+    simple_params = MLP.simplest_model_hk.init(key, dummy_input)
+    output_2 = MLP.simplest_model_hk.apply(simple_params, subkey, dummy_input)
+
+    flax_model = MLP.Flax_FCNetwork([64, 32], 5)
+    flax_params = flax_model.init(key, dummy_input)
+    output_3 = flax_model.apply(flax_params, dummy_input)
 
     # Check that the output has the correct shape
     assert output_1.shape == (5,)
     assert output_2.shape == (5,)
+    assert output_3.shape == (5,)

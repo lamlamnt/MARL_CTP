@@ -101,21 +101,26 @@ class CTP(MultiAgentEnv):
         return initial_belief_state
 
     # If want to speed up, then don't need to recompute belief state for invalid actions
-    # @partial(jax.jit, static_argnums=(0,)) because of the first if statement
+    # @partial(jax.jit, static_argnums=(0, 2))
     def step(
-        self, actions: jnp.ndarray, current_belief_state
+        self, current_belief_state, actions: jnp.ndarray
     ) -> tuple[Belief_State, int, bool]:
         # return the next belief state, reward, and whether the episode is done
         # Use environment state and actions to determine if the action is valid
-        if jnp.logical_or(
-            actions[0] == self.agents_pos[0],
-            jnp.logical_or(
-                self.graph_realisation.graph.weights[self.agents_pos[0], actions[0]]
-                == CTP_generator.NOT_CONNECTED,
-                self.graph_realisation.blocking_status[self.agents_pos[0], actions[0]]
-                == CTP_generator.BLOCKED,
-            ),
-        ):
+        def _is_invalid_action(actions: jnp.ndarray) -> bool:
+            return jnp.logical_or(
+                actions[0] == self.agents_pos[0],
+                jnp.logical_or(
+                    self.graph_realisation.graph.weights[self.agents_pos[0], actions[0]]
+                    == CTP_generator.NOT_CONNECTED,
+                    self.graph_realisation.blocking_status[
+                        self.agents_pos[0], actions[0]
+                    ]
+                    == CTP_generator.BLOCKED,
+                ),
+            )
+
+        if _is_invalid_action(actions):
             reward = self.reward_for_invalid_action
             terminate = False
         # if at goal

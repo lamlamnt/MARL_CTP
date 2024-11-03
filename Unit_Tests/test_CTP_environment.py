@@ -43,10 +43,10 @@ def test_reward(environment: CTP_environment.CTP):
     key = jax.random.PRNGKey(30)
     initial_belief_state = environment.reset(key)
     belief_state_1, reward_1, terminate = environment.step(
-        jnp.array([3]), initial_belief_state
+        initial_belief_state, jnp.array([3])
     )
     belief_state_2, reward_2, terminate = environment.step(
-        jnp.array([1]), belief_state_1
+        belief_state_1, jnp.array([1])
     )
     assert reward_1 < 0
     assert reward_2 < 0
@@ -65,13 +65,13 @@ def test_belief_state(environment: CTP_environment.CTP):
     log_directory = os.path.join(parent_dir, "Logs")
     environment.graph_realisation.plot_realised_graph(log_directory)
     belief_state_1, reward_1, terminate = environment.step(
-        jnp.array([4]), initial_belief_state
+        initial_belief_state, jnp.array([4])
     )
     belief_state_2, reward_2, terminate = environment.step(
-        jnp.array([3]), belief_state_1
+        belief_state_1, jnp.array([3])
     )
     belief_state_3, reward_3, terminate = environment.step(
-        jnp.array([2]), belief_state_2
+        belief_state_2, jnp.array([2])
     )
     # Check that agents position is updated
     assert not jnp.array_equal(belief_state_1[0, :1, :], belief_state_2[0, :1, :])
@@ -91,10 +91,10 @@ def test_invalid_action(environment: CTP_environment.CTP):
     key = jax.random.PRNGKey(30)
     initial_belief_state = environment.reset(key)
     belief_state_1, reward_1, terminate = environment.step(
-        jnp.array([4]), initial_belief_state
+        initial_belief_state, jnp.array([4])
     )
     belief_state_2, reward_2, terminate = environment.step(
-        jnp.array([4]), belief_state_1
+        belief_state_1, jnp.array([4])
     )
     assert reward_2 < reward_1
     assert terminate is False

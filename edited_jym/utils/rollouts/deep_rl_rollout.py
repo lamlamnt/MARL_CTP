@@ -14,7 +14,7 @@ def deep_rl_rollout(
     timesteps: int,
     random_seed: int,
     target_net_update_freq: int,
-    model: hk.Transformed,
+    model,
     optimizer: optax.GradientTransformation,
     buffer_state: dict,
     agent: BaseDeepRLAgent,
@@ -45,10 +45,12 @@ def deep_rl_rollout(
             losses,
         ) = val
 
-        state, _ = env_state
+        state = env_state
         epsilon = epsilon_decay_fn(epsilon_start, epsilon_end, i, decay_rate)
         action, action_key = agent.act(action_key, model_params, state, epsilon)
-        env_state, new_state, reward, done = env.step(env_state, action)
+        action = jnp.array([action])
+        new_state, reward, done = env.step(env_state, action)
+        action = action[0]
         experience = (state, action, reward, new_state, done)
 
         buffer_state = replay_buffer.add(buffer_state, experience, i)
@@ -100,7 +102,7 @@ def deep_rl_rollout(
         return val
 
     init_key, action_key, buffer_key = vmap(random.PRNGKey)(jnp.arange(3) + random_seed)
-    env_state, _ = env.reset(init_key)
+    env_state = env.reset(init_key)
     all_actions = jnp.zeros([timesteps])
     all_obs = jnp.zeros([timesteps, *state_shape])
     all_rewards = jnp.zeros([timesteps], dtype=jnp.float32)
