@@ -16,6 +16,7 @@ Max_Times_Resample_For_Solvability = 10
 Belief_State: TypeAlias = jnp.ndarray
 # current location of agents and knowledge of blocking status of connected edges
 Observation: TypeAlias = jnp.ndarray
+EnvState: TypeAlias = jnp.ndarray
 EnvState_agents_pos: TypeAlias = jnp.array
 # Technically, env_state should contain the graph_realisation and agents_pos, but I so far cannot jax jit
 # a function when graph realisation is passed in as part of the argument, so graph_realisation will be a
@@ -61,13 +62,14 @@ class CTP(MultiAgentEnv):
     # Cannot not jax.jit or use jax.while_loop because is_solvable the way unblocked_senders and unblocked_receivers are computed is not jax compatible (not static shape)
     def reset(self, key: chex.PRNGKey) -> tuple[EnvState_agents_pos, Belief_State]:
         key, subkey = jax.random.split(key)
+        new_blocking_status = self.graph_realisation.resample_blocking_prob(subkey)
         # Resample until the graph is solvable
         times_resample = 0
         while (
-            self.graph_realisation.is_solvable() == False
+            self.graph_realisation.solvable == False
             and times_resample <= Max_Times_Resample_For_Solvability
         ):
-            self.graph_realisation.resample_blocking_prob(subkey)
+            new_blocking_status = self.graph_realisation.resample_blocking_prob(subkey)
             key, subkey = jax.random.split(subkey)
             times_resample += 1
         # update agents' positions (array)
@@ -102,7 +104,6 @@ class CTP(MultiAgentEnv):
         )
         return env_state_agents_pos, initial_belief_state
 
-    # If want to speed up, then don't need to recompute belief state for invalid actions
     @partial(jax.jit, static_argnums=(0,))
     def step(
         self,
@@ -162,9 +163,8 @@ class CTP(MultiAgentEnv):
         new_env_state_agent_pos = new_agents_pos
         new_observation = self.get_obs(new_env_state_agent_pos)
         next_belief_state = self.get_belief_state(current_belief_state, new_observation)
-
         key, subkey = jax.random.split(key)
-
+        # The subkey was initially for resetting the environment (not being used here)
         return new_env_state_agent_pos, next_belief_state, reward, terminate, subkey
 
     # use current state to get observation

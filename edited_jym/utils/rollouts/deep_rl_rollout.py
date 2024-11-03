@@ -36,22 +36,29 @@ def deep_rl_rollout(
             optimizer_state,
             buffer_state,
             action_key,
+            env_key,
             buffer_key,
-            env_state,
+            env_state_agents_pos,
+            belief_state,
             all_actions,
-            all_obs,
+            all_belief_states,
             all_rewards,
             all_done,
             losses,
         ) = val
 
-        state = env_state
-        epsilon = epsilon_decay_fn(epsilon_start, epsilon_end, i, decay_rate)
-        action, action_key = agent.act(action_key, model_params, state, epsilon)
+        current_belief_state = belief_state
+        # set epsilon to 1 for exploration. act returns subkey
+        action, action_key = agent.act(
+            action_key, model_params, current_belief_state, 1
+        )
+        # For multi-agent, we would concatenate all the agents' actions together here
         action = jnp.array([action])
-        new_state, reward, done = env.step(env_state, action)
+        env_state_agents_pos, belief_state, reward, done, env_key = env.step(
+            env_key, env_state_agents_pos, current_belief_state, action
+        )
         action = action[0]
-        experience = (state, action, reward, new_state, done)
+        experience = (current_belief_state, action, reward, belief_state, done)
 
         buffer_state = replay_buffer.add(buffer_state, experience, i)
         current_buffer_size = jnp.min(jnp.array([i, buffer_size]))
@@ -79,7 +86,7 @@ def deep_rl_rollout(
         )
 
         all_actions = all_actions.at[i].set(action)
-        all_obs = all_obs.at[i].set(new_state)
+        all_belief_states = all_belief_states.at[i].set(belief_state)
         all_rewards = all_rewards.at[i].set(reward)
         all_done = all_done.at[i].set(done)
         losses = losses.at[i].set(loss)
@@ -90,10 +97,12 @@ def deep_rl_rollout(
             optimizer_state,
             buffer_state,
             action_key,
+            env_key,
             buffer_key,
-            env_state,
+            env_state_agents_pos,
+            belief_state,
             all_actions,
-            all_obs,
+            all_belief_states,
             all_rewards,
             all_done,
             losses,
@@ -101,10 +110,12 @@ def deep_rl_rollout(
 
         return val
 
-    init_key, action_key, buffer_key = vmap(random.PRNGKey)(jnp.arange(3) + random_seed)
-    env_state = env.reset(init_key)
+    init_key, action_key, buffer_key, env_key = vmap(random.PRNGKey)(
+        jnp.arange(4) + random_seed
+    )
+    env_state_agents_pos, belief_state = env.reset(init_key)
     all_actions = jnp.zeros([timesteps])
-    all_obs = jnp.zeros([timesteps, *state_shape])
+    all_belief_states = jnp.zeros([timesteps, *state_shape])
     all_rewards = jnp.zeros([timesteps], dtype=jnp.float32)
     all_done = jnp.zeros([timesteps], dtype=jnp.bool_)
     losses = jnp.zeros([timesteps], dtype=jnp.float32)
@@ -119,10 +130,12 @@ def deep_rl_rollout(
         optimizer_state,
         buffer_state,
         action_key,
+        env_key,
         buffer_key,
-        env_state,
+        env_state_agents_pos,
+        belief_state,
         all_actions,
-        all_obs,
+        all_belief_states,
         all_rewards,
         all_done,
         losses,
@@ -136,10 +149,12 @@ def deep_rl_rollout(
         "optimizer_state",
         "buffer_state",
         "action_key",
+        "env_key",
         "buffer_key",
-        "env_state",
+        "env_state_agents_pos",
+        "belief_state",
         "all_actions",
-        "all_obs",
+        "all_belief_states",
         "all_rewards",
         "all_done",
         "losses",
