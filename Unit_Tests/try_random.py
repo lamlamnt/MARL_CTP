@@ -12,23 +12,24 @@ import os
 if __name__ == "__main__":
     key = jax.random.PRNGKey(30)
     environment = CTP_environment.CTP(1, 1, 5, key, prop_stoch=0.4)
-    print(environment.graph_realisation.graph.weights)
-    """
     key = jax.random.PRNGKey(30)
     key, subkey = jax.random.split(key)
-    initial_belief_state = environment.reset(key)
+    initial_env_state_agent_pos, initial_belief_state = environment.reset(key)
 
     current_directory = os.getcwd()
     parent_dir = os.path.dirname(current_directory)
     log_directory = os.path.join(parent_dir, "Logs")
     environment.graph_realisation.plot_realised_graph(log_directory, "test_graph.png")
-    belief_state_1, reward_1, terminate = environment.step(
-        subkey, initial_belief_state, jnp.array([4])
+    env_state_agent_pos_1, belief_state_1, reward_1, terminate, subkey = (
+        environment.step(
+            subkey, initial_env_state_agent_pos, initial_belief_state, jnp.array([4])
+        )
     )
-    belief_state_2, reward_2, terminate = environment.step(
-        subkey, belief_state_1, jnp.array([3])
+    env_state_agent_pos_2, belief_state_2, reward_2, terminate, subkey = (
+        environment.step(subkey, env_state_agent_pos_1, belief_state_1, jnp.array([3]))
     )
-    belief_state_3, reward_3, terminate = environment.step(
-        subkey, belief_state_2, jnp.array([2])
+    env_state_agent_pos_3, belief_state_3, reward_3, terminate, subkey = (
+        environment.step(subkey, env_state_agent_pos_2, belief_state_2, jnp.array([2]))
     )
-    """
+    print(terminate)
+    print(type(terminate))
