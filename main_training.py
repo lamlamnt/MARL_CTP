@@ -14,6 +14,8 @@ from edited_jym import (
     deep_rl_rollout,
 )
 from Networks import MLP
+from Evaluation import plotting
+import json
 
 NUM_CHANNELS_IN_BELIEF_STATE = 3
 
@@ -132,16 +134,36 @@ def main(args):
     print("Start training ...")
     out = deep_rl_rollout(**rollout_params)
 
-    # Write to file to check correctness
-    all_rewards = out["all_rewards"][-100:]
-    # put in logs folder
-    file_name = os.path.join(log_directory, "check.txt")
-    with open(file_name, "w") as f:
-        f.write(f"{all_rewards}\n")
+    print("Start plotting and storing weights ...")
 
-    # Calculate and plot episodic returns
-    # Plot losses
-    # Store weights in a file
+    # Plot rewards and losses
+    last_average_reward = plotting.plot_reward_over_episode(
+        out["all_done"],
+        out["all_rewards"],
+        log_directory,
+        file_name="reward.png",
+    )
+    plotting.plot_loss_over_time_steps(
+        out["losses"], log_directory, file_name="loss.png"
+    )
+
+    last_average_loss = plotting.get_last_average_episodic_loss(
+        out["all_done"], out["losses"]
+    )
+    reward_loss = {
+        "last_average_reward": last_average_reward,
+        "last_average_loss": last_average_loss,
+    }
+
+    # Record hyperparameters and last average reward and loss in JSON file
+    dict_args = vars(args)
+    args_path = os.path.join(log_directory, "Hyperparamters.json")
+    with open(args_path, "w") as fh:
+        json.dump(dict_args, fh)
+        fh.write("\n")
+        json.dump(reward_loss, fh)
+
+    # Store weights in a file (for loading in the future)
 
 
 if __name__ == "__main__":
@@ -165,19 +187,19 @@ if __name__ == "__main__":
     parser.add_argument(
         "--time_steps",
         type=int,
-        help="Probably around num_episodes you want * num_nodes* 1.2",
+        help="Probably around num_episodes you want * num_nodes* 2",
         required=False,
-        default=30,
+        default=50000,
     )
     parser.add_argument("--learning_rate", type=str, required=False, default=0.001)
-    parser.add_argument("--discount_factor", type=float, required=False, default=0.99)
+    parser.add_argument("--discount_factor", type=float, required=False, default=0.9)
     parser.add_argument("--epsilon_start", type=float, required=False, default=0.3)
     parser.add_argument("--epsilon_end", type=float, required=False, default=0.0)
     parser.add_argument(
-        "--epsilon_exploration_rate", type=float, required=False, default=1e-3
+        "--epsilon_exploration_rate", type=float, required=False, default=0.5
     )
     parser.add_argument(
-        "--batch_size", type=int, help="Batch size", required=False, default=5
+        "--batch_size", type=int, help="Batch size", required=False, default=32
     )
 
     # Hyperparameters specific to the environment
@@ -225,7 +247,7 @@ if __name__ == "__main__":
 
     # Hyperparameters specific to DQN
     parser.add_argument(
-        "--buffer_size", type=int, help="Buffer size", required=False, default=20
+        "--buffer_size", type=int, help="Buffer size", required=False, default=64
     )
     parser.add_argument(
         "--target_net_update_freq",

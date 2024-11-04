@@ -110,7 +110,7 @@ if __name__ == "__main__":
 
     # Hyperparameters for DQN
     parser.add_argument(
-        "--batch_size", type=int, help="Batch size for DQN", required=False, default=1
+        "--batch_size", type=int, help="Batch size for DQN", required=False, default=32
     )
     args = parser.parse_args()
 

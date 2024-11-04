@@ -41,7 +41,6 @@ def deep_rl_rollout(
             env_state,
             belief_state,
             all_actions,
-            all_belief_states,
             all_rewards,
             all_done,
             losses,
@@ -51,7 +50,7 @@ def deep_rl_rollout(
         epsilon = epsilon_decay_fn(epsilon_start, epsilon_end, i, decay_rate)
         # set epsilon to 1 for exploration. act returns subkey
         action, action_key = agent.act(
-            action_key, model_params, current_belief_state, 1
+            action_key, model_params, current_belief_state, epsilon
         )
         # For multi-agent, we would concatenate all the agents' actions together here
         action = jnp.array([action])
@@ -87,7 +86,6 @@ def deep_rl_rollout(
         )
 
         all_actions = all_actions.at[i].set(action)
-        all_belief_states = all_belief_states.at[i].set(belief_state)
         all_rewards = all_rewards.at[i].set(reward)
         all_done = all_done.at[i].set(done)
         losses = losses.at[i].set(loss)
@@ -103,7 +101,6 @@ def deep_rl_rollout(
             env_state,
             belief_state,
             all_actions,
-            all_belief_states,
             all_rewards,
             all_done,
             losses,
@@ -116,7 +113,6 @@ def deep_rl_rollout(
     )
     env_state, belief_state = env.reset(init_key)
     all_actions = jnp.zeros([timesteps])
-    all_belief_states = jnp.zeros([timesteps, *state_shape])
     all_rewards = jnp.zeros([timesteps], dtype=jnp.float32)
     all_done = jnp.zeros([timesteps], dtype=jnp.bool_)
     losses = jnp.zeros([timesteps], dtype=jnp.float32)
@@ -136,7 +132,6 @@ def deep_rl_rollout(
         env_state,
         belief_state,
         all_actions,
-        all_belief_states,
         all_rewards,
         all_done,
         losses,
@@ -155,7 +150,6 @@ def deep_rl_rollout(
         "env_state",
         "belief_state",
         "all_actions",
-        "all_belief_states",
         "all_rewards",
         "all_done",
         "losses",

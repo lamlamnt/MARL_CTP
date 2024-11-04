@@ -11,7 +11,7 @@ from typing import Sequence
 def simplest_model_hk(x: jnp.ndarray) -> jnp.ndarray:
     # Flatten to 1D array
     x = x.reshape(-1)
-    mlp = hk.nets.MLP(output_sizes=[64, 32, 5])
+    mlp = hk.nets.MLP(output_sizes=[128, 64, 32, 16, 5])
     return mlp(x)
 
 
