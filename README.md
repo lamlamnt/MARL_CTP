@@ -7,7 +7,7 @@
 
 **Python/code management in progress:**
 <br>-Pycache keeps being uploaded despite .gitignore. 
-<br>-requirements.txt is probably not complete. Use setup.py files and make the project into a package and removing sys.path.append("..") 
+<br>-requirements.txt is probably not complete. Use setup.py files and make the project into a package and removing sys.path.append(".."). 
 <br>-Fix the warnings when running pytest and main_training
 
 **Note:**
@@ -16,8 +16,8 @@
 <br>-Ignore the "Discarded_Code" folder. 
 <br>-Files edited in JYM (minor changes): deep_rl_rollout.py and dqn.py 
 
-**Current progress status:**
-<br>-
+**Current progress status: (Nov 4th)**
+<br>-I trained a DQN policy on a 5-node graph. The learned policy seems reasonable. I have not done any hyperparameter tuning or trained on other graphs/using different seeds and number of nodes.
 
 
 
