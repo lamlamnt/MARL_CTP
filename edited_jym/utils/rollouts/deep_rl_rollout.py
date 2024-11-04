@@ -25,7 +25,7 @@ def deep_rl_rollout(
     epsilon_decay_fn: Callable,
     epsilon_start: float,
     epsilon_end: float,
-    decay_rate: float,
+    duration: float,
 ) -> dict:
     @loop_tqdm(timesteps)
     @jit
@@ -47,8 +47,7 @@ def deep_rl_rollout(
         ) = val
 
         current_belief_state = belief_state
-        epsilon = epsilon_decay_fn(epsilon_start, epsilon_end, i, decay_rate)
-        # set epsilon to 1 for exploration. act returns subkey
+        epsilon = epsilon_decay_fn(epsilon_start, epsilon_end, i, duration)
         action, action_key = agent.act(
             action_key, model_params, current_belief_state, epsilon
         )
@@ -77,7 +76,7 @@ def deep_rl_rollout(
             experiences_batch,
         )
 
-        # update the target parameters every ``target_net_update_freq`` steps
+        # update the target parameters every `target_net_update_freq` steps
         target_net_params = lax.cond(
             i % target_net_update_freq == 0,
             lambda _: model_params,

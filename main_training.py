@@ -114,8 +114,6 @@ def main(args):
         experience = (current_belief_state, action, reward, new_belief_state, done)
         buffer_state = replay_buffer.add(buffer_state, experience, i)
 
-    # The decay rate in rollout_params is not actually the decay rate. It's duration of epsilon decaying.
-    # Named it decay_rate just to minimize changes to jym's deep_rl_rollout function
     rollout_params = {
         "timesteps": args.time_steps,
         "random_seed": args.random_seed,
@@ -131,7 +129,7 @@ def main(args):
         "epsilon_decay_fn": epsilon_linear_schedule,
         "epsilon_start": args.epsilon_start,
         "epsilon_end": args.epsilon_end,
-        "decay_rate": args.epsilon_exploration_rate * args.time_steps * args.n_node,
+        "duration": args.epsilon_exploration_rate * args.time_steps,
     }
     print("Start training ...")
     out = deep_rl_rollout(**rollout_params)
@@ -207,7 +205,7 @@ if __name__ == "__main__":
         "--epsilon_exploration_rate", type=float, required=False, default=0.5
     )
     parser.add_argument(
-        "--batch_size", type=int, help="Batch size", required=False, default=32
+        "--batch_size", type=int, help="Batch size", required=False, default=64
     )
 
     # Hyperparameters specific to the environment
@@ -256,7 +254,7 @@ if __name__ == "__main__":
 
     # Hyperparameters specific to DQN
     parser.add_argument(
-        "--buffer_size", type=int, help="Buffer size", required=False, default=64
+        "--buffer_size", type=int, help="Buffer size", required=False, default=128
     )
     parser.add_argument(
         "--target_net_update_freq",

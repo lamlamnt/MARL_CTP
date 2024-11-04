@@ -1,5 +1,5 @@
 **Things currently in progress:**
-<br>-Modify the training loop (taken from jym with minor modifications) to be able to run as many steps as desired without ever running out of RAM (do the rollout, store needed stuff, and do the rollout again and so on).
+<br>-Modify the training loop (taken from jym with minor modifications) to be able to run as many steps as desired without ever running out of RAM (do the rollout, store needed stuff, and do the rollout again and so on). Do this if I run out of RAM (for a reasonably-sized buffer size)
 <br>-Used JYM DQN with Uniform Sampling Replay Buffer. -> Will change to JYM DQN with Prioritized Experience Replay Buffer.
 <br>-Right now, I haven't included the goal as part of the state. It's treated right now as part of the environment. I will include the goal as part of the state like we discussed (expanded adjacency matrix form) soon.
 <br>-I am doing [1,0,-1] corresponding to [Blocked, Not Blocked,Unknown]. When updating the belief, I am checking each element instead of adding them up, which would have been easier with Unknown = 0. -> Will consider changing this in the future for multi-agent. Speed is not an issue rn, so this is not a big issue rn.  
@@ -7,7 +7,7 @@
 
 **Python/code management in progress:**
 <br>-Pycache keeps being uploaded despite .gitignore. 
-<br>-Check that libraries in requirements.txt are enough and correct. Use setup.py files and make the project into a package and removing sys.path.append("..") 
+<br>-requirements.txt is probably not complete. Use setup.py files and make the project into a package and removing sys.path.append("..") 
 <br>-Fix the warnings when running pytest and main_training
 
 **Note:**

@@ -127,7 +127,6 @@ class CTPGraph:
         return weights, n_edges, senders, receivers, grid_nodes_jax
 
     # Can call this function to change the blocking probability of the edges
-    # For non-existent edges, blocked (1)
     # Uniform distribution for blocking probability
     def set_blocking_prob(
         self,
@@ -302,7 +301,7 @@ class CTPGraph_Realisation:
         return blocking_status
 
     # for single agent only
-    # Return whether an unblocked path exists from origin to goal
+    # Return whether an unblocked path exists from origin to goal using networkx library
     def is_solvable(self, blocking_status) -> bool:
         # Remove the blocked edges from the graph before converting to networkx
         # New senders and receivers that are unblocked edges
@@ -339,7 +338,6 @@ class CTPGraph_Realisation:
         self.solvable = solvable
         return solvable
 
-    # Dashed if blocked, solid if unblocked
     def plot_realised_graph(
         self, blocking_status: jnp.ndarray, directory, file_name="realised_graph.png"
     ):

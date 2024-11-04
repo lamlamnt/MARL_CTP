@@ -8,7 +8,7 @@ from chex import dataclass
 from Environment import CTP_generator
 from typing import TypeAlias
 
-# Belief_state contains the current knowledge about blocked status, edge_weights, and edge_probs in this order
+# Belief_state contains the agents' positions + current knowledge about blocked status, edge_weights, and edge_probs in this order
 # 3D tensor where each channel is size (num_agents+num_nodes, num_agents+num_nodes)
 Belief_State: TypeAlias = jnp.ndarray
 # current location of agents and knowledge of blocking status of connected edges
@@ -66,7 +66,6 @@ class CTP(MultiAgentEnv):
         key, subkey = jax.random.split(key)
         self.stored_realisations = self.get_solvable_blocking_status(subkey)
 
-    # Cannot not jax.jit or use jax.while_loop because is_solvable the way unblocked_senders and unblocked_receivers are computed is not jax compatible (not static shape)
     @partial(jax.jit, static_argnums=(0,))
     def reset(self, key: chex.PRNGKey) -> tuple[EnvState, Belief_State]:
         key, subkey = jax.random.split(key)

@@ -11,7 +11,6 @@ import pytest
 
 @pytest.fixture
 def graphRealisation():
-    # can be used for all functions
     key = jax.random.PRNGKey(100)
     graphRealisation = CTP_generator.CTPGraph_Realisation(key, 5, prop_stoch=0.4)
     return graphRealisation
