@@ -133,20 +133,15 @@ def main(args):
     out = deep_rl_rollout(**rollout_params)
 
     # Write to file to check correctness
-    all_rewards = out["all_rewards"]
-    all_actions = out["all_actions"]
-    env_state = out["env_state"]
+    all_rewards = out["all_rewards"][-100:]
     # put in logs folder
     file_name = os.path.join(log_directory, "check.txt")
     with open(file_name, "w") as f:
         f.write(f"{all_rewards}\n")
-        f.write(f"{all_actions}\n")
-        f.write("Env states:\n")
-        f.write(f"{env_state}\n")
 
     # Calculate and plot episodic returns
     # Plot losses
-    # Store weights in a .pickle file
+    # Store weights in a file
 
 
 if __name__ == "__main__":

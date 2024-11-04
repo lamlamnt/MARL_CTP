@@ -9,3 +9,4 @@ pytest-print
 haiku
 jax-tqdm=0.2.2
 plotly
+networkx

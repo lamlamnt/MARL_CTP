@@ -1,27 +1,21 @@
 Things currently in progress:
-<br> Pycache keeps being uploaded 
-<br>-Change the reset and step function to be more JAX-compatible and do jax.jit
-<br>-requirements.txt and setup.py files and making the project into a package and removing sys.path.append("..") OR make unit_tests a module and then do from .Unit_Tests import Environment
-<br>-Some environment functions need some changes to work for multi-agent (ex. get_obs)
+<br>-Used JYM DQN with Uniform Sampling Replay Buffer. -> Will change to JYM DQN with Prioritized Experience Replay Buffer.
+<br> Right now, I haven't included the goal as part of the state. It's treated right now as part of the environment. I will include the goal as part of the state like we discussed (expanded adjacency matrix form) later (when we need to generalize for single agent)
+<br> I am doing [1,0,-1] corresponding to [Blocked, Not Blocked,Unknown]. When updating the belief, I am checking each element instead of adding them up, which would have been easier with Unknown = 0. -> Will consider changing this in the future for multi-agent. Speed is not an issue rn, so this is not a big issue rn.  
+
+Python/code management in progress: 
+<br>-Pycache keeps being uploaded despite .gitignore. 
+<br>-Check that libraries in requirements.txt are enough and correct. Use setup.py files and make the project into a package and removing sys.path.append("..") 
 <br>-Fix the warnings when running pytest and main_training
 
-Things that will be changed in the future if needed
-<br>-Write a jittable version of Delauney triangulation if environment creation becomes a bottleneck
+Note:
+<br>-In order to follow JAX's pure functional programming paradigm, I am passing and returning the EnvState. This is not technically necessary in terms of RL and is just an implementation detail. 
+<br>-In order to take advantage of JAX speedup, the reset function, which gets called in the step function if terminate is True, needs to JAX jittable. The is_solvable() function is not JAX-compatible right now because of the networkx implementation and the operations used to convert to a networkx representation. To avoid calling is_solvable() in reset, I sampled a certain number of solvable blocking statuses and stored them first before running the training loop. The reset function samples from one of these stored solvable blocking statuses. Currently restrict the problem definition to only solvable graphs. 
+<br>-Ignore the "Discarded_Code" folder. 
 
-Future:
-<br>-Add an extra constructor to CTPGraphRealisation so that it's possible to sample blocking prob given a CTPGraph.
+Current progress status:
+<br>-
 
-Things that needed to be done to extend to multi-agent:
-<br>-A way to automatically choose the multiple origins and goals for the agents (random?)
 
-New:
-<br> One goal for now
-<br> Using setters and getters - property in Python
-<br> Whether to use self's properties in functions or pass them in as as arguments (try to follow functional programming paradigm?)
-
-<br>-Didn't do the adding (adding maybe better for multi-agent)
-<br>-Try jitting the environment
-
-<br>-use printer to debug unit tests that fail (use pytest_print and input printer as argument and then do printer("thing to print"))
 
 
