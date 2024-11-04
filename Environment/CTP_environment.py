@@ -27,19 +27,31 @@ class CTP(MultiAgentEnv):
         k_edges=None,
         grid_size=10,
         reward_for_invalid_action=-200.0,
+        num_stored_realisations=10,
+        patience_factor=4,
+        reward_for_goal=10,
     ):
         """
         List of attributes:
         num_agents: int
-        num_nodes
+        num_nodes: int
         reward_for_invalid_action: int
+        reward_for_goal:int
         action_spaces
         graph_realisation
+
+        #Related to sampling and storing solvable blocking status
+        num_stored_realisations: int
+        patience_factor: int
+        stored_realisations: jnp.ndarray
         """
         super().__init__(num_agents=num_agents)
         self.num_agents = num_agents
         self.reward_for_invalid_action = reward_for_invalid_action
+        self.reward_for_goal = reward_for_goal
         self.num_nodes = num_nodes
+        self.num_stored_realisations = num_stored_realisations
+        self.patience_factor = patience_factor
         # Instantiate a CTPGraph_Realisation object
         self.graph_realisation = CTP_generator.CTPGraph_Realisation(
             key,
@@ -51,12 +63,18 @@ class CTP(MultiAgentEnv):
         )
         actions = [num_nodes for _ in range(num_agents)]
         self.action_spaces = spaces.MultiDiscrete(actions)
+        key, subkey = jax.random.split(key)
+        self.stored_realisations = self.get_solvable_blocking_status(subkey)
 
     # Cannot not jax.jit or use jax.while_loop because is_solvable the way unblocked_senders and unblocked_receivers are computed is not jax compatible (not static shape)
     @partial(jax.jit, static_argnums=(0,))
     def reset(self, key: chex.PRNGKey) -> tuple[EnvState, Belief_State]:
         key, subkey = jax.random.split(key)
-        new_blocking_status = self.graph_realisation.sample_blocking_status(subkey)
+        indice = jax.random.randint(
+            subkey, shape=(), minval=0, maxval=self.num_stored_realisations
+        )
+        new_blocking_status = self.stored_realisations[indice]
+        # new_blocking_status = self.graph_realisation.sample_blocking_status(subkey)
 
         # update agents' positions to origin
         agents_pos = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.int32)
@@ -123,12 +141,15 @@ class CTP(MultiAgentEnv):
         # Function that gets called if at goal -> reset to origin
         def _at_goal(args) -> tuple[jnp.array, int, bool]:
             current_env_state, actions = args
+            reward = (
+                -(weights[jnp.argmax(current_env_state[0, :1, :]), actions[0]])
+                + self.reward_for_goal
+            )
             agents_pos = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.int32)
             agents_pos = agents_pos.at[0, actions[0]].set(1)
             new_env_state = current_env_state.at[0, : self.num_agents, :].set(
                 agents_pos
             )
-            reward = 0.0
             terminate = jnp.bool_(True)
             return new_env_state, reward, terminate
 
@@ -233,3 +254,30 @@ class CTP(MultiAgentEnv):
             axis=0,
             dtype=jnp.float32,
         )
+
+    def get_solvable_blocking_status(self, key) -> jnp.ndarray:
+        realisation_counter = 0
+        # This is to avoid us being stuck in an infinite loop if the prop_stock is too high
+        patience_counter = 0
+        stored_realisations = jnp.zeros(
+            (self.num_stored_realisations, self.num_nodes, self.num_nodes),
+            dtype=jnp.int32,
+        )
+        key, subkey = jax.random.split(key)
+        while (
+            realisation_counter < self.num_stored_realisations
+            and patience_counter < (self.patience_factor * self.num_stored_realisations)
+        ):
+            new_blocking_status = self.graph_realisation.sample_blocking_status(subkey)
+            if self.graph_realisation.is_solvable(new_blocking_status):
+                stored_realisations = stored_realisations.at[
+                    realisation_counter, :, :
+                ].set(new_blocking_status)
+                realisation_counter += 1
+            patience_counter += 1
+            key, subkey = jax.random.split(key)
+        if patience_counter >= self.patience_factor * self.num_stored_realisations:
+            raise ValueError(
+                "Could not find enough solvable blocking status. Please decrease the prop_stoch."
+            )
+        return stored_realisations

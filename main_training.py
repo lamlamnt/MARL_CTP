@@ -27,6 +27,7 @@ def epsilon_linear_schedule(
 
 
 def main(args):
+    print("Setting up the environment ...")
     # Determine belief state shape
     state_shape = (
         NUM_CHANNELS_IN_BELIEF_STATE,
@@ -63,7 +64,22 @@ def main(args):
     optimizer_state = optimizer.init(online_net_params)
 
     # Initialize the environment
-    environment = CTP_environment.CTP(1, 1, 5, environment_key, prop_stoch=0.4)
+    environment = CTP_environment.CTP(
+        1,
+        1,
+        5,
+        environment_key,
+        prop_stoch=args.prop_stoch,
+        k_edges=args.k_edges,
+        grid_size=args.grid_size,
+        reward_for_invalid_action=args.reward_for_invalid_action,
+        num_stored_realisations=args.num_stored_realisations,
+        patience_factor=args.patience_factor,
+        reward_for_goal=args.reward_for_goal,
+    )
+    environment.graph_realisation.graph.plot_nx_graph(
+        directory=log_directory, file_name="training_graph.png"
+    )
 
     # Initialize the agent
     agent = DQN(
@@ -97,7 +113,7 @@ def main(args):
     # The decay rate in rollout_params is not actually the decay rate. It's duration of epsilon decaying.
     # Named it decay_rate just to minimize changes to jym's deep_rl_rollout function
     rollout_params = {
-        "timesteps": args.n_episode,
+        "timesteps": args.time_steps,
         "random_seed": args.random_seed,
         "target_net_update_freq": args.target_net_update_freq,
         "model": model,
@@ -111,9 +127,26 @@ def main(args):
         "epsilon_decay_fn": epsilon_linear_schedule,
         "epsilon_start": args.epsilon_start,
         "epsilon_end": args.epsilon_end,
-        "decay_rate": args.epsilon_exploration_rate * args.n_episode * args.n_node,
+        "decay_rate": args.epsilon_exploration_rate * args.time_steps * args.n_node,
     }
+    print("Start training ...")
     out = deep_rl_rollout(**rollout_params)
+
+    # Write to file to check correctness
+    all_rewards = out["all_rewards"]
+    all_actions = out["all_actions"]
+    env_state = out["env_state"]
+    # put in logs folder
+    file_name = os.path.join(log_directory, "check.txt")
+    with open(file_name, "w") as f:
+        f.write(f"{all_rewards}\n")
+        f.write(f"{all_actions}\n")
+        f.write("Env states:\n")
+        f.write(f"{env_state}\n")
+
+    # Calculate and plot episodic returns
+    # Plot losses
+    # Store weights in a .pickle file
 
 
 if __name__ == "__main__":
@@ -135,11 +168,11 @@ if __name__ == "__main__":
         default=1,
     )
     parser.add_argument(
-        "--n_episode",
+        "--time_steps",
         type=int,
-        help="Number of episodes to run",
+        help="Probably around num_episodes you want * num_nodes* 1.2",
         required=False,
-        default=3,
+        default=30,
     )
     parser.add_argument("--learning_rate", type=str, required=False, default=0.001)
     parser.add_argument("--discount_factor", type=float, required=False, default=0.99)
@@ -151,8 +184,48 @@ if __name__ == "__main__":
     parser.add_argument(
         "--batch_size", type=int, help="Batch size", required=False, default=5
     )
+
+    # Hyperparameters specific to the environment
     parser.add_argument(
         "--reward_for_invalid_action", type=float, required=False, default=-200.0
+    )
+    parser.add_argument(
+        "--reward_for_goal",
+        type=int,
+        help="Should be equal to or greater than 0",
+        required=False,
+        default=10,
+    )
+    parser.add_argument(
+        "--num_stored_realisations",
+        type=int,
+        help="Number of solvable blocking status (can be the same)",
+        required=False,
+        default=10,
+    )
+    parser.add_argument(
+        "--patience_factor",
+        type=int,
+        help="Factor of num_stored_realisations before we give up sampling for more solvable blocking status",
+        required=False,
+        default=4,
+    )
+    parser.add_argument(
+        "--prop_stoch",
+        type=float,
+        help="Proportion of edges that are stochastic. Only specify either prop_stoch or k_edges.",
+        required=False,
+        default=0.4,
+    )
+    parser.add_argument(
+        "--k_edges",
+        type=int,
+        help="Number of stochastic edges. Only specify either prop_stoch or k_edges",
+        required=False,
+        default=None,
+    )
+    parser.add_argument(
+        "--grid_size", type=int, help="Size of the grid", required=False, default=10
     )
 
     # Hyperparameters specific to DQN
@@ -169,4 +242,8 @@ if __name__ == "__main__":
     parser.add_argument("--random_seed", type=int, required=False, default=30)
     args = parser.parse_args()
 
+    current_directory = os.getcwd()
+    log_directory = os.path.join(current_directory, "Logs")
+    if not os.path.exists(log_directory):
+        os.makedirs(log_directory)
     main(args)

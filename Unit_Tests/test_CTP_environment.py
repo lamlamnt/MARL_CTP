@@ -107,7 +107,7 @@ def test_belief_state(printer, environment: CTP_environment.CTP):
     # Empty/null for agent_pos part of edge_probs and weights
     assert jnp.sum(belief_state_1[1:, :1, :]) == 0
     assert terminate == jnp.bool_(True)
-    assert reward_3 == 0
+    assert reward_3 > 0
     # Test environment automatically reset when episode is done and not reset when episode is not done
     assert (
         jnp.argmax(env_state_3[0, :1, :])
@@ -182,3 +182,34 @@ def test_env_state(environment: CTP_environment.CTP):
     assert jnp.array_equal(
         env_state_1[2, 1:, :], environment.graph_realisation.graph.blocking_prob
     )
+
+
+def test_non_zero(environment: CTP_environment.CTP):
+    key = jax.random.PRNGKey(30)
+    key, subkey = jax.random.split(key)
+    initial_env_state, initial_belief_state = environment.reset(key)
+    new_env_state, new_belief_state = environment.reset(subkey)
+    assert jnp.sum(initial_env_state[0, 1:, :]) > 0
+    assert jnp.sum(new_env_state[0, 1:, :]) > 0
+
+
+def test_sample_enough(environment: CTP_environment.CTP):
+    assert environment.stored_realisations.shape == (
+        environment.num_stored_realisations,
+        environment.num_nodes,
+        environment.num_nodes,
+    )
+
+
+# Test that if try to go down blocked edges, will get very negative reward
+def test_invalid_action(environment: CTP_environment.CTP):
+    key = jax.random.PRNGKey(30)
+    key, subkey = jax.random.split(key)
+    initial_env_state, initial_belief_state = environment.reset(key)
+    env_state_1, belief_state_1, reward_1, terminate, subkey = environment.step(
+        subkey, initial_env_state, initial_belief_state, jnp.array([4])
+    )
+    env_state_2, belief_state_2, reward_2, terminate, subkey = environment.step(
+        subkey, env_state_1, belief_state_1, jnp.array([1])
+    )
+    assert reward_2 < -100
