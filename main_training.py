@@ -16,6 +16,7 @@ from edited_jym import (
 from Networks import MLP
 from Evaluation import plotting
 import json
+import flax
 
 NUM_CHANNELS_IN_BELIEF_STATE = 3
 
@@ -49,10 +50,11 @@ def main(args):
     # Initialize the replay buffer
     replay_buffer = UniformReplayBuffer(args.buffer_size, args.batch_size)
 
-    # Choose model based on args
-    model = MLP.simplest_model_hk
+    # Choose model based on args. Can use FLAX or HAIKU model
+    # model = MLP.simplest_model_hk
+    model = MLP.Flax_FCNetwork([128, 64, 32, 16], args.n_node)
 
-    # Initialize network parameters
+    # Initialize network parameters and optimizer (actually not necessary here beause initialize inside the rollout as well)
     key = jax.random.PRNGKey(args.random_seed)
     subkeys = jax.random.split(key, num=3)
     online_key, target_key, environment_key = subkeys
@@ -137,7 +139,7 @@ def main(args):
     print("Start plotting and storing weights ...")
 
     # Plot rewards and losses
-    last_average_reward = plotting.plot_reward_over_episode(
+    last_average_reward, max_episodic_reward = plotting.plot_reward_over_episode(
         out["all_done"],
         out["all_rewards"],
         log_directory,
@@ -151,8 +153,9 @@ def main(args):
         out["all_done"], out["losses"]
     )
     reward_loss = {
-        "last_average_reward": last_average_reward,
-        "last_average_loss": last_average_loss,
+        "last_average_reward": str(last_average_reward),
+        "max_episodic_reward": str(max_episodic_reward),
+        "last_average_loss": str(last_average_loss),
     }
 
     # Record hyperparameters and last average reward and loss in JSON file
@@ -164,6 +167,11 @@ def main(args):
         json.dump(reward_loss, fh)
 
     # Store weights in a file (for loading in the future)
+    # Store to .pickle file if using Haiku model
+    if args.save_model:
+        # File can have any ending
+        with open(os.path.join(log_directory, "weights.flax"), "wb") as f:
+            f.write(flax.serialization.to_bytes(out["model_params"]))
 
 
 if __name__ == "__main__":
@@ -189,7 +197,7 @@ if __name__ == "__main__":
         type=int,
         help="Probably around num_episodes you want * num_nodes* 2",
         required=False,
-        default=50000,
+        default=100000,
     )
     parser.add_argument("--learning_rate", type=str, required=False, default=0.001)
     parser.add_argument("--discount_factor", type=float, required=False, default=0.9)
@@ -244,6 +252,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--grid_size", type=int, help="Size of the grid", required=False, default=10
     )
+    parser.add_argument("--random_seed", type=int, required=False, default=30)
 
     # Hyperparameters specific to DQN
     parser.add_argument(
@@ -256,9 +265,17 @@ if __name__ == "__main__":
         required=False,
         default=10,
     )
-    parser.add_argument("--random_seed", type=int, required=False, default=30)
-    args = parser.parse_args()
 
+    # Args related to running/managing experiments
+    parser.add_argument(
+        "--save_model",
+        type=bool,
+        help="Whether to save the weights or not",
+        required=False,
+        default=True,
+    )
+
+    args = parser.parse_args()
     current_directory = os.getcwd()
     log_directory = os.path.join(current_directory, "Logs")
     if not os.path.exists(log_directory):

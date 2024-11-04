@@ -15,4 +15,6 @@ from .utils import (
     UniformReplayBuffer,
     deep_rl_rollout,
     per_rollout,
+    animated_heatmap,
+    plot_path,
 )

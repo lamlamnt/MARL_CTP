@@ -7,6 +7,7 @@ import flax.linen as nn
 from typing import Sequence
 
 
+@hk.without_apply_rng
 @hk.transform
 def simplest_model_hk(x: jnp.ndarray) -> jnp.ndarray:
     # Flatten to 1D array

@@ -5,8 +5,10 @@ import os
 N_EPISODES_TO_AVERAGE_OVER = 200
 
 
-# Plot and return the average reward over the last n episodes
-def plot_reward_over_episode(all_done, all_rewards, directory, file_name="reward.png"):
+# Plot and return the average reward over the last n episodes and max episodic reward
+def plot_reward_over_episode(
+    all_done, all_rewards, directory, file_name="reward.png"
+) -> tuple[float, float]:
     df = pd.DataFrame(
         data={
             "episode": all_done.cumsum(),
@@ -34,7 +36,7 @@ def plot_reward_over_episode(all_done, all_rewards, directory, file_name="reward
 
     # Display the plot
     plt.savefig(os.path.join(directory, file_name))
-    return episodes_df["avg_reward_n_episodes"].iloc[-1]
+    return episodes_df["avg_reward_n_episodes"].iloc[-1], episodes_df["reward"].max()
 
 
 def plot_loss_over_time_steps(all_loss, directory, file_name="loss.png"):

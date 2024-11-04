@@ -18,7 +18,7 @@ def test_mlp(printer):
     output_1 = MLP.forward_fn_FC.apply(params, dummy_input)
 
     simple_params = MLP.simplest_model_hk.init(key, dummy_input)
-    output_2 = MLP.simplest_model_hk.apply(simple_params, subkey, dummy_input)
+    output_2 = MLP.simplest_model_hk.apply(simple_params, dummy_input)
 
     flax_model = MLP.Flax_FCNetwork([64, 32], 5)
     flax_params = flax_model.init(key, dummy_input)
