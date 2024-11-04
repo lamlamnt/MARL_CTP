@@ -76,7 +76,7 @@ def main(args):
     init_key, action_key, env_key = jax.vmap(jax.random.PRNGKey)(
         jnp.arange(3) + args.random_seed
     )
-    new_env_state_agents_pos, new_belief_state = environment.reset(init_key)
+    new_env_state, new_belief_state = environment.reset(init_key)
 
     # Initialize the buffer with random samples
     for i in range(args.buffer_size):
@@ -87,17 +87,12 @@ def main(args):
         )
         # For multi-agent, we would concatenate all the agents' actions together here
         action = jnp.array([action])
-        new_env_state_agents_pos, new_belief_state, reward, done, env_key = (
-            environment.step(
-                env_key, new_env_state_agents_pos, current_belief_state, action
-            )
+        new_env_state, new_belief_state, reward, done, env_key = environment.step(
+            env_key, new_env_state, current_belief_state, action
         )
         action = action[0]
         experience = (current_belief_state, action, reward, new_belief_state, done)
         buffer_state = replay_buffer.add(buffer_state, experience, i)
-        if done:
-            init_key, init_subkey = jax.random.split(init_key)
-            new_env_state_agents_pos, new_belief_state = environment.reset(init_subkey)
 
     # The decay rate in rollout_params is not actually the decay rate. It's duration of epsilon decaying.
     # Named it decay_rate just to minimize changes to jym's deep_rl_rollout function

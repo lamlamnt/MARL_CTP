@@ -8,9 +8,6 @@ from chex import dataclass
 from Environment import CTP_generator
 from typing import TypeAlias
 
-# If exceed this number, give up and error
-Max_Times_Resample_For_Solvability = 10
-
 # Belief_state contains the current knowledge about blocked status, edge_weights, and edge_probs in this order
 # 3D tensor where each channel is size (num_agents+num_nodes, num_agents+num_nodes)
 Belief_State: TypeAlias = jnp.ndarray
@@ -59,23 +56,13 @@ class CTP(MultiAgentEnv):
     @partial(jax.jit, static_argnums=(0,))
     def reset(self, key: chex.PRNGKey) -> tuple[EnvState, Belief_State]:
         key, subkey = jax.random.split(key)
-        # new_blocking_status = self.graph_realisation.resample_blocking_prob(subkey)
-        """
-        # Resample until the graph is solvable
-        times_resample = 0
-        while (
-            self.graph_realisation.solvable == False
-            and times_resample <= Max_Times_Resample_For_Solvability
-        ):
-            new_blocking_status = self.graph_realisation.resample_blocking_prob(subkey)
-            key, subkey = jax.random.split(subkey)
-            times_resample += 1
-        """
-        # update agents' positions (array)
+        new_blocking_status = self.graph_realisation.sample_blocking_status(subkey)
+
+        # update agents' positions to origin
         agents_pos = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.int32)
         agents_pos = agents_pos.at[0, self.graph_realisation.graph.origin[0]].set(1)
         env_state = self.__convert_graph_realisation_to_matrix(
-            self.graph_realisation, agents_pos
+            self.graph_realisation, new_blocking_status, agents_pos
         )
 
         # return the initial belief state
@@ -172,14 +159,13 @@ class CTP(MultiAgentEnv):
         next_belief_state = self.get_belief_state(current_belief_state, new_observation)
         key, subkey = jax.random.split(key)
 
-        origin_state, origin_belief = jax.lax.cond(
+        new_env_state, next_belief_state = jax.lax.cond(
             terminate,
             lambda x: self.reset(x),
             lambda x: (new_env_state, next_belief_state),
             key,
         )
 
-        # The subkey was initially for resetting the environment (not being used here)
         return new_env_state, next_belief_state, reward, terminate, subkey
 
     # use current state to get observation
@@ -230,7 +216,10 @@ class CTP(MultiAgentEnv):
         return new_belief_state
 
     def __convert_graph_realisation_to_matrix(
-        self, graph_realisation: CTP_generator.CTPGraph_Realisation, agents_pos
+        self,
+        graph_realisation: CTP_generator.CTPGraph_Realisation,
+        blocking_status: jnp.ndarray,
+        agents_pos: jnp.ndarray,
     ) -> EnvState:
         # Convert graph realisation to matrix
         empty = jnp.zeros((self.num_agents, self.num_nodes))
@@ -238,9 +227,7 @@ class CTP(MultiAgentEnv):
         edge_probs = jnp.concatenate(
             (empty, graph_realisation.graph.blocking_prob), axis=0
         )
-        pos_and_blocking_status = jnp.concatenate(
-            (agents_pos, graph_realisation.blocking_status), axis=0
-        )
+        pos_and_blocking_status = jnp.concatenate((agents_pos, blocking_status), axis=0)
         return jnp.stack(
             (pos_and_blocking_status, edge_weights, edge_probs),
             axis=0,

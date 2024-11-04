@@ -22,7 +22,7 @@ def environment():
 # Check symmetric adjacency matrices
 def test_symmetric(environment: CTP_environment.CTP):
     key = jax.random.PRNGKey(30)
-    initial_env_state_agents_pos, initial_belief_state = environment.reset(key)
+    initial_env_state, initial_belief_state = environment.reset(key)
     assert jnp.all(
         initial_belief_state[:, 1:, :]
         == jnp.transpose(initial_belief_state[:, 1:, :], axes=(0, 2, 1))
@@ -39,23 +39,26 @@ def test_symmetric(environment: CTP_environment.CTP):
 
 # Two consecutive resamples are different
 def test_resample(printer, environment: CTP_environment.CTP):
-    key = jax.random.PRNGKey(30)
+    key = jax.random.PRNGKey(99)
+    highly_stochastic_environment = CTP_environment.CTP(1, 1, 5, key, prop_stoch=0.9)
     key, subkey = jax.random.split(key)
-    initial_env_state, initial_belief_state = environment.reset(key)
-    next_env_state, next_initial_belief_state = environment.reset(subkey)
-    assert not jnp.array_equal(initial_belief_state, next_initial_belief_state)
-    assert jnp.array_equal(
-        environment.graph_realisation.graph.weights,
-        environment.graph_realisation.graph.weights,
+    initial_env_state, initial_belief_state = highly_stochastic_environment.reset(key)
+    next_env_state, next_initial_belief_state = highly_stochastic_environment.reset(
+        subkey
     )
     assert jnp.array_equal(
-        environment.graph_realisation.graph.blocking_prob,
-        environment.graph_realisation.graph.blocking_prob,
+        highly_stochastic_environment.graph_realisation.graph.weights,
+        highly_stochastic_environment.graph_realisation.graph.weights,
+    )
+    assert jnp.array_equal(
+        highly_stochastic_environment.graph_realisation.graph.blocking_prob,
+        highly_stochastic_environment.graph_realisation.graph.blocking_prob,
     )
     # start at the same origin but not necessarily same blocking status
     assert jnp.array_equal(initial_env_state[0, :1, :], next_env_state[0, :1, :])
     assert jnp.array_equal(initial_env_state[1, :, :], next_env_state[1, :, :])
     assert jnp.array_equal(initial_env_state[2, :, :], next_env_state[2, :, :])
+    assert not jnp.array_equal(initial_belief_state, next_initial_belief_state)
     assert not jnp.array_equal(initial_env_state, next_env_state)
 
 
@@ -82,12 +85,13 @@ def test_belief_state(printer, environment: CTP_environment.CTP):
     key = jax.random.PRNGKey(30)
     key, subkey = jax.random.split(key)
     initial_env_state, initial_belief_state = environment.reset(key)
-    old_blocking_status = environment.graph_realisation.blocking_status
 
     current_directory = os.getcwd()
     parent_dir = os.path.dirname(current_directory)
     log_directory = os.path.join(parent_dir, "Logs")
-    environment.graph_realisation.plot_realised_graph(log_directory, "test_graph.png")
+    environment.graph_realisation.plot_realised_graph(
+        initial_env_state[0, 1:, :], log_directory, "test_graph.png"
+    )
     env_state_1, belief_state_1, reward_1, terminate, subkey = environment.step(
         subkey, initial_env_state, initial_belief_state, jnp.array([4])
     )
@@ -104,18 +108,16 @@ def test_belief_state(printer, environment: CTP_environment.CTP):
     assert jnp.sum(belief_state_1[1:, :1, :]) == 0
     assert terminate == jnp.bool_(True)
     assert reward_3 == 0
-    assert jnp.all(
-        belief_state_3[0, 1:, :] == environment.graph_realisation.blocking_status
-    )
     # Test environment automatically reset when episode is done and not reset when episode is not done
-    """
-    assert jnp.array_equal(
-        env_state_agent_pos_3, environment.graph_realisation.graph.origin
+    assert (
+        jnp.argmax(env_state_3[0, :1, :])
+        == environment.graph_realisation.graph.origin[0]
     )
-    assert not jnp.array_equal(
-        old_blocking_status, environment.graph_realisation.blocking_status
+    assert (
+        jnp.argmax(env_state_2[0, :1, :])
+        != environment.graph_realisation.graph.origin[0]
     )
-    """
+    assert jnp.array_equal(belief_state_3, initial_belief_state)
 
 
 # Check invalid action keeps the belief state and agents_pos the same but reward decreases
@@ -125,7 +127,6 @@ def test_invalid_action(environment: CTP_environment.CTP):
     key = jax.random.PRNGKey(30)
     key, subkey = jax.random.split(key)
     initial_env_state, initial_belief_state = environment.reset(key)
-    old_blocking_status = environment.graph_realisation.blocking_status
     env_state_1, belief_state_1, reward_1, terminate, subkey = environment.step(
         subkey, initial_env_state, initial_belief_state, jnp.array([4])
     )
@@ -136,15 +137,10 @@ def test_invalid_action(environment: CTP_environment.CTP):
     assert terminate == jnp.bool_(False)
     assert jnp.all(belief_state_1 == belief_state_2)
     assert jnp.array_equal(env_state_1[0, :1, :], env_state_2[0, :1, :])
-    assert jnp.array_equal(
-        old_blocking_status, environment.graph_realisation.blocking_status
-    )
 
 
 # check that weights and blocking probs are floats
 def test_float(environment: CTP_environment.CTP):
-    key = jax.random.PRNGKey(30)
-    initial_env_state_agent_pos, initial_belief_state = environment.reset(key)
     assert environment.graph_realisation.graph.weights.dtype == jnp.float32
     assert environment.graph_realisation.graph.blocking_prob.dtype == jnp.float32
 
@@ -153,9 +149,9 @@ def test_float(environment: CTP_environment.CTP):
 def test_reproducibility(environment: CTP_environment.CTP):
     key = jax.random.PRNGKey(40)
     # test reproducibility of resampling
-    initial_env_state_agent_pos, initial_belief_state = environment.reset(key)
-    initial_env_state_agent_pos, initial_belief_state = environment.reset(key)
-    assert jnp.array_equal(initial_env_state_agent_pos, initial_env_state_agent_pos)
+    initial_env_state, initial_belief_state = environment.reset(key)
+    initial_env_state, initial_belief_state = environment.reset(key)
+    assert jnp.array_equal(initial_env_state, initial_env_state)
 
     # test reproducibility of creation
     key, subkey = jax.random.split(key)
@@ -169,10 +165,6 @@ def test_reproducibility(environment: CTP_environment.CTP):
         environment_old.graph_realisation.graph.blocking_prob,
         environment_new.graph_realisation.graph.blocking_prob,
     )
-    assert jnp.array_equal(
-        environment_old.graph_realisation.blocking_status,
-        environment_new.graph_realisation.blocking_status,
-    )
 
 
 def test_env_state(environment: CTP_environment.CTP):
@@ -184,9 +176,6 @@ def test_env_state(environment: CTP_environment.CTP):
     )
     assert jnp.array_equal(initial_env_state[0, :1, :], initial_belief_state[0, :1, :])
     assert jnp.array_equal(env_state_1[0, :1, :], belief_state_1[0, :1, :])
-    assert jnp.array_equal(
-        env_state_1[0, 1:, :], environment.graph_realisation.blocking_status
-    )
     assert jnp.array_equal(
         env_state_1[1, 1:, :], environment.graph_realisation.graph.weights
     )

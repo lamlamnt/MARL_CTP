@@ -261,6 +261,8 @@ class CTPGraph:
         return goal, origin
 
 
+# can probably put this into utils instead of it being a separate class
+# Key no longer needed for instantiation
 class CTPGraph_Realisation:
     def __init__(
         self,
@@ -274,15 +276,11 @@ class CTPGraph_Realisation:
         """
         List of properties:
         graph: CTPGraph object
-        blocking_status: Blocking status of the edges in the graph
-        is_solvable: Whether there exists a path from origin to goal
         """
         self.graph = CTPGraph(key, n_nodes, grid_size, prop_stoch, k_edges, num_goals)
         key, subkey = jax.random.split(key)
-        self.blocking_status = self.resample_blocking_prob(subkey)
-        self.solvable = self.is_solvable()
 
-    def resample_blocking_prob(self, key: jax.random.PRNGKey) -> jnp.ndarray:
+    def sample_blocking_status(self, key: jax.random.PRNGKey) -> jnp.ndarray:
         keys = jax.random.split(key, num=self.graph.n_edges)
         blocking_status = jnp.full(
             (self.graph.n_nodes, self.graph.n_nodes), BLOCKED, dtype=int
@@ -301,13 +299,11 @@ class CTPGraph_Realisation:
             blocking_status = blocking_status.at[
                 self.graph.receivers[i], self.graph.senders[i]
             ].set(element_blocking_status)
-        self.blocking_status = blocking_status
-        # self.solvable = self.is_solvable()
         return blocking_status
 
     # for single agent only
     # Return whether an unblocked path exists from origin to goal
-    def is_solvable(self) -> bool:
+    def is_solvable(self, blocking_status) -> bool:
         # Remove the blocked edges from the graph before converting to networkx
         # New senders and receivers that are unblocked edges
         def __filter_unblocked_senders(sender, receiver, status):
@@ -319,7 +315,7 @@ class CTPGraph_Realisation:
             )
 
         filtered_senders = jax.vmap(__filter_unblocked_senders, in_axes=(0, 0, None))(
-            self.graph.senders, self.graph.receivers, self.blocking_status
+            self.graph.senders, self.graph.receivers, blocking_status
         )
 
         # Remove placeholder values (-1) and return only valid sender values
@@ -331,7 +327,7 @@ class CTPGraph_Realisation:
         if unblocked_senders.size > 0:
             for i in range(self.graph.n_edges):
                 if (
-                    self.blocking_status[unblocked_senders[i], unblocked_receivers[i]]
+                    blocking_status[unblocked_senders[i], unblocked_receivers[i]]
                     == UNBLOCKED
                 ):
                     graph_NX.add_edge(
@@ -344,7 +340,9 @@ class CTPGraph_Realisation:
         return solvable
 
     # Dashed if blocked, solid if unblocked
-    def plot_realised_graph(self, directory, file_name="realised_graph.png"):
+    def plot_realised_graph(
+        self, blocking_status: jnp.ndarray, directory, file_name="realised_graph.png"
+    ):
         G = self.graph._convert_to_networkx()
         node_colour = []
         for node in G.nodes:
@@ -358,7 +356,7 @@ class CTPGraph_Realisation:
         probs = nx.get_edge_attributes(G, "blocked_prob")
         weights = nx.get_edge_attributes(G, "weight")
         blocked_edges = [
-            (s, r) for (s, r), v in probs.items() if self.blocking_status[s, r] == True
+            (s, r) for (s, r), v in probs.items() if blocking_status[s, r] == BLOCKED
         ]
         edge_labels = {
             e: (

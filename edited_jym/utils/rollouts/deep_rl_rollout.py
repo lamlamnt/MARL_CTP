@@ -38,7 +38,7 @@ def deep_rl_rollout(
             action_key,
             env_key,
             buffer_key,
-            env_state_agents_pos,
+            env_state,
             belief_state,
             all_actions,
             all_belief_states,
@@ -48,14 +48,15 @@ def deep_rl_rollout(
         ) = val
 
         current_belief_state = belief_state
+        epsilon = epsilon_decay_fn(epsilon_start, epsilon_end, i, decay_rate)
         # set epsilon to 1 for exploration. act returns subkey
         action, action_key = agent.act(
             action_key, model_params, current_belief_state, 1
         )
         # For multi-agent, we would concatenate all the agents' actions together here
         action = jnp.array([action])
-        env_state_agents_pos, belief_state, reward, done, env_key = env.step(
-            env_key, env_state_agents_pos, current_belief_state, action
+        env_state, belief_state, reward, done, env_key = env.step(
+            env_key, env_state, current_belief_state, action
         )
         action = action[0]
         experience = (current_belief_state, action, reward, belief_state, done)
@@ -99,7 +100,7 @@ def deep_rl_rollout(
             action_key,
             env_key,
             buffer_key,
-            env_state_agents_pos,
+            env_state,
             belief_state,
             all_actions,
             all_belief_states,
@@ -113,7 +114,7 @@ def deep_rl_rollout(
     init_key, action_key, buffer_key, env_key = vmap(random.PRNGKey)(
         jnp.arange(4) + random_seed
     )
-    env_state_agents_pos, belief_state = env.reset(init_key)
+    env_state, belief_state = env.reset(init_key)
     all_actions = jnp.zeros([timesteps])
     all_belief_states = jnp.zeros([timesteps, *state_shape])
     all_rewards = jnp.zeros([timesteps], dtype=jnp.float32)
@@ -132,7 +133,7 @@ def deep_rl_rollout(
         action_key,
         env_key,
         buffer_key,
-        env_state_agents_pos,
+        env_state,
         belief_state,
         all_actions,
         all_belief_states,
@@ -151,7 +152,7 @@ def deep_rl_rollout(
         "action_key",
         "env_key",
         "buffer_key",
-        "env_state_agents_pos",
+        "env_state",
         "belief_state",
         "all_actions",
         "all_belief_states",
