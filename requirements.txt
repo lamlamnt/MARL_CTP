@@ -6,7 +6,7 @@ numpy
 matplotlib
 pytest
 pytest-print
-haiku
+dm-haiku
 jax-tqdm==0.2.2
 plotly
 networkx
