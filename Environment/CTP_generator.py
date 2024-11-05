@@ -1,6 +1,5 @@
 import jax
 import jax.numpy as jnp
-import jraph
 import numpy as np
 from scipy.spatial import Delaunay
 from functools import partial

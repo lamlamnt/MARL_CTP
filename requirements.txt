@@ -11,6 +11,5 @@ jax-tqdm==0.2.2
 plotly
 networkx
 pandas
-json
 scipy
 chex 
