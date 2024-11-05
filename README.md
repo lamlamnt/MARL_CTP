@@ -7,7 +7,7 @@
 
 **Python/code management in progress:**
 <br>-Pycache keeps being uploaded despite .gitignore. 
-<br>-requirements.txt is probably not complete. Use setup.py files and make the project into a package and removing sys.path.append(".."). 
+<br>-Make the project into a package and removing sys.path.append(".."). 
 <br>-Fix the warnings when running pytest and main_training
 
 **Note:**
