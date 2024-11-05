@@ -15,6 +15,7 @@
 <br>-In order to take advantage of JAX speedup, the reset function, which gets called in the step function if terminate is True, needs to JAX jittable. The is_solvable() function is not JAX-compatible right now because of the networkx implementation and the operations used to convert to a networkx representation. To avoid calling is_solvable() in reset, I sampled a certain number of solvable blocking statuses and stored them first before running the training loop. The reset function samples from one of these stored solvable blocking statuses. Currently restrict the problem definition to only solvable graphs. 
 <br>-Ignore the "Discarded_Code" folder. 
 <br>-Files edited in JYM (minor changes): deep_rl_rollout.py and dqn.py 
+<br>-When the agent reaches the goal, the reward received is the negative of the weight between the current node and the goal node + a tunable positive number (default = 10).
 
 **Current progress status: (Nov 4th)**
 <br>-I trained a DQN policy on a 5-node graph. The learned policy seems reasonable. I have not done any hyperparameter tuning or trained on other graphs/using different seeds and number of nodes.
