@@ -28,3 +28,9 @@ def test_mlp(printer):
     assert output_1.shape == (5,)
     assert output_2.shape == (5,)
     assert output_3.shape == (5,)
+
+    # Test that Flax network works with other shapes too
+    big_flax_model = MLP.Flax_FCNetwork([128, 64, 32, 16], 10)
+    big_flax_params = big_flax_model.init(subkey, jnp.ones((3, 11, 10)))
+    big_output = big_flax_model.apply(big_flax_params, jnp.ones((3, 11, 10)))
+    assert big_output.shape == (10,)

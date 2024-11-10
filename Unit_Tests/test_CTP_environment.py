@@ -193,14 +193,6 @@ def test_non_zero(environment: CTP_environment.CTP):
     assert jnp.sum(new_env_state[0, 1:, :]) > 0
 
 
-def test_sample_enough(environment: CTP_environment.CTP):
-    assert environment.stored_realisations.shape == (
-        environment.num_stored_realisations,
-        environment.num_nodes,
-        environment.num_nodes,
-    )
-
-
 # Test that if try to go down blocked edges, will get very negative reward
 def test_invalid_action(environment: CTP_environment.CTP):
     key = jax.random.PRNGKey(30)

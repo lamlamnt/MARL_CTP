@@ -20,7 +20,7 @@ NOT_CONNECTED: Final[int] = -1
 class CTPGraph:
     def __init__(
         self,
-        key: int,
+        key: jax.random.PRNGKey,
         n_nodes: int,
         grid_size=0,
         prop_stoch=None,
@@ -64,6 +64,17 @@ class CTPGraph:
             self.goal, self.origin = self.__find_single_goal_and_origin(self.node_pos)
             self.goal = jnp.array([self.goal])
             self.origin = jnp.array([self.origin])
+
+        # Add expensive edge if no edge between goal and origin
+        if self.weights[self.origin, self.goal] == NOT_CONNECTED:
+            upper_bound = (self.n_nodes - 1) * jnp.sqrt(grid_size**2 + grid_size**2)
+            self.weights = self.weights.at[self.origin, self.goal].set(upper_bound)
+            self.weights = self.weights.at[self.goal, self.origin].set(upper_bound)
+            self.blocking_prob = self.blocking_prob.at[self.origin, self.goal].set(0)
+            self.blocking_prob = self.blocking_prob.at[self.goal, self.origin].set(0)
+            self.senders = jnp.append(self.senders, self.origin)
+            self.receivers = jnp.append(self.receivers, self.goal)
+            self.n_edges += 1
 
     # Returns the weight adjacency matrix and n_edges
     def __generate_connectivity_weight(

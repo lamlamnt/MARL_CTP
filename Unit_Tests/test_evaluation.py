@@ -4,7 +4,9 @@ import jax.numpy as jnp
 import sys
 
 sys.path.append("..")
-from Networks import MLP  # Replace with your model's actual import
+from Networks import MLP
+from Environment import CTP_environment
+from Evaluation.optimal_path_length import dijikstra_shortest_path
 import os
 import pytest
 
@@ -20,7 +22,7 @@ def test_load_model():
         serialized_params = f.read()
 
     # Initialize your model (assuming you know the input shape or have example inputs)
-    flax_model = MLP.Flax_FCNetwork([128, 64, 32, 16], 5)
+    flax_model = MLP.Flax_FCNetwork([150, 75, 37, 18], 5)
     example_input = jnp.zeros((3, 6, 5))
     initial_params = flax_model.init(key, example_input)
     random_output = flax_model.apply(initial_params, example_input)
@@ -29,3 +31,19 @@ def test_load_model():
     restored_params = flax.serialization.from_bytes(initial_params, serialized_params)
     model_output = flax_model.apply(restored_params, example_input)
     assert not jnp.array_equal(random_output, model_output)
+
+
+def test_optimal_path_length():
+    key = jax.random.PRNGKey(30)
+    environment = CTP_environment.CTP(1, 1, 5, key, prop_stoch=0.4)
+    env_state, _ = environment.reset(key)
+    current_directory = os.getcwd()
+    parent_dir = os.path.dirname(current_directory)
+    log_directory = os.path.join(parent_dir, "Logs")
+    environment.graph_realisation.plot_realised_graph(
+        env_state[0, 1:, :], log_directory, "check_dijsktra.png"
+    )
+    goal = environment.graph_realisation.graph.goal
+    origin = environment.graph_realisation.graph.origin
+    shortest_path = dijikstra_shortest_path(env_state, goal, origin)
+    assert jnp.isclose(shortest_path, 6.36, atol=1e-2)

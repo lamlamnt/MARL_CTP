@@ -20,8 +20,8 @@
 **Current progress status: (Nov 4th)**
 <br>-I trained a DQN policy on a 5-node graph. The learned policy seems reasonable. I have not done any hyperparameter tuning or trained on other graphs/using different seeds and number of nodes.
 
-**Instructions on setting up**
-<br>1. Get JAXMARL. Use JAXMARL's Dockerfile to set up a Docker container. 
+**Instructions for setting up**
+<br>1. Get JaxMARL. Use JaxMARL's Dockerfile to set up a Docker container. 
 <br>2. pip install -r requirements.txt (using MARL_CTP's requirements.txt)
 
 

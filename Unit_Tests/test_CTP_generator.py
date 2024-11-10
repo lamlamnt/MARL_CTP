@@ -7,11 +7,12 @@ from Environment import CTP_generator
 import argparse
 import os
 import pytest
+import pytest_print as pp
 
 
 @pytest.fixture
 def graphRealisation():
-    key = jax.random.PRNGKey(100)
+    key = jax.random.PRNGKey(101)
     graphRealisation = CTP_generator.CTPGraph_Realisation(key, 5, prop_stoch=0.4)
     return graphRealisation
 
@@ -39,7 +40,7 @@ def test_symmetric_adjacency_matrices(
     assert jnp.all(blocking_status == blocking_status.T)
 
 
-def test_plotting(graphRealisation: CTP_generator.CTPGraph_Realisation):
+def test_plotting(printer, graphRealisation: CTP_generator.CTPGraph_Realisation):
     current_directory = os.getcwd()
     parent_dir = os.path.dirname(current_directory)
     log_directory = os.path.join(parent_dir, "Logs")
@@ -50,6 +51,7 @@ def test_plotting(graphRealisation: CTP_generator.CTPGraph_Realisation):
     key = jax.random.PRNGKey(50)
     blocking_status = graphRealisation.sample_blocking_status(key)
     graphRealisation.plot_realised_graph(blocking_status, log_directory)
+    printer(graphRealisation.graph.weights)
 
 
 def test_is_solvable(graphRealisation: CTP_generator.CTPGraph_Realisation):
@@ -60,9 +62,7 @@ def test_is_solvable(graphRealisation: CTP_generator.CTPGraph_Realisation):
     assert graphRealisation.is_solvable(blocking_status) is False
     key = jax.random.PRNGKey(50)
     blocking_status = graphRealisation.sample_blocking_status(key)
-    blocking_status = blocking_status.at[0, 4].set(CTP_generator.BLOCKED)
-    blocking_status = blocking_status.at[4, 0].set(CTP_generator.BLOCKED)
-    assert graphRealisation.is_solvable(blocking_status) is False
+    assert graphRealisation.is_solvable(blocking_status) is True
 
 
 def test_resample(graphRealisation: CTP_generator.CTPGraph_Realisation):
@@ -84,3 +84,23 @@ def test_check_blocking_status(graphRealisation: CTP_generator.CTPGraph_Realisat
                 assert int(blocking_status[i, j]) is CTP_generator.BLOCKED
             if graphRealisation.graph.blocking_prob[i, j] == 0:
                 assert int(blocking_status[i, j]) is CTP_generator.UNBLOCKED
+
+
+# Check that always an edge between goal and origin
+# Check that this edge has the greatest weight
+def test_goal_origin_connected(graphRealisation: CTP_generator.CTPGraph_Realisation):
+    assert (
+        graphRealisation.graph.weights[
+            graphRealisation.graph.origin, graphRealisation.graph.goal
+        ]
+        != CTP_generator.NOT_CONNECTED
+    )
+    assert (
+        graphRealisation.graph.weights[
+            graphRealisation.graph.goal, graphRealisation.graph.origin
+        ]
+        != CTP_generator.NOT_CONNECTED
+    )
+    assert graphRealisation.graph.weights[
+        graphRealisation.graph.origin, graphRealisation.graph.goal
+    ] == jnp.max(graphRealisation.graph.weights)
