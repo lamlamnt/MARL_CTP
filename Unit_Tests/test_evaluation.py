@@ -6,7 +6,7 @@ import sys
 sys.path.append("..")
 from Networks import MLP
 from Environment import CTP_environment
-from Evaluation.optimal_path_length import dijikstra_shortest_path
+from Evaluation.optimal_path_length import dijkstra_shortest_path
 import os
 import pytest
 
@@ -45,5 +45,5 @@ def test_optimal_path_length():
     )
     goal = environment.graph_realisation.graph.goal
     origin = environment.graph_realisation.graph.origin
-    shortest_path = dijikstra_shortest_path(env_state, goal, origin)
+    shortest_path = dijkstra_shortest_path(env_state, origin, goal)
     assert jnp.isclose(shortest_path, 6.36, atol=1e-2)

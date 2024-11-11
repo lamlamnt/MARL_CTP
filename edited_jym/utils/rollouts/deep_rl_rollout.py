@@ -1,6 +1,7 @@
 from typing import Callable
 
 import haiku as hk
+import jax
 import jax.numpy as jnp
 import optax
 from jax import jit, lax, random, vmap
@@ -8,6 +9,11 @@ from jax_tqdm import loop_tqdm
 
 from ...agents import BaseDeepRLAgent
 from ..replay_buffers import BaseReplayBuffer
+import sys
+
+sys.path.append("../../..")
+from Environment import CTP_generator, CTP_environment
+from Evaluation.optimal_path_length import dijkstra_shortest_path
 
 
 def deep_rl_rollout(
@@ -18,7 +24,7 @@ def deep_rl_rollout(
     optimizer: optax.GradientTransformation,
     buffer_state: dict,
     agent: BaseDeepRLAgent,
-    env,
+    env: CTP_environment.CTP,
     replay_buffer: BaseReplayBuffer,
     state_shape: int,
     buffer_size: int,
@@ -44,6 +50,7 @@ def deep_rl_rollout(
             all_rewards,
             all_done,
             losses,
+            all_optimal_path_lengths,
         ) = val
 
         current_belief_state = belief_state
@@ -57,6 +64,23 @@ def deep_rl_rollout(
             env_key, env_state, current_belief_state, action
         )
         action = action[0]
+        shortest_path = jax.lax.cond(
+            done,
+            lambda _: dijkstra_shortest_path(
+                env_state,
+                env.graph_realisation.graph.origin,
+                env.graph_realisation.graph.goal,
+            ),
+            lambda _: 0.0,
+            operand=None,
+        )
+        """
+        shortest_path = dijkstra_shortest_path(
+            env_state,
+            env.graph_realisation.graph.origin,
+            env.graph_realisation.graph.goal,
+        )
+        """
         experience = (current_belief_state, action, reward, belief_state, done)
 
         buffer_state = replay_buffer.add(buffer_state, experience, i)
@@ -88,6 +112,7 @@ def deep_rl_rollout(
         all_rewards = all_rewards.at[i].set(reward)
         all_done = all_done.at[i].set(done)
         losses = losses.at[i].set(loss)
+        all_optimal_path_lengths = all_optimal_path_lengths.at[i].set(shortest_path)
 
         val = (
             model_params,
@@ -103,6 +128,7 @@ def deep_rl_rollout(
             all_rewards,
             all_done,
             losses,
+            all_optimal_path_lengths,
         )
 
         return val
@@ -114,6 +140,7 @@ def deep_rl_rollout(
     all_actions = jnp.zeros([timesteps])
     all_rewards = jnp.zeros([timesteps], dtype=jnp.float32)
     all_done = jnp.zeros([timesteps], dtype=jnp.bool_)
+    all_optimal_path_lengths = jnp.zeros([timesteps], dtype=jnp.float32)
     losses = jnp.zeros([timesteps], dtype=jnp.float32)
 
     model_params = model.init(init_key, jnp.zeros(state_shape))
@@ -134,6 +161,7 @@ def deep_rl_rollout(
         all_rewards,
         all_done,
         losses,
+        all_optimal_path_lengths,
     )
 
     vals = lax.fori_loop(0, timesteps, _fori_body, val_init)
@@ -152,6 +180,7 @@ def deep_rl_rollout(
         "all_rewards",
         "all_done",
         "losses",
+        "all_optimal_path_lengths",
     ]
     for idx, value in enumerate(vals):
         output_dict[keys[idx]] = value

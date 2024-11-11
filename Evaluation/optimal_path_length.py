@@ -8,9 +8,9 @@ import os
 
 
 @jax.jit
-def dijikstra_shortest_path(
-    env_state: CTP_environment.EnvState, goal: int, origin: int
-) -> int:
+def dijkstra_shortest_path(
+    env_state: CTP_environment.EnvState, origin: int, goal: int
+) -> float:
     # Given the current environment state (perfect knowledge of blocking status),
     # return the shortest path length from the source to the origin
     num_nodes = env_state.shape[2]
@@ -52,6 +52,6 @@ def dijikstra_shortest_path(
         return new_distances, visited
 
     # Run the loop with `jax.lax.fori_loop`
-    distances, _ = jax.lax.fori_loop(0, num_nodes, body_fun, (distances, visited))
+    distances, visited = jax.lax.fori_loop(0, num_nodes, body_fun, (distances, visited))
 
-    return distances[goal]
+    return distances[goal][0]
