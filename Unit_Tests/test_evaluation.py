@@ -5,10 +5,11 @@ import sys
 
 sys.path.append("..")
 from Networks import MLP
-from Environment import CTP_environment
+from Environment import CTP_environment, CTP_generator
 from Evaluation.optimal_path_length import dijkstra_shortest_path
 import os
 import pytest
+import pytest_print as pp
 
 
 def test_load_model():
@@ -17,7 +18,7 @@ def test_load_model():
     current_directory = os.getcwd()
     parent_dir = os.path.dirname(current_directory)
     log_directory = os.path.join(parent_dir, "Logs")
-    file_name = os.path.join(log_directory, "weights.flax")
+    file_name = os.path.join(log_directory, "weights_5.flax")
     with open(file_name, "rb") as f:
         serialized_params = f.read()
 
@@ -33,10 +34,16 @@ def test_load_model():
     assert not jnp.array_equal(random_output, model_output)
 
 
-def test_optimal_path_length():
+def test_optimal_path_length(printer):
     key = jax.random.PRNGKey(30)
-    environment = CTP_environment.CTP(1, 1, 5, key, prop_stoch=0.4)
+    subkeys = jax.random.split(key, num=2)
+    online_key, environment_key = subkeys
+    environment = CTP_environment.CTP(1, 1, 5, environment_key, prop_stoch=0.4)
     env_state, _ = environment.reset(key)
+
+    env_state = env_state.at[0, 2, 3].set(CTP_generator.UNBLOCKED)
+    env_state = env_state.at[0, 4, 1].set(CTP_generator.UNBLOCKED)
+
     current_directory = os.getcwd()
     parent_dir = os.path.dirname(current_directory)
     log_directory = os.path.join(parent_dir, "Logs")
@@ -46,4 +53,6 @@ def test_optimal_path_length():
     goal = environment.graph_realisation.graph.goal
     origin = environment.graph_realisation.graph.origin
     shortest_path = dijkstra_shortest_path(env_state, origin, goal)
-    assert jnp.isclose(shortest_path, 6.36, atol=1e-2)
+    printer(shortest_path)
+    printer(env_state)
+    assert jnp.isclose(shortest_path, 10.385, atol=1e-2)

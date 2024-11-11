@@ -54,6 +54,7 @@ def deep_rl_rollout(
         ) = val
 
         current_belief_state = belief_state
+        current_env_state = env_state
         epsilon = epsilon_decay_fn(epsilon_start, epsilon_end, i, duration)
         action, action_key = agent.act(
             action_key, model_params, current_belief_state, epsilon
@@ -61,26 +62,19 @@ def deep_rl_rollout(
         # For multi-agent, we would concatenate all the agents' actions together here
         action = jnp.array([action])
         env_state, belief_state, reward, done, env_key = env.step(
-            env_key, env_state, current_belief_state, action
+            env_key, current_env_state, current_belief_state, action
         )
         action = action[0]
         shortest_path = jax.lax.cond(
             done,
             lambda _: dijkstra_shortest_path(
-                env_state,
+                current_env_state,
                 env.graph_realisation.graph.origin,
                 env.graph_realisation.graph.goal,
             ),
             lambda _: 0.0,
             operand=None,
         )
-        """
-        shortest_path = dijkstra_shortest_path(
-            env_state,
-            env.graph_realisation.graph.origin,
-            env.graph_realisation.graph.goal,
-        )
-        """
         experience = (current_belief_state, action, reward, belief_state, done)
 
         buffer_state = replay_buffer.add(buffer_state, experience, i)

@@ -135,7 +135,7 @@ def main(args):
 
     rollout_params = {
         "timesteps": args.time_steps,
-        "random_seed": args.random_seed_for_training,
+        "random_seed": args.random_seed_for_training + 1,
         "target_net_update_freq": args.target_net_update_freq,
         "model": model,
         "optimizer": optimizer,
@@ -154,77 +154,95 @@ def main(args):
     out = deep_rl_rollout(**rollout_params)
 
     print("Start plotting and storing weights ...")
-
-    # Plot rewards, losses, regret, and comparative ratio
-    last_average_reward, max_episodic_reward = plotting.plot_reward_over_episode(
-        out["all_done"], out["all_rewards"], log_directory, args.n_node
-    )
-
-    # Put here to ensure timing is correct (plotting time is negligible)
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-
-    plotting.plot_loss_over_time_steps(out["losses"], log_directory, args.n_node)
-
-    last_average_loss = plotting.get_last_average_episodic_loss(
-        out["all_done"], out["losses"]
-    )
-
-    last_regret, last_comparative_ratio = plotting.plot_regret_comparative_ratio(
-        out["all_done"],
-        out["all_rewards"],
-        out["all_optimal_path_lengths"],
-        log_directory,
-        args.n_node,
-    )
-
-    reward_loss_regret_comparative_ratio = {
-        "last_average_reward": str(last_average_reward),
-        "max_episodic_reward": str(max_episodic_reward),
-        "last_average_loss": str(last_average_loss),
-        "last_regret": str(last_regret),
-        "last_comparative_ratio": str(last_comparative_ratio),
-    }
-
-    # Record hyperparameters and last average reward and loss in JSON file
-    dict_args = vars(args)
-    args_path = os.path.join(
-        log_directory, "Hyperparamters_" + str(args.n_node) + ".json"
-    )
-    with open(args_path, "w") as fh:
-        json.dump(dict_args, fh)
-        fh.write("\n")
-        json.dump(reward_loss_regret_comparative_ratio, fh)
-        fh.write("\n")
-        json.dump({"Total training time in seconds": elapsed_time}, fh)
-
     # Store weights in a file (for loading in the future)
     # Store to .pickle file if using Haiku model
     if args.save_model:
         # File can have any ending
         with open(
-            os.path.join(log_directory, "weights" + str(args.n_node) + ".flax"), "wb"
+            os.path.join(log_directory, "weights_" + str(args.n_node) + ".flax"), "wb"
         ) as f:
             f.write(flax.serialization.to_bytes(out["model_params"]))
+    # Put here to ensure timing is correct (plotting time is negligible)
+    end_time = time.time()
+    elapsed_time = end_time - start_time
 
-    # Evaluate the model and visualize policy
+    last_average_loss = plotting.plot_loss(
+        out["all_done"], out["losses"], log_directory, args.n_node
+    )
+
+    result_dict = plotting.save_data_and_plotting(
+        out["all_done"],
+        out["all_rewards"],
+        out["all_optimal_path_lengths"],
+        log_directory,
+        args.n_node,
+        training=True,
+    )
+
+    # Record hyperparameters in JSON file
+    dict_args = vars(args)
+    args_path = os.path.join(
+        log_directory, "Hyperparamters_Results_" + str(args.n_node) + ".json"
+    )
+    with open(args_path, "w") as fh:
+        json.dump(dict_args, fh)
+        fh.write("\n")
+        json.dump({"Total training time in seconds": elapsed_time}, fh)
+        fh.write("\n")
+        json.dump({"Last average loss:": last_average_loss}, fh)
+        fh.write("\n")
+        json.dump(result_dict, fh, indent=4)
+
+    # Evaluate the model
     # Test on the same graph
     print("Start evaluating ...")
     num_steps_for_inference = args.n_node * FACTOR_TO_MULTIPLY_INFERENCE_TIMESTEPS
+    test_all_rewards = jnp.zeros([num_steps_for_inference], dtype=jnp.float32)
+    test_all_done = jnp.zeros([num_steps_for_inference], dtype=jnp.bool_)
+    test_all_optimal_path_lengths = jnp.zeros(
+        [num_steps_for_inference], dtype=jnp.float32
+    )
     init_key, action_key, env_key = jax.vmap(jax.random.PRNGKey)(
         jnp.arange(3) + args.random_seed_for_inference
     )
-    new_env_state, new_belief_state = environment.reset(init_key)
+    env_state, belief_state = environment.reset(init_key)
     for i in range(num_steps_for_inference):
-        current_belief_state = new_belief_state
+        current_belief_state = belief_state
+        current_env_state = env_state
         action, action_key = agent.act(
             action_key, out["model_params"], current_belief_state, 0
         )
+        # For multi-agent, we would concatenate all the agents' actions together here
         action = jnp.array([action])
-        new_env_state, new_belief_state, reward, done, env_key = environment.step(
-            env_key, new_env_state, current_belief_state, action
+        env_state, belief_state, reward, done, env_key = environment.step(
+            env_key, current_env_state, current_belief_state, action
         )
-    # Plot for reward, regret, and comparative ratio (by episode, time steps)?
+        shortest_path = jax.lax.cond(
+            done,
+            lambda _: dijkstra_shortest_path(
+                current_env_state,
+                environment.graph_realisation.graph.origin,
+                environment.graph_realisation.graph.goal,
+            ),
+            lambda _: 0.0,
+            operand=None,
+        )
+        test_all_rewards = test_all_rewards.at[i].set(reward)
+        test_all_done = test_all_done.at[i].set(done)
+        test_all_optimal_path_lengths = test_all_optimal_path_lengths.at[i].set(
+            shortest_path
+        )
+
+    plotting.save_data_and_plotting(
+        test_all_done,
+        test_all_rewards,
+        test_all_optimal_path_lengths,
+        log_directory,
+        args.n_node,
+        training=False,
+    )
+
+    # Visualize the policy
 
 
 if __name__ == "__main__":
@@ -321,7 +339,7 @@ if __name__ == "__main__":
 
     # Hyperparameters specific to DQN
     parser.add_argument(
-        "--buffer_size", type=int, help="Buffer size", required=False, default=128
+        "--buffer_size", type=int, help="Buffer size", required=False, default=200
     )
     parser.add_argument(
         "--target_net_update_freq",
