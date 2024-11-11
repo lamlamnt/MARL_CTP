@@ -53,6 +53,38 @@ def test_optimal_path_length(printer):
     goal = environment.graph_realisation.graph.goal
     origin = environment.graph_realisation.graph.origin
     shortest_path = dijkstra_shortest_path(env_state, origin, goal)
-    printer(shortest_path)
-    printer(env_state)
     assert jnp.isclose(shortest_path, 10.385, atol=1e-2)
+
+
+def test_grid_size_dijkstra(printer):
+    key = jax.random.PRNGKey(30)
+    key, subkey = jax.random.split(key)
+    current_directory = os.getcwd()
+    parent_dir = os.path.dirname(current_directory)
+    log_directory = os.path.join(parent_dir, "Logs/Unit_Tests")
+    environment = CTP_environment.CTP(1, 1, 10, key, prop_stoch=0.4, grid_size=10)
+    env_state, _ = environment.reset(key)
+    goal = environment.graph_realisation.graph.goal
+    origin = environment.graph_realisation.graph.origin
+    shortest_path_10 = dijkstra_shortest_path(env_state, origin, goal)
+    environment.graph_realisation.plot_realised_graph(
+        env_state[0, 1:, :], log_directory, "grid_size_10.png"
+    )
+
+    different_environment = CTP_environment.CTP(
+        1, 1, 10, subkey, prop_stoch=0.4, grid_size=20
+    )
+    different_env_state, _ = different_environment.reset(subkey)
+    different_goal = different_environment.graph_realisation.graph.goal
+    different_origin = different_environment.graph_realisation.graph.origin
+    shortest_path_20 = dijkstra_shortest_path(
+        different_env_state, different_origin, different_goal
+    )
+    different_environment.graph_realisation.plot_realised_graph(
+        different_env_state[0, 1:, :], log_directory, "grid_size_20.png"
+    )
+
+    printer(shortest_path_10)
+    printer(shortest_path_20)
+
+    assert shortest_path_10 < shortest_path_20

@@ -367,10 +367,20 @@ if __name__ == "__main__":
         required=False,
         default=True,
     )
+    parser.add_argument(
+        "--log_directory",
+        type=str,
+        help="Directory to store logs",
+        required=False,
+        default=None,
+    )
 
     args = parser.parse_args()
     current_directory = os.getcwd()
-    identifier_folder = "DQN_uniform_" + str(args.n_node)
+    if args.log_directory is None:
+        identifier_folder = "DQN_uniform_" + str(args.n_node)
+    else:
+        identifier_folder = args.log_directory
     log_directory = os.path.join(current_directory, "Logs", identifier_folder)
     if not os.path.exists(log_directory):
         os.makedirs(log_directory)
