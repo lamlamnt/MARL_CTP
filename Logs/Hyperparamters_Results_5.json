@@ -1,9 +1,0 @@
-{"n_node": 5, "n_agent": 1, "time_steps": 200000, "learning_rate": 0.001, "discount_factor": 0.9, "epsilon_start": 0.3, "epsilon_end": 0.0, "epsilon_exploration_rate": 0.5, "batch_size": 128, "network_size": null, "reward_for_invalid_action": -200.0, "reward_for_goal": 0, "num_stored_realisations": 10, "patience_factor": 4, "prop_stoch": 0.4, "k_edges": null, "grid_size": 10, "random_seed_for_training": 30, "random_seed_for_inference": 40, "buffer_size": 200, "target_net_update_freq": 10, "save_model": true}
-{"Total training time in seconds": 108.54583024978638}
-{"Last average loss:": 0.21355500482022763}
-{
-    "final_regret": 0.0,
-    "final_comparative_ratio": 1.0,
-    "avg_reward_last_episode": -11.07077922821045,
-    "max_reward": -10.385164260864258
-}

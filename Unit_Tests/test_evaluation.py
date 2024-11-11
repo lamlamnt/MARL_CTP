@@ -17,7 +17,7 @@ def test_load_model():
     # Load the parameters from the file
     current_directory = os.getcwd()
     parent_dir = os.path.dirname(current_directory)
-    log_directory = os.path.join(parent_dir, "Logs")
+    log_directory = os.path.join(parent_dir, "Logs/Unit_Tests")
     file_name = os.path.join(log_directory, "weights_5.flax")
     with open(file_name, "rb") as f:
         serialized_params = f.read()
@@ -46,7 +46,7 @@ def test_optimal_path_length(printer):
 
     current_directory = os.getcwd()
     parent_dir = os.path.dirname(current_directory)
-    log_directory = os.path.join(parent_dir, "Logs")
+    log_directory = os.path.join(parent_dir, "Logs/Unit_Tests")
     environment.graph_realisation.plot_realised_graph(
         env_state[0, 1:, :], log_directory, "check_dijsktra.png"
     )

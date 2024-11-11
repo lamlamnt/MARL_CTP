@@ -6,13 +6,13 @@ import numpy as np
 N_EPISODES_TO_AVERAGE_OVER = 10
 
 
-def plot_loss(all_done, all_loss, directory, num_nodes: int, file_name="loss"):
+def plot_loss(all_done, all_loss, directory, file_name="loss.png"):
     plt.figure(figsize=(10, 6))
     plt.plot(all_loss, linestyle="-")
     plt.xlabel("Time Steps")
     plt.ylabel("Loss")
     plt.title("Loss Per Time Step")
-    plt.savefig(os.path.join(directory, file_name + "_" + str(num_nodes) + ".png"))
+    plt.savefig(os.path.join(directory, file_name))
 
     df = pd.DataFrame(
         data={
@@ -35,15 +35,14 @@ def save_data_and_plotting(
     all_rewards,
     all_optimal_path_lengths,
     directory,
-    num_nodes,
     training=True,
-    file_name_excel_sheet_episode="episode_output",
-    file_name_excel_sheet_timestep="timestep_output",
-    file_name_regret_episode="episode_regret",
-    file_name_comparative_ratio_episode="episode_comparative_ratio",
-    file_name_episodic_reward="episodic_reward",
-    file_name_regret_timesteps="timesteps_regret",
-    file_name_comparative_ratio_timesteps="timesteps_comparative_ratio",
+    file_name_excel_sheet_episode="episode_output.xlsx",
+    file_name_excel_sheet_timestep="timestep_output.xlsx",
+    file_name_regret_episode="episode_regret.png",
+    file_name_comparative_ratio_episode="episode_comparative_ratio.png",
+    file_name_episodic_reward="episodic_reward.png",
+    file_name_regret_timesteps="timesteps_regret.png",
+    file_name_comparative_ratio_timesteps="timesteps_comparative_ratio.png",
 ) -> dict[str, float]:
     if training == True:
         beginning_str = "training_"
@@ -67,14 +66,7 @@ def save_data_and_plotting(
         episodes_df["reward"].abs() / episodes_df["optimal_path_length"]
     )
     episodes_df.to_excel(
-        os.path.join(
-            directory,
-            beginning_str
-            + file_name_excel_sheet_episode
-            + "_"
-            + str(num_nodes)
-            + ".xlsx",
-        ),
+        os.path.join(directory, beginning_str + file_name_excel_sheet_episode),
         sheet_name="Sheet1",
         index=False,
     )
@@ -90,14 +82,7 @@ def save_data_and_plotting(
     df["comparative_ratio"] = df["reward"].abs() / df["optimal_path_length"]
     """
     df.to_excel(
-        os.path.join(
-            directory,
-            beginning_str
-            + file_name_excel_sheet_timestep
-            + "_"
-            + str(num_nodes)
-            + ".xlsx",
-        ),
+        os.path.join(directory, beginning_str + file_name_excel_sheet_timestep),
         sheet_name="Sheet1",
         index=False,
     )
@@ -110,7 +95,7 @@ def save_data_and_plotting(
     plt.savefig(
         os.path.join(
             directory,
-            beginning_str + file_name_regret_episode + "_" + str(num_nodes) + ".png",
+            beginning_str + file_name_regret_episode,
         )
     )
     plt.figure(figsize=(10, 6))
@@ -119,14 +104,7 @@ def save_data_and_plotting(
     plt.ylabel("Comparative Ratio")
     plt.title("Comparative Ratio Over Time (By Episode)")
     plt.savefig(
-        os.path.join(
-            directory,
-            beginning_str
-            + file_name_comparative_ratio_episode
-            + "_"
-            + str(num_nodes)
-            + ".png",
-        )
+        os.path.join(directory, beginning_str + file_name_comparative_ratio_episode)
     )
 
     plt.figure(figsize=(10, 6))
@@ -137,7 +115,7 @@ def save_data_and_plotting(
     plt.savefig(
         os.path.join(
             directory,
-            beginning_str + file_name_episodic_reward + "_" + str(num_nodes) + ".png",
+            beginning_str + file_name_episodic_reward,
         )
     )
 
@@ -145,12 +123,21 @@ def save_data_and_plotting(
         episodes_df["reward"].rolling(window=N_EPISODES_TO_AVERAGE_OVER).mean()
     )
 
-    result_dict = {
-        "final_regret": float(episodes_df["regret"].iloc[-1]),
-        "final_comparative_ratio": float(episodes_df["comparative_ratio"].iloc[-1]),
-        "avg_reward_last_episode": float(episodes_df["avg_reward_n_episodes"].iloc[-1]),
-        "max_reward": float(episodes_df["reward"].max()),
-    }
+    if training == True:
+        result_dict = {
+            "final_regret": float(episodes_df["regret"].iloc[-1]),
+            "final_comparative_ratio": float(episodes_df["comparative_ratio"].iloc[-1]),
+            "avg_reward_last_episode": float(
+                episodes_df["avg_reward_n_episodes"].iloc[-1]
+            ),
+            "max_reward": float(episodes_df["reward"].max()),
+        }
+    else:
+        result_dict = {
+            "average_regret": float(episodes_df["regret"].mean()),
+            "average_comparative_ratio": float(episodes_df["comparative_ratio"].mean()),
+            "average_reward": float(episodes_df["reward"].mean()),
+        }
 
     """
     # Plot regret and comparative ratio over time steps
@@ -162,7 +149,7 @@ def save_data_and_plotting(
     plt.savefig(
         os.path.join(
             directory,
-            beginning_str + file_name_regret_timesteps + str(num_nodes) + ".png",
+            beginning_str + file_name_regret_timesteps + "_" + str(num_nodes) + ".png",
         )
     )
 
@@ -176,6 +163,7 @@ def save_data_and_plotting(
             directory,
             beginning_str
             + file_name_comparative_ratio_timesteps
+            + "_"
             + str(num_nodes)
             + ".png",
         )

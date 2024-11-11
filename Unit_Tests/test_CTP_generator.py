@@ -43,7 +43,7 @@ def test_symmetric_adjacency_matrices(
 def test_plotting(printer, graphRealisation: CTP_generator.CTPGraph_Realisation):
     current_directory = os.getcwd()
     parent_dir = os.path.dirname(current_directory)
-    log_directory = os.path.join(parent_dir, "Logs")
+    log_directory = os.path.join(parent_dir, "Logs/Unit_Tests")
     if not os.path.exists(log_directory):
         os.makedirs(log_directory)
 
@@ -104,3 +104,28 @@ def test_goal_origin_connected(graphRealisation: CTP_generator.CTPGraph_Realisat
     assert graphRealisation.graph.weights[
         graphRealisation.graph.origin, graphRealisation.graph.goal
     ] == jnp.max(graphRealisation.graph.weights)
+
+
+# Different grid sizes
+def test_different_grid_sizes():
+    key = jax.random.PRNGKey(30)
+    key, subkey = jax.random.split(key)
+    current_directory = os.getcwd()
+    parent_dir = os.path.dirname(current_directory)
+    log_directory = os.path.join(parent_dir, "Logs/Unit_Tests")
+    graphRealisation = CTP_generator.CTPGraph_Realisation(
+        key, 10, prop_stoch=0.4, grid_size=10
+    )
+    graphRealisation.plot_realised_graph(
+        graphRealisation.sample_blocking_status(subkey),
+        log_directory,
+        file_name="grid_size_10",
+    )
+    newGraphRealisation = CTP_generator.CTPGraph_Realisation(
+        key, 10, prop_stoch=0.4, grid_size=20
+    )
+    newGraphRealisation.plot_realised_graph(
+        graphRealisation.sample_blocking_status(subkey),
+        log_directory,
+        file_name="grid_size_20",
+    )

@@ -88,7 +88,7 @@ def test_belief_state(printer, environment: CTP_environment.CTP):
 
     current_directory = os.getcwd()
     parent_dir = os.path.dirname(current_directory)
-    log_directory = os.path.join(parent_dir, "Logs")
+    log_directory = os.path.join(parent_dir, "Logs/Unit_Tests")
     environment.graph_realisation.plot_realised_graph(
         initial_env_state[0, 1:, :], log_directory, "test_graph.png"
     )

@@ -41,7 +41,7 @@ class DQN_PER(BaseDeepRLAgent):
             return random.choice(subkey, jnp.arange(self.n_actions))
 
         def _forward_pass(_):
-            q_values = self.model.apply(online_net_params, None, state)
+            q_values = self.model.apply(online_net_params, state)
             return jnp.argmax(q_values)
 
         explore = random.uniform(key) < epsilon
@@ -94,7 +94,7 @@ class DQN_PER(BaseDeepRLAgent):
                 priority,
             ):
                 target = reward + (1 - done) * self.discount * jnp.max(
-                    self.model.apply(target_net_params, None, next_state),
+                    self.model.apply(target_net_params, next_state),
                 )
                 prediction = self.model.apply(online_net_params, None, state)[action]
                 return jnp.square(target - prediction)
