@@ -13,3 +13,4 @@ networkx
 pandas
 scipy
 chex 
+openpyxl

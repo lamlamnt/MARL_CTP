@@ -20,6 +20,7 @@ import flax
 import ast
 import time
 from Evaluation.optimal_path_length import dijkstra_shortest_path
+from datetime import datetime
 
 NUM_CHANNELS_IN_BELIEF_STATE = 3
 FACTOR_TO_MULTIPLY_NETWORK_SIZE = 5
@@ -191,7 +192,19 @@ def main(args):
         jnp.arange(3) + args.random_seed_for_inference
     )
     env_state, belief_state = environment.reset(init_key)
-    for i in range(num_steps_for_inference):
+
+    def _fori_inference(i: int, val: tuple):
+        (
+            action_key,
+            env_key,
+            env_state,
+            belief_state,
+            test_all_actions,
+            test_all_positions,
+            test_all_rewards,
+            test_all_done,
+            test_all_optimal_path_lengths,
+        ) = val
         current_belief_state = belief_state
         current_env_state = env_state
         action, action_key = agent.act(
@@ -222,6 +235,44 @@ def main(args):
         test_all_positions = test_all_positions.at[i].set(
             jnp.argmax(current_env_state[0, : args.n_agent])
         )
+        val = (
+            action_key,
+            env_key,
+            env_state,
+            belief_state,
+            test_all_actions,
+            test_all_positions,
+            test_all_rewards,
+            test_all_done,
+            test_all_optimal_path_lengths,
+        )
+        return val
+
+    testing_val_init = (
+        action_key,
+        env_key,
+        env_state,
+        belief_state,
+        test_all_actions,
+        test_all_positions,
+        test_all_rewards,
+        test_all_done,
+        test_all_optimal_path_lengths,
+    )
+    vals = jax.lax.fori_loop(
+        0, num_steps_for_inference, _fori_inference, testing_val_init
+    )
+    (
+        action_key,
+        env_key,
+        env_state,
+        belief_state,
+        test_all_actions,
+        test_all_positions,
+        test_all_rewards,
+        test_all_done,
+        test_all_optimal_path_lengths,
+    ) = vals
 
     testing_result_dict = plotting.save_data_and_plotting(
         test_all_done,
@@ -237,10 +288,14 @@ def main(args):
     )
 
     # Record hyperparameters and results in JSON file
+    current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    date_time = {"current_datetime": current_datetime}
     dict_args = vars(args)
     args_path = os.path.join(log_directory, "Hyperparamters_Results" + ".json")
     with open(args_path, "w") as fh:
         json.dump(dict_args, fh)
+        fh.write("\n")
+        json.dump(date_time, fh, indent=4)
         fh.write("\n")
         json.dump({"Total training time in seconds": elapsed_time}, fh)
         fh.write("\n")
@@ -252,7 +307,13 @@ def main(args):
         fh.write("Testing results: \n")
         json.dump(testing_result_dict, fh, indent=4)
         fh.write("\n")
-        json.dump(policy.tolist(), fh, indent=4)
+        fh.write("Policy: \n")
+        json_str = (
+            "[\n" + ",\n".join(json.dumps(row) for row in policy.tolist()) + "\n]"
+        )
+        fh.write(json_str)
+        # json.dump(policy.tolist(), fh, indent=4)
+    print("All done!")
 
 
 if __name__ == "__main__":
