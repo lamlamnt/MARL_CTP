@@ -96,7 +96,7 @@ class DQN_PER(BaseDeepRLAgent):
                 target = reward + (1 - done) * self.discount * jnp.max(
                     self.model.apply(target_net_params, next_state),
                 )
-                prediction = self.model.apply(online_net_params, None, state)[action]
+                prediction = self.model.apply(online_net_params, state)[action]
                 return jnp.square(target - prediction)
 
             loss = (

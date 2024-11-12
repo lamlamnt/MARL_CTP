@@ -27,8 +27,6 @@ class CTP(MultiAgentEnv):
         k_edges=None,
         grid_size=10,
         reward_for_invalid_action=-200.0,
-        num_stored_realisations=10,
-        patience_factor=4,
         reward_for_goal=10,
     ):
         """
@@ -45,8 +43,6 @@ class CTP(MultiAgentEnv):
         self.reward_for_invalid_action = reward_for_invalid_action
         self.reward_for_goal = reward_for_goal
         self.num_nodes = num_nodes
-        self.num_stored_realisations = num_stored_realisations
-        self.patience_factor = patience_factor
         # Instantiate a CTPGraph_Realisation object
         self.graph_realisation = CTP_generator.CTPGraph_Realisation(
             key,
@@ -63,9 +59,6 @@ class CTP(MultiAgentEnv):
     @partial(jax.jit, static_argnums=(0,))
     def reset(self, key: chex.PRNGKey) -> tuple[EnvState, Belief_State]:
         key, subkey = jax.random.split(key)
-        indice = jax.random.randint(
-            subkey, shape=(), minval=0, maxval=self.num_stored_realisations
-        )
         new_blocking_status = self.graph_realisation.sample_blocking_status(subkey)
 
         # update agents' positions to origin
