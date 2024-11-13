@@ -12,10 +12,11 @@
 <br>-Ignore the "Discarded_Code" folder. 
 <br>-Files edited in JYM (minor changes): deep_rl_rollout.py, dqn.py, dqn_per.py, per_rollout.py
 <br>-DDQN a combination of JYM and JAX-RL (Hamish)
-<br>-PPO taken from PureJAXRL with modifications
+<br>-PPO taken from PureJAXRL with modifications 
 
-**Current progress status: (Nov 4th)**
-<br>-DQN with uniform sampling seems to learn a reasonable policy for 5-node graph, but for a 10-node graph with grid_size 15 (or higher), it's struggling. 
+**Current progress status: (Nov 12th)**
+<br>-I implemented DQN with uniform sampling, DQN with prioritized sampling, and DDQN with prioritized sampling. For 5-node graphs and simple 10-node graphs, all of them were able to learn reasonable policies with DQN with prioritized sampling being the best. However, for more complicated 10-node graphs, it's struggling to learn (either choose to take the expensive edge or get stuck near the origin without progressing towards the goal)
+<br>-I am in the progress of implementing PPO. 
 
 **Instructions for setting up**
 <br>1. Get JaxMARL. Use JaxMARL's Dockerfile to set up a Docker container. 
