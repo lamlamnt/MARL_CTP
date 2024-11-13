@@ -17,6 +17,7 @@ from edited_jym import (
 )
 from Networks import MLP
 from Evaluation import plotting, visualize_policy
+from Agents.ddqn_per import DDQN_PER
 import json
 import flax
 import ast
@@ -128,11 +129,17 @@ def main(args):
 
     # Initialize the agent
     if args.replay_buffer_type == "per":
-        agent = DQN_PER(
-            model,
-            args.discount_factor,
-            environment.action_spaces.num_categories[0],
-        )
+        if args.double_dqn:
+            print("Using DDQN with PER")
+            agent = DDQN_PER(
+                model, args.discount_factor, environment.action_spaces.num_categories[0]
+            )
+        else:
+            agent = DQN_PER(
+                model,
+                args.discount_factor,
+                environment.action_spaces.num_categories[0],
+            )
     else:
         agent = DQN(
             model,
@@ -490,6 +497,13 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--beta", type=float, help="Beta value for PER", required=False, default=1.0
+    )
+
+    # DDQN
+    parser.add_argument(
+        "--double_dqn",
+        action="store_true",
+        help="Whether to use double DQN or not. Must use with Prioritized Experience Replay",
     )
 
     args = parser.parse_args()

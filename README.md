@@ -11,6 +11,8 @@
 **Note:**
 <br>-Ignore the "Discarded_Code" folder. 
 <br>-Files edited in JYM (minor changes): deep_rl_rollout.py, dqn.py, dqn_per.py, per_rollout.py
+<br>-DDQN a combination of JYM and JAX-RL (Hamish)
+<br>-PPO taken from PureJAXRL with modifications
 
 **Current progress status: (Nov 4th)**
 <br>-DQN with uniform sampling seems to learn a reasonable policy for 5-node graph, but for a 10-node graph with grid_size 15 (or higher), it's struggling. 
