@@ -28,6 +28,7 @@ class CTP(MultiAgentEnv):
         grid_size=10,
         reward_for_invalid_action=-200.0,
         reward_for_goal=10,
+        factor_expensive_edge=1.0,
     ):
         """
         List of attributes:
@@ -51,6 +52,7 @@ class CTP(MultiAgentEnv):
             prop_stoch=prop_stoch,
             k_edges=k_edges,
             num_goals=num_goals,
+            factor_expensive_edge=factor_expensive_edge,
         )
         actions = [num_nodes for _ in range(num_agents)]
         self.action_spaces = spaces.MultiDiscrete(actions)

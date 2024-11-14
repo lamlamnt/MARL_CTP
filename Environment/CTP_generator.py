@@ -26,13 +26,14 @@ class CTPGraph:
         prop_stoch=None,
         k_edges=None,
         num_goals=1,
+        factor_expensive_edge=1.0,
     ):
         """
         List of properties:
         n_nodes: Number of nodes in the graph
         n_edges: Number of edges in the graph
         weights: Adjacency matrix of the graph
-        senders: Senders of the edges (is redundant but make some things easier)
+        senders: Senders of the edges (is redundant but make some things easier) - don't have to be ordered
         receivers: Receivers of the edges (is redundant but make some things easier)
         node_pos: Position of the nodes in the grid
         blocking_prob: Blocking probability of the edges in the graph
@@ -67,7 +68,11 @@ class CTPGraph:
 
         # Add expensive edge if no edge between goal and origin
         if self.weights[self.origin, self.goal] == NOT_CONNECTED:
-            upper_bound = (self.n_nodes - 1) * jnp.sqrt(grid_size**2 + grid_size**2)
+            upper_bound = (
+                (self.n_nodes - 1)
+                * jnp.sqrt(grid_size**2 + grid_size**2)
+                * factor_expensive_edge
+            )
             self.weights = self.weights.at[self.origin, self.goal].set(upper_bound)
             self.weights = self.weights.at[self.goal, self.origin].set(upper_bound)
             self.blocking_prob = self.blocking_prob.at[self.origin, self.goal].set(0)
@@ -281,12 +286,21 @@ class CTPGraph_Realisation:
         prop_stoch=None,
         k_edges=None,
         num_goals=1,
+        factor_expensive_edge=1.0,
     ):
         """
         List of properties:
         graph: CTPGraph object
         """
-        self.graph = CTPGraph(key, n_nodes, grid_size, prop_stoch, k_edges, num_goals)
+        self.graph = CTPGraph(
+            key,
+            n_nodes,
+            grid_size,
+            prop_stoch,
+            k_edges,
+            num_goals,
+            factor_expensive_edge,
+        )
         key, subkey = jax.random.split(key)
 
     def sample_blocking_status(self, key: jax.random.PRNGKey) -> jnp.ndarray:

@@ -15,7 +15,7 @@ from edited_jym import (
     deep_rl_rollout,
     per_rollout,
 )
-from Networks import MLP
+from Networks import MLP, CNN
 from Evaluation import plotting, visualize_policy
 from Agents.ddqn_per import DDQN_PER
 import json
@@ -100,7 +100,10 @@ def main(args):
     # model = MLP.simplest_model_hk
     network_size = determine_network_size(args)
     print("Network size (excluding the last layer): ", network_size)
-    model = MLP.Flax_FCNetwork(network_size, args.n_node)
+    if args.network_type == "CNN":
+        model = CNN.Flax_CNN(args.num_filters, network_size, args.n_node)
+    else:
+        model = MLP.Flax_FCNetwork(network_size, args.n_node)
 
     # Initialize network parameters and optimizer
     key = jax.random.PRNGKey(args.random_seed_for_training)
@@ -122,6 +125,7 @@ def main(args):
         grid_size=args.grid_size,
         reward_for_invalid_action=args.reward_for_invalid_action,
         reward_for_goal=args.reward_for_goal,
+        factor_expensive_edge=args.factor_expensive_edge,
     )
     environment.graph_realisation.graph.plot_nx_graph(
         directory=log_directory, file_name="training_graph.png"
@@ -401,14 +405,14 @@ if __name__ == "__main__":
         type=int,
         help="Probably around num_episodes you want * num_nodes* 2",
         required=False,
-        default=200000,
+        default=400000,
     )
     parser.add_argument("--learning_rate", type=str, required=False, default=0.001)
-    parser.add_argument("--discount_factor", type=float, required=False, default=0.9)
-    parser.add_argument("--epsilon_start", type=float, required=False, default=0.3)
+    parser.add_argument("--discount_factor", type=float, required=False, default=1.0)
+    parser.add_argument("--epsilon_start", type=float, required=False, default=0.8)
     parser.add_argument("--epsilon_end", type=float, required=False, default=0.0)
     parser.add_argument(
-        "--epsilon_exploration_rate", type=float, required=False, default=0.5
+        "--epsilon_exploration_rate", type=float, required=False, default=0.6
     )
     parser.add_argument(
         "--batch_size", type=int, help="Batch size", required=False, default=128
@@ -431,6 +435,9 @@ if __name__ == "__main__":
         help="Should be 0 or positive",
         required=False,
         default=0,
+    )
+    parser.add_argument(
+        "--factor_expensive_edge", type=float, required=False, default=1.0
     )
     parser.add_argument(
         "--prop_stoch",
@@ -458,14 +465,26 @@ if __name__ == "__main__":
 
     # Hyperparameters specific to DQN
     parser.add_argument(
-        "--buffer_size", type=int, help="Buffer size", required=False, default=200
+        "--buffer_size", type=int, help="Buffer size", required=False, default=500
     )
     parser.add_argument(
         "--target_net_update_freq",
         type=int,
         help="Frequency of updating the target network",
         required=False,
-        default=10,
+        default=40,
+    )
+
+    # Hyerparameterse related to the network
+    parser.add_argument(
+        "--network_type", type=str, help="FC,CNN", required=False, default="FC"
+    )
+    parser.add_argument(
+        "--num_filters",
+        type=int,
+        help="Number of filters in CNN",
+        required=False,
+        default=16,
     )
 
     # Args related to running/managing experiments

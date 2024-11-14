@@ -6,7 +6,7 @@ import haiku as hk
 import sys
 
 sys.path.append("..")
-from Networks import MLP
+from Networks import MLP, CNN
 
 
 # Test that the forward pass does not error
@@ -34,3 +34,11 @@ def test_mlp(printer):
     big_flax_params = big_flax_model.init(subkey, jnp.ones((3, 11, 10)))
     big_output = big_flax_model.apply(big_flax_params, jnp.ones((3, 11, 10)))
     assert big_output.shape == (10,)
+
+
+def test_cnn():
+    model = CNN.Flax_CNN(32, [64, 32], 5)
+    key = jax.random.PRNGKey(100)
+    params = model.init(key, jnp.ones((3, 6, 5)))
+    output = model.apply(params, jnp.ones((3, 6, 5)))
+    assert output.shape == (5,)
