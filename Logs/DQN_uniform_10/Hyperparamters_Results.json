@@ -1,138 +1,32 @@
-{"n_node": 10, "n_agent": 1, "time_steps": 400000, "learning_rate": 0.001, "discount_factor": 0.9, "epsilon_start": 1.0, "epsilon_end": 0.0, "epsilon_exploration_rate": 0.7, "batch_size": 128, "network_size": null, "reward_for_invalid_action": -200.0, "reward_for_goal": 0, "num_stored_realisations": 10, "patience_factor": 4, "prop_stoch": 0.4, "k_edges": null, "grid_size": 15, "random_seed_for_training": 30, "random_seed_for_inference": 40, "buffer_size": 200, "target_net_update_freq": 10, "save_model": true}
-{"Total training time in seconds": 1279.3944399356842}
-{"Last average loss:": 32607.829321289064}
+{"n_node": 10, "n_agent": 1, "time_steps": 1000000, "learning_rate": 0.001, "discount_factor": 1.0, "epsilon_start": 0.8, "epsilon_end": 0.0, "epsilon_exploration_rate": 0.6, "batch_size": 128, "network_size": null, "reward_for_invalid_action": -200.0, "reward_for_goal": 0, "factor_expensive_edge": 1.0, "prop_stoch": 0.4, "k_edges": null, "grid_size": 15, "random_seed_for_training": 30, "random_seed_for_inference": 40, "buffer_size": 2000, "target_net_update_freq": 40, "network_type": "CNN", "num_filters": 32, "save_model": true, "log_directory": null, "replay_buffer_type": "uniform", "alpha": 0.6, "beta": 1.0, "double_dqn": false}
+{
+    "current_datetime": "2024-11-15 02:47:16"
+}
+{"Total training time in seconds": 3704.017105579376}
+{"Last average loss:": 0.644857594370842}
 Training results: 
 {
-    "final_regret": 2356.93994140625,
-    "final_comparative_ratio": 131.231689453125,
-    "avg_reward_last_episode": -3718.6921508789064,
-    "max_reward": -17.72268295288086
+    "final_regret": 0.3753681182861328,
+    "final_comparative_ratio": 1.0211801528930664,
+    "avg_reward_last_episode": -18.608147048950194,
+    "max_reward": -16.79365348815918
 }
 Testing results: 
 {
-    "average_regret": NaN,
-    "average_comparative_ratio": NaN,
-    "average_reward": NaN
+    "average_regret": 0.21837957203388214,
+    "average_comparative_ratio": 1.0122584104537964,
+    "average_reward": -18.442928314208984
 }
+Policy: 
 [
-    [
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        1.0
-    ],
-    [
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN
-    ],
-    [
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN
-    ],
-    [
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN
-    ],
-    [
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN
-    ],
-    [
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN
-    ],
-    [
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN,
-        NaN
-    ],
-    [
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        1.0,
-        0.0
-    ],
-    [
-        1.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0
-    ],
-    [
-        1.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0
-    ]
+[NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN],
+[0.0, 0.0, 0.0, 0.0, 0.8652037978172302, 0.0, 0.13479624688625336, 0.0, 0.0, 0.0],
+[NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN],
+[NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN],
+[NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN],
+[NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN],
+[0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+[0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+[NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN]
 ]
