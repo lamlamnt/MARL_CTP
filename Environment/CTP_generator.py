@@ -143,7 +143,7 @@ class CTPGraph:
         senders = unique_edges[:, 0]
         receivers = unique_edges[:, 1]
         weights = jnp.full(
-            (self.n_nodes, self.n_nodes), NOT_CONNECTED, dtype=jnp.float32
+            (self.n_nodes, self.n_nodes), NOT_CONNECTED, dtype=jnp.float16
         )
 
         # Ideally use vmap or fori_loop here
@@ -188,7 +188,9 @@ class CTPGraph:
             keys, is_stochastic_edges
         )
 
-        blocking_prob_matrix = jnp.full((self.n_nodes, self.n_nodes), 1.0)
+        blocking_prob_matrix = jnp.full(
+            (self.n_nodes, self.n_nodes), 1.0, dtype=jnp.float16
+        )
         for i in range(self.n_edges):
             blocking_prob_matrix = blocking_prob_matrix.at[
                 self.senders[i], self.receivers[i]
@@ -326,7 +328,7 @@ class CTPGraph_Realisation:
     def sample_blocking_status(self, key: jax.random.PRNGKey) -> jnp.ndarray:
         keys = jax.random.split(key, num=self.graph.n_edges)
         blocking_status = jnp.full(
-            (self.graph.n_nodes, self.graph.n_nodes), BLOCKED, dtype=int
+            (self.graph.n_nodes, self.graph.n_nodes), BLOCKED, dtype=jnp.int8
         )
         # 0 means not blocked, 1 means blocked
         for i in range(self.graph.n_edges):

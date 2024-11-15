@@ -69,7 +69,7 @@ class CTP(MultiAgentEnv):
         new_blocking_status = self.graph_realisation.sample_blocking_status(subkey)
 
         # update agents' positions to origin
-        agents_pos = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.int32)
+        agents_pos = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.uint8)
         agents_pos = agents_pos.at[0, self.graph_realisation.graph.origin[0]].set(1)
         env_state = self.__convert_graph_realisation_to_matrix(
             self.graph_realisation, new_blocking_status, agents_pos
@@ -92,7 +92,7 @@ class CTP(MultiAgentEnv):
         initial_belief_state = jnp.stack(
             (pos_and_blocking_status, env_state[1, :, :], env_state[2, :, :]),
             axis=0,
-            dtype=jnp.float32,
+            dtype=jnp.float16,
         )
         return env_state, initial_belief_state
 
@@ -106,7 +106,6 @@ class CTP(MultiAgentEnv):
     ) -> tuple[EnvState, Belief_State, int, bool]:
         # return the new environment state, next belief state, reward, and whether the episode is done
         weights = current_env_state[1, self.num_agents :, :]
-        blocking_prob = current_env_state[2, self.num_agents :, :]
         blocking_status = current_env_state[0, self.num_agents :, :]
 
         # Use environment state and actions to determine if the action is valid
@@ -137,7 +136,7 @@ class CTP(MultiAgentEnv):
                 -(weights[jnp.argmax(current_env_state[0, :1, :]), actions[0]])
                 + self.reward_for_goal
             )
-            agents_pos = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.int32)
+            agents_pos = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.uint8)
             agents_pos = agents_pos.at[0, actions[0]].set(1)
             new_env_state = current_env_state.at[0, : self.num_agents, :].set(
                 agents_pos
@@ -149,7 +148,7 @@ class CTP(MultiAgentEnv):
         def _move_to_new_node(args) -> tuple[jnp.array, int, bool]:
             current_env_state, actions = args
             reward = -(weights[jnp.argmax(current_env_state[0, :1, :]), actions[0]])
-            agents_pos = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.int32)
+            agents_pos = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.uint8)
             agents_pos = agents_pos.at[0, actions[0]].set(1)
             new_env_state = current_env_state.at[0, : self.num_agents, :].set(
                 agents_pos
@@ -192,6 +191,7 @@ class CTP(MultiAgentEnv):
                 self.num_nodes,
             ),
             CTP_generator.UNKNOWN,
+            dtype=jnp.int8,
         )
         # replace 1 row and column corresponding to agent's position
         obs_blocking_status = obs_blocking_status.at[jnp.argmax(agents_pos[0]), :].set(
@@ -235,7 +235,7 @@ class CTP(MultiAgentEnv):
         agents_pos: jnp.ndarray,
     ) -> EnvState:
         # Convert graph realisation to matrix
-        empty = jnp.zeros((self.num_agents, self.num_nodes))
+        empty = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.float16)
         edge_weights = jnp.concatenate((empty, graph_realisation.graph.weights), axis=0)
         edge_probs = jnp.concatenate(
             (empty, graph_realisation.graph.blocking_prob), axis=0
@@ -244,5 +244,5 @@ class CTP(MultiAgentEnv):
         return jnp.stack(
             (pos_and_blocking_status, edge_weights, edge_probs),
             axis=0,
-            dtype=jnp.float32,
+            dtype=jnp.float16,
         )
