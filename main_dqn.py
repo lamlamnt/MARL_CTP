@@ -102,6 +102,7 @@ def main(args):
     print("Network size (excluding the last layer): ", network_size)
     if args.network_type == "CNN":
         model = CNN.Flax_CNN(args.num_filters, network_size, args.n_node)
+        print("First layer size - convolutional: ", args.num_filters)
     else:
         model = MLP.Flax_FCNetwork(network_size, args.n_node)
 
@@ -407,7 +408,7 @@ if __name__ == "__main__":
         required=False,
         default=400000,
     )
-    parser.add_argument("--learning_rate", type=str, required=False, default=0.001)
+    parser.add_argument("--learning_rate", type=int, required=False, default=0.001)
     parser.add_argument("--discount_factor", type=float, required=False, default=1.0)
     parser.add_argument("--epsilon_start", type=float, required=False, default=0.8)
     parser.add_argument("--epsilon_end", type=float, required=False, default=0.0)
