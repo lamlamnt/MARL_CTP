@@ -29,6 +29,7 @@ class CTP(MultiAgentEnv):
         reward_for_invalid_action=-200.0,
         reward_for_goal=10,
         factor_expensive_edge=1.0,
+        handcrafted_graph=None,
     ):
         """
         List of attributes:
@@ -45,15 +46,20 @@ class CTP(MultiAgentEnv):
         self.reward_for_goal = reward_for_goal
         self.num_nodes = num_nodes
         # Instantiate a CTPGraph_Realisation object
-        self.graph_realisation = CTP_generator.CTPGraph_Realisation(
-            key,
-            self.num_nodes,
-            grid_size=grid_size,
-            prop_stoch=prop_stoch,
-            k_edges=k_edges,
-            num_goals=num_goals,
-            factor_expensive_edge=factor_expensive_edge,
-        )
+        if handcrafted_graph is not None:
+            self.graph_realisation = CTP_generator.CTPGraph_Realisation(
+                key, self.num_nodes, handcrafted_graph=handcrafted_graph
+            )
+        else:
+            self.graph_realisation = CTP_generator.CTPGraph_Realisation(
+                key,
+                self.num_nodes,
+                grid_size=grid_size,
+                prop_stoch=prop_stoch,
+                k_edges=k_edges,
+                num_goals=num_goals,
+                factor_expensive_edge=factor_expensive_edge,
+            )
         actions = [num_nodes for _ in range(num_agents)]
         self.action_spaces = spaces.MultiDiscrete(actions)
 

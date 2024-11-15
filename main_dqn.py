@@ -18,6 +18,7 @@ from edited_jym import (
 from Networks import MLP, CNN
 from Evaluation import plotting, visualize_policy
 from Agents.ddqn_per import DDQN_PER
+from Utils import hand_crafted_graphs
 import json
 import flax
 import ast
@@ -116,18 +117,43 @@ def main(args):
     optimizer = optax.adam(learning_rate=args.learning_rate)
 
     # Initialize the environment
-    environment = CTP_environment.CTP(
-        args.n_agent,
-        1,
-        args.n_node,
-        environment_key,
-        prop_stoch=args.prop_stoch,
-        k_edges=args.k_edges,
-        grid_size=args.grid_size,
-        reward_for_invalid_action=args.reward_for_invalid_action,
-        reward_for_goal=args.reward_for_goal,
-        factor_expensive_edge=args.factor_expensive_edge,
-    )
+    if args.hand_crafted_graph == "diamond":
+        n_nodes, defined_graph = CTP_generator.get_diamond_shaped_graph()
+        environment = CTP_environment.CTP(
+            num_agents=1,
+            num_goals=1,
+            num_nodes=n_nodes,
+            key=environment_key,
+            defined_graph=defined_graph,
+            reward_for_invalid_action=args.reward_for_invalid_action,
+            reward_for_goal=args.reward_for_goal,
+            factor_expensive_edge=args.factor_expensive_edge,
+        )
+    elif args.hand_crafted_graph == "n_stochastic":
+        n_nodes, defined_graph = hand_crafted_graphs.get_stochastic_edge_graph()
+        environment = CTP_environment.CTP(
+            num_agents=1,
+            num_goals=1,
+            num_nodes=n_nodes,
+            key=environment_key,
+            defined_graph=defined_graph,
+            reward_for_invalid_action=args.reward_for_invalid_action,
+            reward_for_goal=args.reward_for_goal,
+            factor_expensive_edge=args.factor_expensive_edge,
+        )
+    else:
+        environment = CTP_environment.CTP(
+            args.n_agent,
+            1,
+            args.n_node,
+            environment_key,
+            prop_stoch=args.prop_stoch,
+            k_edges=args.k_edges,
+            grid_size=args.grid_size,
+            reward_for_invalid_action=args.reward_for_invalid_action,
+            reward_for_goal=args.reward_for_goal,
+            factor_expensive_edge=args.factor_expensive_edge,
+        )
     environment.graph_realisation.graph.plot_nx_graph(
         directory=log_directory, file_name="training_graph.png"
     )
@@ -466,7 +492,7 @@ if __name__ == "__main__":
 
     # Hyperparameters specific to DQN
     parser.add_argument(
-        "--buffer_size", type=int, help="Buffer size", required=False, default=500
+        "--buffer_size", type=int, help="Buffer size", required=False, default=2000
     )
     parser.add_argument(
         "--target_net_update_freq",
@@ -485,7 +511,7 @@ if __name__ == "__main__":
         type=int,
         help="Number of filters in CNN",
         required=False,
-        default=16,
+        default=32,
     )
 
     # Args related to running/managing experiments
@@ -497,11 +523,14 @@ if __name__ == "__main__":
         default=True,
     )
     parser.add_argument(
-        "--log_directory",
+        "--log_directory", type=str, help="Directory to store logs", required=True
+    )
+    parser.add_argument(
+        "--hand_crafted_graph",
         type=str,
-        help="Directory to store logs",
+        help="Options: None,diamond,n_stochastic. If anything other than None is specified, all other args relating to environment such as num of nodes are ignored.",
         required=False,
-        default=None,
+        default="None",
     )
 
     # Args related to Prioritized Experience Replay
@@ -528,11 +557,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     current_directory = os.getcwd()
-    if args.log_directory is None:
-        identifier_folder = "DQN_" + args.replay_buffer_type + "_" + str(args.n_node)
-    else:
-        identifier_folder = args.log_directory
-    log_directory = os.path.join(current_directory, "Logs", identifier_folder)
+    log_directory = os.path.join(current_directory, "Logs", args.log_directory)
     if not os.path.exists(log_directory):
         os.makedirs(log_directory)
     main(args)

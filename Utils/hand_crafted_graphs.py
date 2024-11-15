@@ -12,7 +12,7 @@ from Environment.CTP_generator import NOT_CONNECTED as NC
 # For sanity check, to check that the agent is capable of exploring
 # Diamond shaped graph
 # For this blocking probability, the optimal path is 0 -> 2 -> 3/ 0 -> 2 -> 0 -> 1 -> 3
-def get_diamond_shaped_graph() -> CTP_generator.CTPGraph_Realisation:
+def get_diamond_shaped_graph() -> tuple[int, dict]:
     senders = jnp.array([0, 0, 1, 2])
     receivers = jnp.array([1, 2, 3, 3])
     weights = jnp.array(
@@ -41,17 +41,11 @@ def get_diamond_shaped_graph() -> CTP_generator.CTPGraph_Realisation:
         "origin": origin,
         "goal": goal,
     }
-    # Use n_nodes and defined_graph to create a CTPGraph object
-    # Doesn't matter what key is inputted - it's not used
-    key = jax.random.PRNGKey(50)
-    hand_crafted_graph_realisation = CTP_generator.CTPGraph_Realisation(
-        key, n_nodes, handcrafted_graph=defined_graph
-    )
-    return hand_crafted_graph_realisation
+    return (n_nodes, defined_graph)
 
 
 # N stochastic edge graph - to check that the agent is making the best decision
-def get_stochastic_edge_graph() -> CTP_generator.CTPGraph_Realisation:
+def get_stochastic_edge_graph() -> tuple[int, dict]:
     senders = jnp.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8])
     receivers = jnp.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9, 9, 9, 9, 9, 9])
     weights = jnp.array(
@@ -110,9 +104,4 @@ def get_stochastic_edge_graph() -> CTP_generator.CTPGraph_Realisation:
         "origin": origin,
         "goal": goal,
     }
-    # Use n_nodes and defined_graph to create a CTPGraph object
-    key = jax.random.PRNGKey(50)
-    hand_crafted_graph_realisation = CTP_generator.CTPGraph_Realisation(
-        key, n_nodes, handcrafted_graph=defined_graph
-    )
-    return hand_crafted_graph_realisation
+    return (n_nodes, defined_graph)

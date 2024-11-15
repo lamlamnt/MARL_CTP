@@ -5,6 +5,7 @@ import sys
 sys.path.append("..")
 from Environment import CTP_environment
 from Environment import CTP_generator
+from Utils import hand_crafted_graphs
 import pytest
 import pytest_print as pp
 import os
@@ -205,3 +206,35 @@ def test_invalid_action(environment: CTP_environment.CTP):
         subkey, env_state_1, belief_state_1, jnp.array([1])
     )
     assert reward_2 < -100
+
+
+def test_hand_crafted_graphs():
+    key = jax.random.PRNGKey(50)
+    current_directory = os.getcwd()
+    parent_dir = os.path.dirname(current_directory)
+    log_directory = os.path.join(parent_dir, "Logs/Unit_Tests")
+    n_node_diamond, handcrafted_dict_diamond = (
+        hand_crafted_graphs.get_diamond_shaped_graph()
+    )
+    diamond_environment = CTP_environment.CTP(
+        1, 1, n_node_diamond, key, handcrafted_graph=handcrafted_dict_diamond
+    )
+    diamond_environment.reset(key)
+    diamond_environment.graph_realisation.plot_realised_graph(
+        diamond_environment.graph_realisation.sample_blocking_status(key),
+        log_directory,
+        "diamond_graph.png",
+    )
+
+    n_node_stochastic_edge, handcrafted_dict_stochastic = (
+        hand_crafted_graphs.get_stochastic_edge_graph()
+    )
+    stochastic_environment = CTP_environment.CTP(
+        1, 1, n_node_stochastic_edge, key, handcrafted_graph=handcrafted_dict_stochastic
+    )
+    stochastic_environment.reset(key)
+    stochastic_environment.graph_realisation.plot_realised_graph(
+        stochastic_environment.graph_realisation.sample_blocking_status(key),
+        log_directory,
+        "stochastic_graph.png",
+    )
