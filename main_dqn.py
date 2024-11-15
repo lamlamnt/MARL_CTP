@@ -477,7 +477,7 @@ if __name__ == "__main__":
 
     # Hyerparameterse related to the network
     parser.add_argument(
-        "--network_type", type=str, help="FC,CNN", required=False, default="FC"
+        "--network_type", type=str, help="FC,CNN", required=False, default="CNN"
     )
     parser.add_argument(
         "--num_filters",
