@@ -131,11 +131,11 @@ def deep_rl_rollout(
         jnp.arange(4) + random_seed
     )
     env_state, belief_state = env.reset(init_key)
-    all_actions = jnp.zeros([timesteps])
-    all_rewards = jnp.zeros([timesteps], dtype=jnp.float32)
+    all_actions = jnp.zeros([timesteps], dtype=jnp.uint8)
+    all_rewards = jnp.zeros([timesteps], dtype=jnp.float16)
     all_done = jnp.zeros([timesteps], dtype=jnp.bool_)
-    all_optimal_path_lengths = jnp.zeros([timesteps], dtype=jnp.float32)
-    losses = jnp.zeros([timesteps], dtype=jnp.float32)
+    all_optimal_path_lengths = jnp.zeros([timesteps], dtype=jnp.float16)
+    losses = jnp.zeros([timesteps], dtype=jnp.bfloat16)
 
     model_params = model.init(init_key, jnp.zeros(state_shape))
     target_net_params = model.init(action_key, jnp.zeros(state_shape))

@@ -44,7 +44,7 @@ class Flax_FCNetwork(nn.Module):
         # Flatten the input
         x = x.reshape(-1)
         for i, hidden_dim in enumerate(self.hidden_dims):
-            x = nn.Dense(hidden_dim)(x)
+            x = nn.Dense(hidden_dim, dtype=jnp.float16)(x)
             x = nn.relu(x)
-        x = nn.Dense(self.num_actions)(x)
+        x = nn.Dense(self.num_actions, dtype=jnp.float16)(x)
         return x

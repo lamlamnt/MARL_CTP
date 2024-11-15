@@ -66,24 +66,24 @@ def main(args):
 
     if args.replay_buffer_type == "per":
         buffer_state = {
-            "state": jnp.empty((args.buffer_size, *state_shape), dtype=jnp.float32),
-            "action": jnp.empty((args.buffer_size,), dtype=jnp.int32),
-            "reward": jnp.empty((args.buffer_size,), dtype=jnp.float32),
+            "state": jnp.empty((args.buffer_size, *state_shape), dtype=jnp.float16),
+            "action": jnp.empty((args.buffer_size,), dtype=jnp.uint8),
+            "reward": jnp.empty((args.buffer_size,), dtype=jnp.float16),
             "next_state": jnp.empty(
-                (args.buffer_size, *state_shape), dtype=jnp.float32
+                (args.buffer_size, *state_shape), dtype=jnp.float16
             ),
             "done": jnp.empty((args.buffer_size,), dtype=jnp.bool_),
-            "priority": jnp.empty((args.buffer_size,), dtype=jnp.float32),
+            "priority": jnp.empty((args.buffer_size,), dtype=jnp.float16),
         }
 
     else:
         # The * unpacks the tuple
         buffer_state = {
-            "states": jnp.empty((args.buffer_size, *state_shape), dtype=jnp.float32),
-            "actions": jnp.empty((args.buffer_size,), dtype=jnp.int32),
-            "rewards": jnp.empty((args.buffer_size,), dtype=jnp.float32),
+            "states": jnp.empty((args.buffer_size, *state_shape), dtype=jnp.float16),
+            "actions": jnp.empty((args.buffer_size,), dtype=jnp.uint8),
+            "rewards": jnp.empty((args.buffer_size,), dtype=jnp.float16),
             "next_states": jnp.empty(
-                (args.buffer_size, *state_shape), dtype=jnp.float32
+                (args.buffer_size, *state_shape), dtype=jnp.float16
             ),
             "dones": jnp.empty((args.buffer_size,), dtype=jnp.bool_),
         }
@@ -274,12 +274,12 @@ def main(args):
     # Test on the same graph
     print("Start evaluating ...")
     num_steps_for_inference = args.n_node * FACTOR_TO_MULTIPLY_INFERENCE_TIMESTEPS
-    test_all_rewards = jnp.zeros([num_steps_for_inference], dtype=jnp.float32)
-    test_all_actions = jnp.zeros([num_steps_for_inference], dtype=jnp.int32)
-    test_all_positions = jnp.zeros([num_steps_for_inference], dtype=jnp.int32)
+    test_all_rewards = jnp.zeros([num_steps_for_inference], dtype=jnp.float16)
+    test_all_actions = jnp.zeros([num_steps_for_inference], dtype=jnp.uint8)
+    test_all_positions = jnp.zeros([num_steps_for_inference], dtype=jnp.uint8)
     test_all_done = jnp.zeros([num_steps_for_inference], dtype=jnp.bool_)
     test_all_optimal_path_lengths = jnp.zeros(
-        [num_steps_for_inference], dtype=jnp.float32
+        [num_steps_for_inference], dtype=jnp.float16
     )
     init_key, action_key, env_key = jax.vmap(jax.random.PRNGKey)(
         jnp.arange(3) + args.random_seed_for_inference

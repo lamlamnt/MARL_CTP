@@ -16,11 +16,11 @@ class Flax_CNN(nn.Module):
         # CNN layer followed by FC layers
 
         x = jnp.transpose(x, (1, 2, 0))
-        x = nn.Conv(features=self.num_filters, kernel_size=(1, 1))(x)
+        x = nn.Conv(features=self.num_filters, kernel_size=(1, 1), dtype=jnp.float16)(x)
         x = nn.relu(x)
         x = x.reshape(-1)
         for hidden_dim in self.hidden_dims:
-            x = nn.Dense(hidden_dim)(x)
+            x = nn.Dense(hidden_dim, dtype=jnp.float16)(x)
             x = nn.relu(x)
-        x = nn.Dense(self.num_actions)(x)
+        x = nn.Dense(self.num_actions, dtype=jnp.float16)(x)
         return x
