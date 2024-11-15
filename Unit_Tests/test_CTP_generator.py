@@ -4,6 +4,7 @@ import sys
 
 sys.path.append("..")
 from Environment import CTP_generator
+from Utils import hand_crafted_graphs
 import argparse
 import os
 import pytest
@@ -104,3 +105,22 @@ def test_goal_origin_connected(graphRealisation: CTP_generator.CTPGraph_Realisat
     assert graphRealisation.graph.weights[
         graphRealisation.graph.origin, graphRealisation.graph.goal
     ] == jnp.max(graphRealisation.graph.weights)
+
+
+def test_hand_crafted_graphs():
+    key = jax.random.PRNGKey(50)
+    current_directory = os.getcwd()
+    parent_dir = os.path.dirname(current_directory)
+    log_directory = os.path.join(parent_dir, "Logs/Unit_Tests")
+    diamond_graph_realisation = hand_crafted_graphs.get_diamond_shaped_graph()
+    diamond_blocking_status = diamond_graph_realisation.sample_blocking_status(key)
+    diamond_graph_realisation.plot_realised_graph(
+        diamond_blocking_status, log_directory, "diamond_graph.png"
+    )
+    n_stochastic_graph_realisation = hand_crafted_graphs.get_stochastic_edge_graph()
+    n_stochastic_blocking_status = (
+        n_stochastic_graph_realisation.sample_blocking_status(key)
+    )
+    n_stochastic_graph_realisation.plot_realised_graph(
+        n_stochastic_blocking_status, log_directory, "n_stochastic_graph.png"
+    )

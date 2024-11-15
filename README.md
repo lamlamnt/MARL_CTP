@@ -20,7 +20,8 @@
 
 **Instructions for setting up**
 <br>1. Get JaxMARL. Use JaxMARL's Dockerfile to set up a Docker container. 
-<br>2. pip install -r requirements.txt (using MARL_CTP's requirements.txt)
+<br>2. pip install pytest-print jax-tqdm==0.2.2 networkx pandas openpyxl dm-haiku. 
+
 
 
 

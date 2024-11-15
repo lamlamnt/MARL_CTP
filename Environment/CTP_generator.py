@@ -27,6 +27,7 @@ class CTPGraph:
         k_edges=None,
         num_goals=1,
         factor_expensive_edge=1.0,
+        handcrafted_graph=None,
     ):
         """
         List of properties:
@@ -41,45 +42,61 @@ class CTPGraph:
         origin: Array of origin nodes in the graph
         """
         self.n_nodes = n_nodes
-        if grid_size == 0:
-            grid_size = n_nodes
-        if (prop_stoch is None and k_edges is None) or (
-            prop_stoch is not None and k_edges is not None
-        ):
-            raise ValueError(
-                "Either prop_stoch or k_edges (but not both) must be specified"
+        if handcrafted_graph is not None:
+            self.weights = handcrafted_graph["weights"]
+            self.senders = handcrafted_graph["senders"]
+            self.receivers = handcrafted_graph["receivers"]
+            self.node_pos = handcrafted_graph["node_pos"]
+            self.blocking_prob = handcrafted_graph["blocking_prob"]
+            self.origin = jnp.array([handcrafted_graph["origin"]])
+            self.goal = jnp.array([handcrafted_graph["goal"]])
+            self.n_edges = handcrafted_graph["n_edges"]
+        else:
+            if grid_size == 0:
+                grid_size = n_nodes
+            if (prop_stoch is None and k_edges is None) or (
+                prop_stoch is not None and k_edges is not None
+            ):
+                raise ValueError(
+                    "Either prop_stoch or k_edges (but not both) must be specified"
+                )
+            # Technically we don't need to store senders and receivers but storing it to make some operations, such as setting blocking prob easier
+            self.weights, self.n_edges, self.senders, self.receivers, self.node_pos = (
+                self.__generate_connectivity_weight(key, grid_size)
             )
-        # Technically we don't need to store senders and receivers but storing it to make some operations, such as setting blocking prob easier
-        self.weights, self.n_edges, self.senders, self.receivers, self.node_pos = (
-            self.__generate_connectivity_weight(key, grid_size)
-        )
-        key, subkey = jax.random.split(key)
-        self.blocking_prob = self.set_blocking_prob(
-            subkey,
-            prop_stoch=prop_stoch,
-            k_edges=k_edges,
-        )
-
-        # Get goal and origin
-        if num_goals == 1:
-            self.goal, self.origin = self.__find_single_goal_and_origin(self.node_pos)
-            self.goal = jnp.array([self.goal])
-            self.origin = jnp.array([self.origin])
-
-        # Add expensive edge if no edge between goal and origin
-        if self.weights[self.origin, self.goal] == NOT_CONNECTED:
-            upper_bound = (
-                (self.n_nodes - 1)
-                * jnp.sqrt(grid_size**2 + grid_size**2)
-                * factor_expensive_edge
+            key, subkey = jax.random.split(key)
+            self.blocking_prob = self.set_blocking_prob(
+                subkey,
+                prop_stoch=prop_stoch,
+                k_edges=k_edges,
             )
-            self.weights = self.weights.at[self.origin, self.goal].set(upper_bound)
-            self.weights = self.weights.at[self.goal, self.origin].set(upper_bound)
-            self.blocking_prob = self.blocking_prob.at[self.origin, self.goal].set(0)
-            self.blocking_prob = self.blocking_prob.at[self.goal, self.origin].set(0)
-            self.senders = jnp.append(self.senders, self.origin)
-            self.receivers = jnp.append(self.receivers, self.goal)
-            self.n_edges += 1
+
+            # Get goal and origin
+            if num_goals == 1:
+                self.goal, self.origin = self.__find_single_goal_and_origin(
+                    self.node_pos
+                )
+                self.goal = jnp.array([self.goal])
+                self.origin = jnp.array([self.origin])
+
+            # Add expensive edge if no edge between goal and origin
+            if self.weights[self.origin, self.goal] == NOT_CONNECTED:
+                upper_bound = (
+                    (self.n_nodes - 1)
+                    * jnp.sqrt(grid_size**2 + grid_size**2)
+                    * factor_expensive_edge
+                )
+                self.weights = self.weights.at[self.origin, self.goal].set(upper_bound)
+                self.weights = self.weights.at[self.goal, self.origin].set(upper_bound)
+                self.blocking_prob = self.blocking_prob.at[self.origin, self.goal].set(
+                    0
+                )
+                self.blocking_prob = self.blocking_prob.at[self.goal, self.origin].set(
+                    0
+                )
+                self.senders = jnp.append(self.senders, self.origin)
+                self.receivers = jnp.append(self.receivers, self.goal)
+                self.n_edges += 1
 
     # Returns the weight adjacency matrix and n_edges
     def __generate_connectivity_weight(
@@ -287,21 +304,24 @@ class CTPGraph_Realisation:
         k_edges=None,
         num_goals=1,
         factor_expensive_edge=1.0,
+        handcrafted_graph=None,
     ):
         """
         List of properties:
         graph: CTPGraph object
         """
-        self.graph = CTPGraph(
-            key,
-            n_nodes,
-            grid_size,
-            prop_stoch,
-            k_edges,
-            num_goals,
-            factor_expensive_edge,
-        )
-        key, subkey = jax.random.split(key)
+        if handcrafted_graph is not None:
+            self.graph = CTPGraph(key, n_nodes, handcrafted_graph=handcrafted_graph)
+        else:
+            self.graph = CTPGraph(
+                key,
+                n_nodes,
+                grid_size,
+                prop_stoch,
+                k_edges,
+                num_goals,
+                factor_expensive_edge,
+            )
 
     def sample_blocking_status(self, key: jax.random.PRNGKey) -> jnp.ndarray:
         keys = jax.random.split(key, num=self.graph.n_edges)

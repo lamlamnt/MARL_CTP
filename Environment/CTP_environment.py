@@ -56,7 +56,6 @@ class CTP(MultiAgentEnv):
         )
         actions = [num_nodes for _ in range(num_agents)]
         self.action_spaces = spaces.MultiDiscrete(actions)
-        key, subkey = jax.random.split(key)
 
     @partial(jax.jit, static_argnums=(0,))
     def reset(self, key: chex.PRNGKey) -> tuple[EnvState, Belief_State]:
