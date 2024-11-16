@@ -42,3 +42,14 @@ def test_cnn():
     params = model.init(key, jnp.ones((3, 6, 5)))
     output = model.apply(params, jnp.ones((3, 6, 5)))
     assert output.shape == (5,)
+
+
+# Test that the weights and outputs of the network have float16 dtype
+def test_dtype():
+    model = CNN.Flax_CNN(32, [64, 32], 10)
+    key = jax.random.PRNGKey(100)
+    params = model.init(key, jnp.ones((3, 11, 10), dtype=jnp.float16))
+    output = model.apply(params, jnp.ones((3, 11, 10), dtype=jnp.float16))
+    assert output.dtype == jnp.float16
+    assert params["params"]["Conv_0"]["kernel"].dtype == jnp.float16
+    assert params["params"]["Dense_0"]["kernel"].dtype == jnp.float16

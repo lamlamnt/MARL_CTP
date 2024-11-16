@@ -42,8 +42,8 @@ class CTP(MultiAgentEnv):
         """
         super().__init__(num_agents=num_agents)
         self.num_agents = num_agents
-        self.reward_for_invalid_action = reward_for_invalid_action
-        self.reward_for_goal = reward_for_goal
+        self.reward_for_invalid_action = jnp.float16(reward_for_invalid_action)
+        self.reward_for_goal = jnp.float16(reward_for_goal)
         self.num_nodes = num_nodes
         # Instantiate a CTPGraph_Realisation object
         if handcrafted_graph is not None:

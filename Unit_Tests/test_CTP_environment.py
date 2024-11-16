@@ -142,8 +142,8 @@ def test_invalid_action(environment: CTP_environment.CTP):
 
 # check that weights and blocking probs are floats
 def test_float(environment: CTP_environment.CTP):
-    assert environment.graph_realisation.graph.weights.dtype == jnp.float32
-    assert environment.graph_realisation.graph.blocking_prob.dtype == jnp.float32
+    assert environment.graph_realisation.graph.weights.dtype == jnp.float16
+    assert environment.graph_realisation.graph.blocking_prob.dtype == jnp.float16
 
 
 # Test reproducibility (same key - call function twice)
