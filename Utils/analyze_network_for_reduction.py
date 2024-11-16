@@ -21,39 +21,28 @@ def load_checkpoint(file_path: str) -> Dict[str, Any]:
 
 
 def analyze_weights(weights: Dict[str, Any], threshold: float = 1e-2):
-    """
-    Analyze weights to find layers with mostly small magnitude weights.
-
-    Args:
-        state (dict): Loaded model weights.
-        threshold (float): Magnitude below which weights are considered small.
-
-    Returns:
-        List of layers with weight statistics.
-    """
     results = []
-    for layer_name, layer_weights in weights.items():
-        for weight_name, weights in layer_weights.items():
-            # Flatten weights to analyze their magnitudes
-            flat_weights = jnp.ravel(jnp.array(weights))
-            total_weights = flat_weights.size
-            small_weights_count = jnp.sum(jnp.abs(flat_weights) < threshold)
+    for layer_name, layer_weights in weights["params"].items():
+        kernel_weights = layer_weights["kernel"]
+        # Flatten weights to analyze their magnitudes
+        flat_weights = jnp.ravel(jnp.array(kernel_weights))
+        total_weights = flat_weights.size
+        small_weights_count = jnp.sum(jnp.abs(flat_weights) < threshold)
 
-            # Store stats for this weight tensor
-            stats = {
-                "layer": layer_name,
-                "weight_name": weight_name,
-                "shape": weights.shape,
-                "total_weights": total_weights,
-                "small_weights": int(small_weights_count),
-                "small_weights_ratio": float(small_weights_count) / total_weights,
-            }
-            results.append(stats)
+        # Store stats for this weight tensor
+        stats = {
+            "layer": layer_name,
+            "shape": kernel_weights.shape,
+            "total_weights": total_weights,
+            "small_weights": int(small_weights_count),
+            "small_weights_ratio": float(small_weights_count) / total_weights,
+        }
+        results.append(stats)
 
-            print(
-                f"Layer: {layer_name}, Weight: {weight_name}, "
-                f"Shape: {weights.shape}, Small Weights Ratio: {stats['small_weights_ratio']:.2%}"
-            )
+        print(
+            f"Layer: {layer_name}"
+            f"Shape: {kernel_weights.shape}, Small Weights Ratio: {stats['small_weights_ratio']:.2%}"
+        )
     return results
 
 
@@ -70,12 +59,3 @@ if __name__ == "__main__":
 
     print("\nAnalyzing weights...")
     results = analyze_weights(model_weights, threshold=1e-2)
-
-    # Identify layers with >90% small weights
-    """
-    reducible_layers = [res for res in results if res["small_weights_ratio"] > 0.9]
-
-    print("\nLayers with mostly small weights (potential for reduction):")
-    for layer in reducible_layers:
-        print(layer)
-    """

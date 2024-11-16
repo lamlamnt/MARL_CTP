@@ -55,7 +55,12 @@ def save_data_and_plotting(
         },
     )
     df["episode"] = df["episode"].shift().fillna(0)
-    episodes_df = df.groupby("episode").agg("sum").astype(np.float32)
+    episodes_df = (
+        df.groupby("episode")
+        .agg("sum")
+        .astype(np.float32)
+        .round({"reward": 2, "optimal_path_length": 2})
+    )
     episodes_df = episodes_df.iloc[:-1]
     episodes_df["regret"] = (
         episodes_df["reward"].abs() - episodes_df["optimal_path_length"]

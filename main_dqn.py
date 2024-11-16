@@ -33,24 +33,7 @@ warnings.filterwarnings(
 )
 
 NUM_CHANNELS_IN_BELIEF_STATE = 3
-FACTOR_TO_MULTIPLY_NETWORK_SIZE = 5
 FACTOR_TO_MULTIPLY_INFERENCE_TIMESTEPS = 100
-
-
-# Excluding the last layer
-def determine_network_size(args):
-    if args.network_size is not None:
-        return ast.literal_eval(args.network_size)
-    else:
-        first_layer_num_params = (
-            FACTOR_TO_MULTIPLY_NETWORK_SIZE * args.n_node * (args.n_node + args.n_agent)
-        )
-        return [
-            first_layer_num_params,
-            int(first_layer_num_params / 2),
-            int(first_layer_num_params / 4),
-            int(first_layer_num_params / 8),
-        ]
 
 
 # Function for decaying epsilon
@@ -105,13 +88,16 @@ def main(args):
 
     # Choose model based on args. Can use FLAX or HAIKU model
     # model = MLP.simplest_model_hk
-    network_size = determine_network_size(args)
-    print("Network size (excluding the last layer): ", network_size)
+    print("Network size (excluding the last layer): ", args.network_size)
     if args.network_type == "CNN":
-        model = CNN.Flax_CNN(args.num_filters, network_size, args.n_node)
+        if args.num_filters is None:
+            num_filters = args.n_node * 4
+        else:
+            num_filters = args.num_filters
+        model = CNN.Flax_CNN(num_filters, args.network_size, args.n_node)
         print("First layer size - convolutional: ", args.num_filters)
     else:
-        model = MLP.Flax_FCNetwork(network_size, args.n_node)
+        model = MLP.Flax_FCNetwork(args.network_size, args.n_node)
 
     # Initialize network parameters and optimizer
     key = jax.random.PRNGKey(args.random_seed_for_training)
@@ -449,13 +435,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--batch_size", type=int, help="Batch size", required=False, default=128
     )
-    parser.add_argument(
-        "--network_size",
-        type=str,
-        help="Size of each layer of the network (excluding the last layer) as a string. Ex. [128,64,32,16]",
-        required=False,
-        default=None,
-    )
 
     # Hyperparameters specific to the environment
     parser.add_argument(
@@ -516,7 +495,14 @@ if __name__ == "__main__":
         type=int,
         help="Number of filters in CNN",
         required=False,
-        default=32,
+        default=None,
+    )
+    parser.add_argument(
+        "--network_size",
+        type=str,
+        help="Size of each layer of the network (excluding the first convolutional layer and last layer) as a string. Ex. [128,64,32,16]",
+        required=False,
+        default="[600,300,100]",
     )
 
     # Args related to running/managing experiments
