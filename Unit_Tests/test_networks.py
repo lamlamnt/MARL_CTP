@@ -51,5 +51,5 @@ def test_dtype():
     params = model.init(key, jnp.ones((3, 11, 10), dtype=jnp.float16))
     output = model.apply(params, jnp.ones((3, 11, 10), dtype=jnp.float16))
     assert output.dtype == jnp.float16
-    assert params["params"]["Conv_0"]["kernel"].dtype == jnp.float16
-    assert params["params"]["Dense_0"]["kernel"].dtype == jnp.float16
+    assert params["params"]["Conv_0"]["kernel"].dtype == jnp.float32
+    assert params["params"]["Dense_0"]["kernel"].dtype == jnp.float32

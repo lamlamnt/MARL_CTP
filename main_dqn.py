@@ -27,12 +27,10 @@ from Evaluation.optimal_path_length import dijkstra_shortest_path
 from datetime import datetime
 import warnings
 
-"""
 warnings.simplefilter("error")
 warnings.filterwarnings(
     "ignore", category=RuntimeWarning, message="overflow encountered in cast"
 )
-"""
 
 NUM_CHANNELS_IN_BELIEF_STATE = 3
 FACTOR_TO_MULTIPLY_NETWORK_SIZE = 5

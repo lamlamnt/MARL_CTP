@@ -107,6 +107,34 @@ def save_data_and_plotting(
         )
     )
 
+    # Plot histogram of rewards, regret, and comparative ratio for testing only
+    if training == False:
+        episodes_df = episodes_df.replace([np.inf, -np.inf], np.nan).fillna(0)
+        episodes_df = episodes_df.clip(lower=-1e-6, upper=1e6)
+
+        plt.figure(figsize=(10, 6))
+        plt.hist(episodes_df["reward"], bins=10)
+        plt.xlabel("Reward")
+        plt.ylabel("Frequency")
+        plt.title("Histogram of Rewards")
+        plt.savefig(os.path.join(directory, beginning_str + "histogram_reward.png"))
+
+        plt.figure(figsize=(10, 6))
+        plt.hist(episodes_df["regret"], bins=10)
+        plt.xlabel("Regret")
+        plt.ylabel("Frequency")
+        plt.title("Histogram of Regret")
+        plt.savefig(os.path.join(directory, beginning_str + "histogram_regret.png"))
+
+        plt.figure(figsize=(10, 6))
+        plt.hist(episodes_df["comparative_ratio"], bins=10)
+        plt.xlabel("Comparative Ratio")
+        plt.ylabel("Frequency")
+        plt.title("Histogram of Comparative Ratio")
+        plt.savefig(
+            os.path.join(directory, beginning_str + "histogram_comparative_ratio.png")
+        )
+
     episodes_df["avg_reward_n_episodes"] = (
         episodes_df["reward"].rolling(window=N_EPISODES_TO_AVERAGE_OVER).mean()
     )

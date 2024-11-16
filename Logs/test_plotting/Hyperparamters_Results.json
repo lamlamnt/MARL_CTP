@@ -1,0 +1,25 @@
+{"n_node": 3, "n_agent": 1, "time_steps": 1000, "learning_rate": 0.001, "discount_factor": 1.0, "epsilon_start": 0.8, "epsilon_end": 0.0, "epsilon_exploration_rate": 0.6, "batch_size": 128, "network_size": null, "reward_for_invalid_action": -200.0, "reward_for_goal": 0, "factor_expensive_edge": 1.0, "prop_stoch": 0.4, "k_edges": null, "grid_size": 10, "random_seed_for_training": 30, "random_seed_for_inference": 40, "buffer_size": 2000, "target_net_update_freq": 40, "network_type": "CNN", "num_filters": 32, "save_model": true, "log_directory": "test_plotting", "hand_crafted_graph": "None", "replay_buffer_type": "uniform", "alpha": 0.6, "beta": 1.0, "double_dqn": false}
+{
+    "current_datetime": "2024-11-16 20:51:33"
+}
+{"Total training time in seconds": 10.872657299041748}
+{"Last average loss:": NaN}
+Training results: 
+{
+    "final_regret": 0.0,
+    "final_comparative_ratio": 1.0,
+    "avg_reward_last_episode": -1826.05,
+    "max_reward": -5.0
+}
+Testing results: 
+{
+    "average_regret": NaN,
+    "average_comparative_ratio": NaN,
+    "average_reward": NaN
+}
+Policy: 
+[
+[1.0, 0.0, 0.0],
+[NaN, NaN, NaN],
+[NaN, NaN, NaN]
+]
