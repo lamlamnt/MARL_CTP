@@ -129,7 +129,7 @@ class CTPGraph:
         # Generate random points in the grid
         node_pos = jax.random.choice(key, xmax * ymax, (self.n_nodes,), replace=False)
         grid_nodes = jax.vmap(__convert_to_grid, in_axes=(0, None))(node_pos, ymax)
-        grid_nodes_jax = jnp.array(grid_nodes).T
+        grid_nodes_jax = jnp.array(grid_nodes, dtype=jnp.float16).T
 
         # Apply Delauney triangulation to get edges
         delaunay = Delaunay(grid_nodes_jax)
@@ -187,6 +187,7 @@ class CTPGraph:
         edge_probs = jax.vmap(__assign_prob_edge, in_axes=(0, 0))(
             keys, is_stochastic_edges
         )
+        edge_probs = jnp.asarray(edge_probs, dtype=jnp.float16)
 
         blocking_prob_matrix = jnp.full(
             (self.n_nodes, self.n_nodes), 1.0, dtype=jnp.float16
@@ -328,7 +329,7 @@ class CTPGraph_Realisation:
     def sample_blocking_status(self, key: jax.random.PRNGKey) -> jnp.ndarray:
         keys = jax.random.split(key, num=self.graph.n_edges)
         blocking_status = jnp.full(
-            (self.graph.n_nodes, self.graph.n_nodes), BLOCKED, dtype=jnp.int8
+            (self.graph.n_nodes, self.graph.n_nodes), BLOCKED, dtype=jnp.float16
         )
         # 0 means not blocked, 1 means blocked
         for i in range(self.graph.n_edges):

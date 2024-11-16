@@ -135,7 +135,7 @@ def deep_rl_rollout(
     all_rewards = jnp.zeros([timesteps], dtype=jnp.float16)
     all_done = jnp.zeros([timesteps], dtype=jnp.bool_)
     all_optimal_path_lengths = jnp.zeros([timesteps], dtype=jnp.float16)
-    losses = jnp.zeros([timesteps], dtype=jnp.bfloat16)
+    losses = jnp.zeros([timesteps], dtype=jnp.float16)
 
     model_params = model.init(init_key, jnp.zeros(state_shape))
     target_net_params = model.init(action_key, jnp.zeros(state_shape))

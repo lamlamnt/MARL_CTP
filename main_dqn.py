@@ -27,7 +27,12 @@ from Evaluation.optimal_path_length import dijkstra_shortest_path
 from datetime import datetime
 import warnings
 
-# warnings.simplefilter("default")
+"""
+warnings.simplefilter("error")
+warnings.filterwarnings(
+    "ignore", category=RuntimeWarning, message="overflow encountered in cast"
+)
+"""
 
 NUM_CHANNELS_IN_BELIEF_STATE = 3
 FACTOR_TO_MULTIPLY_NETWORK_SIZE = 5
@@ -279,7 +284,7 @@ def main(args):
     num_steps_for_inference = args.n_node * FACTOR_TO_MULTIPLY_INFERENCE_TIMESTEPS
     test_all_rewards = jnp.zeros([num_steps_for_inference], dtype=jnp.float16)
     test_all_actions = jnp.zeros([num_steps_for_inference], dtype=jnp.uint8)
-    test_all_positions = jnp.zeros([num_steps_for_inference], dtype=jnp.uint8)
+    test_all_positions = jnp.zeros([num_steps_for_inference], dtype=jnp.int8)
     test_all_done = jnp.zeros([num_steps_for_inference], dtype=jnp.bool_)
     test_all_optimal_path_lengths = jnp.zeros(
         [num_steps_for_inference], dtype=jnp.float16
@@ -329,7 +334,7 @@ def main(args):
         )
         test_all_actions = test_all_actions.at[i].set(action)
         test_all_positions = test_all_positions.at[i].set(
-            jnp.argmax(current_env_state[0, : args.n_agent])
+            jnp.argmax(current_env_state[0, : args.n_agent]).astype(jnp.int8)
         )
         val = (
             action_key,
@@ -408,7 +413,6 @@ def main(args):
             "[\n" + ",\n".join(json.dumps(row) for row in policy.tolist()) + "\n]"
         )
         fh.write(json_str)
-        # json.dump(policy.tolist(), fh, indent=4)
     print("All done!")
 
 
@@ -435,7 +439,7 @@ if __name__ == "__main__":
         type=int,
         help="Probably around num_episodes you want * num_nodes* 2",
         required=False,
-        default=400000,
+        default=1000000,
     )
     parser.add_argument("--learning_rate", type=float, required=False, default=0.001)
     parser.add_argument("--discount_factor", type=float, required=False, default=1.0)

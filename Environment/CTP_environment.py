@@ -69,7 +69,7 @@ class CTP(MultiAgentEnv):
         new_blocking_status = self.graph_realisation.sample_blocking_status(subkey)
 
         # update agents' positions to origin
-        agents_pos = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.uint8)
+        agents_pos = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.float16)
         agents_pos = agents_pos.at[0, self.graph_realisation.graph.origin[0]].set(1)
         env_state = self.__convert_graph_realisation_to_matrix(
             self.graph_realisation, new_blocking_status, agents_pos
@@ -136,7 +136,7 @@ class CTP(MultiAgentEnv):
                 -(weights[jnp.argmax(current_env_state[0, :1, :]), actions[0]])
                 + self.reward_for_goal
             )
-            agents_pos = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.uint8)
+            agents_pos = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.float16)
             agents_pos = agents_pos.at[0, actions[0]].set(1)
             new_env_state = current_env_state.at[0, : self.num_agents, :].set(
                 agents_pos
@@ -148,7 +148,7 @@ class CTP(MultiAgentEnv):
         def _move_to_new_node(args) -> tuple[jnp.array, int, bool]:
             current_env_state, actions = args
             reward = -(weights[jnp.argmax(current_env_state[0, :1, :]), actions[0]])
-            agents_pos = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.uint8)
+            agents_pos = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.float16)
             agents_pos = agents_pos.at[0, actions[0]].set(1)
             new_env_state = current_env_state.at[0, : self.num_agents, :].set(
                 agents_pos
@@ -191,7 +191,7 @@ class CTP(MultiAgentEnv):
                 self.num_nodes,
             ),
             CTP_generator.UNKNOWN,
-            dtype=jnp.int8,
+            dtype=jnp.float16,
         )
         # replace 1 row and column corresponding to agent's position
         obs_blocking_status = obs_blocking_status.at[jnp.argmax(agents_pos[0]), :].set(

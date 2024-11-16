@@ -38,11 +38,11 @@ class DQN_PER(BaseDeepRLAgent):
         """
 
         def _random_action(subkey):
-            return random.choice(subkey, jnp.arange(self.n_actions))
+            return random.choice(subkey, jnp.arange(self.n_actions)).astype(jnp.uint8)
 
         def _forward_pass(_):
             q_values = self.model.apply(online_net_params, state)
-            return jnp.argmax(q_values)
+            return jnp.argmax(q_values).astype(jnp.uint8)
 
         explore = random.uniform(key) < epsilon
         key, subkey = random.split(key)

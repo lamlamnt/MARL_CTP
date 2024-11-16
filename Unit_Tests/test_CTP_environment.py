@@ -238,3 +238,17 @@ def test_hand_crafted_graphs():
         log_directory,
         "stochastic_graph.png",
     )
+
+
+def test_float_16_environment(environment: CTP_environment.CTP):
+    key = jax.random.PRNGKey(30)
+    key, subkey = jax.random.split(key)
+    initial_env_state, initial_belief_state = environment.reset(key)
+    env_state_1, belief_state_1, reward_1, terminate, subkey = environment.step(
+        subkey, initial_env_state, initial_belief_state, jnp.array([4])
+    )
+    assert initial_env_state.dtype == jnp.float16
+    assert initial_belief_state.dtype == jnp.float16
+    assert env_state_1.dtype == jnp.float16
+    assert belief_state_1.dtype == jnp.float16
+    assert reward_1.dtype == jnp.float16
