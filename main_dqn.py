@@ -94,10 +94,12 @@ def main(args):
             num_filters = args.n_node * 4
         else:
             num_filters = args.num_filters
-        model = CNN.Flax_CNN(num_filters, args.network_size, args.n_node)
-        print("First layer size - convolutional: ", args.num_filters)
+        model = CNN.Flax_CNN(
+            num_filters, ast.literal_eval(args.network_size), args.n_node
+        )
+        print("First layer size - convolutional: ", num_filters)
     else:
-        model = MLP.Flax_FCNetwork(args.network_size, args.n_node)
+        model = MLP.Flax_FCNetwork(ast.literal_eval(args.network_size), args.n_node)
 
     # Initialize network parameters and optimizer
     key = jax.random.PRNGKey(args.random_seed_for_training)
