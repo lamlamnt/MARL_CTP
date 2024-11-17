@@ -18,7 +18,9 @@ from edited_jym import (
 from Networks import MLP, CNN
 from Evaluation import plotting, visualize_policy
 from Agents.ddqn_per import DDQN_PER
+from Agents.dqn_masking import DQN_Masking
 from Utils import hand_crafted_graphs
+from Utils.invalid_action_masking import decide_validity_of_action_space
 import json
 import flax
 import ast
@@ -64,7 +66,6 @@ def main(args):
             "done": jnp.empty((args.buffer_size,), dtype=jnp.bool_),
             "priority": jnp.empty((args.buffer_size,), dtype=jnp.float16),
         }
-
     else:
         # The * unpacks the tuple
         buffer_state = {
@@ -94,10 +95,21 @@ def main(args):
             num_filters = args.n_node * 4
         else:
             num_filters = args.num_filters
-        model = CNN.Flax_CNN(
-            num_filters, ast.literal_eval(args.network_size), args.n_node
-        )
         print("First layer size - convolutional: ", num_filters)
+
+        if args.dtype_network_params_f16:
+            print("Using float16 for network parameters")
+            model = CNN.Flax_CNN(
+                num_filters,
+                ast.literal_eval(args.network_size),
+                args.n_node,
+                jnp.float16,
+            )
+        else:
+            print("Using float32 for network parameters")
+            model = CNN.Flax_CNN(
+                num_filters, ast.literal_eval(args.network_size), args.n_node
+            )
     else:
         model = MLP.Flax_FCNetwork(ast.literal_eval(args.network_size), args.n_node)
 
@@ -166,11 +178,18 @@ def main(args):
                 environment.action_spaces.num_categories[0],
             )
     else:
-        agent = DQN(
-            model,
-            args.discount_factor,
-            environment.action_spaces.num_categories[0],
-        )
+        if args.no_action_masking:
+            print("Using DQN without invalid action masking")
+            agent = DQN(
+                model,
+                args.discount_factor,
+                environment.action_spaces.num_categories[0],
+            )
+        else:
+            print("Using DQN with invalid action masking")
+            agent = DQN_Masking(
+                model, args.discount_factor, environment.action_spaces.num_categories[0]
+            )
 
     # Initialize the replay buffer with random samples (not necessary/optional)
     init_key, action_key, env_key = jax.vmap(jax.random.PRNGKey)(
@@ -220,7 +239,6 @@ def main(args):
             "duration": args.epsilon_exploration_rate * args.time_steps,
         }
         out = per_rollout(**rollout_params)
-        pass
     else:
         rollout_params = {
             "timesteps": args.time_steps,
@@ -279,7 +297,7 @@ def main(args):
         jnp.arange(3) + args.random_seed_for_inference
     )
     env_state, belief_state = environment.reset(init_key)
-
+    """
     def _fori_inference(i: int, val: tuple):
         (
             action_key,
@@ -292,6 +310,8 @@ def main(args):
             test_all_done,
             test_all_optimal_path_lengths,
         ) = val
+    """
+    for i in range(1000):
         current_belief_state = belief_state
         current_env_state = env_state
         action, action_key = agent.act(
@@ -322,6 +342,7 @@ def main(args):
         test_all_positions = test_all_positions.at[i].set(
             jnp.argmax(current_env_state[0, : args.n_agent]).astype(jnp.int8)
         )
+    """
         val = (
             action_key,
             env_key,
@@ -349,6 +370,7 @@ def main(args):
     vals = jax.lax.fori_loop(
         0, num_steps_for_inference, _fori_inference, testing_val_init
     )
+    
     (
         action_key,
         env_key,
@@ -360,7 +382,7 @@ def main(args):
         test_all_done,
         test_all_optimal_path_lengths,
     ) = vals
-
+    """
     testing_result_dict = plotting.save_data_and_plotting(
         test_all_done,
         test_all_rewards,
@@ -504,7 +526,7 @@ if __name__ == "__main__":
         type=str,
         help="Size of each layer of the network (excluding the first convolutional layer and last layer) as a string. Ex. [128,64,32,16]",
         required=False,
-        default="[600,300,100]",
+        default="[600,300,100,50]",
     )
 
     # Args related to running/managing experiments
@@ -524,6 +546,16 @@ if __name__ == "__main__":
         help="Options: None,diamond,n_stochastic. If anything other than None is specified, all other args relating to environment such as num of nodes are ignored.",
         required=False,
         default="None",
+    )
+    parser.add_argument(
+        "--dtype_network_params_f16",
+        action="store_true",
+        help="Whether to use float16 for network parameters or not",
+    )
+    parser.add_argument(
+        "--no_action_masking",
+        action="store_true",
+        help="The agent is allowed to take invalid actions",
     )
 
     # Args related to Prioritized Experience Replay

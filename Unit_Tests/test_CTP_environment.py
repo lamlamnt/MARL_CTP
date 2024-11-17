@@ -108,7 +108,7 @@ def test_belief_state(printer, environment: CTP_environment.CTP):
     # Empty/null for agent_pos part of edge_probs and weights
     assert jnp.sum(belief_state_1[1:, :1, :]) == 0
     assert terminate == jnp.bool_(True)
-    assert reward_3 > 0
+    assert reward_3 + 10 > 0
     # Test environment automatically reset when episode is done and not reset when episode is not done
     assert (
         jnp.argmax(env_state_3[0, :1, :])

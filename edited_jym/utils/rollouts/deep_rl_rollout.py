@@ -14,6 +14,7 @@ import sys
 sys.path.append("../../..")
 from Environment import CTP_generator, CTP_environment
 from Evaluation.optimal_path_length import dijkstra_shortest_path
+from Utils import invalid_action_masking
 
 
 def deep_rl_rollout(

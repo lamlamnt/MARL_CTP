@@ -27,7 +27,7 @@ class CTP(MultiAgentEnv):
         k_edges=None,
         grid_size=10,
         reward_for_invalid_action=-200.0,
-        reward_for_goal=10,
+        reward_for_goal=0,
         factor_expensive_edge=1.0,
         handcrafted_graph=None,
     ):

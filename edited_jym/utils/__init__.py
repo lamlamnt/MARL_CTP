@@ -4,6 +4,7 @@ from .replay_buffers import (
     PrioritizedExperienceReplay,
     SumTree,
     UniformReplayBuffer,
+    Action_Masking_Buffer,
 )
 from .rollouts import (
     deep_rl_rollout,

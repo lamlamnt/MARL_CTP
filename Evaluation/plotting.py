@@ -74,11 +74,12 @@ def save_data_and_plotting(
         index=False,
     )
 
-    df.to_excel(
-        os.path.join(directory, beginning_str + file_name_excel_sheet_timestep),
-        sheet_name="Sheet1",
-        index=False,
-    )
+    if episodes_df.shape[0] < 1000000:
+        df.to_excel(
+            os.path.join(directory, beginning_str + file_name_excel_sheet_timestep),
+            sheet_name="Sheet1",
+            index=False,
+        )
 
     plt.figure(figsize=(10, 6))
     plt.plot(episodes_df.index, episodes_df["regret"], linestyle="-")
@@ -114,9 +115,6 @@ def save_data_and_plotting(
 
     # Plot histogram of rewards, regret, and comparative ratio for testing only
     if training == False:
-        episodes_df = episodes_df.replace([np.inf, -np.inf], np.nan).fillna(0)
-        episodes_df = episodes_df.clip(lower=-1e-6, upper=1e6)
-
         plt.figure(figsize=(10, 6))
         plt.hist(episodes_df["reward"], bins=10)
         plt.xlabel("Reward")

@@ -5,14 +5,14 @@ import flax
 import flax.linen as nn
 from typing import Sequence
 from flax.linen.initializers import glorot_normal, lecun_normal
-
-DTYPE = jnp.float32
+from typing import Any
 
 
 class Flax_CNN(nn.Module):
     num_filters: int
     hidden_dims: Sequence[int]
     num_actions: int
+    dtype_params: Any = jnp.float32
 
     @nn.compact
     def __call__(self, x: jnp.ndarray):
@@ -22,8 +22,8 @@ class Flax_CNN(nn.Module):
         x = nn.Conv(
             features=self.num_filters,
             kernel_size=(1, 1),
-            kernel_init=lecun_normal(dtype=DTYPE),
-            param_dtype=DTYPE,
+            kernel_init=lecun_normal(dtype=self.dtype_params),
+            param_dtype=self.dtype_params,
             dtype=jnp.float16,
         )(x)
         x = nn.relu(x)
@@ -31,15 +31,15 @@ class Flax_CNN(nn.Module):
         for hidden_dim in self.hidden_dims:
             x = nn.Dense(
                 hidden_dim,
-                kernel_init=lecun_normal(dtype=DTYPE),
-                param_dtype=DTYPE,
+                kernel_init=lecun_normal(dtype=self.dtype_params),
+                param_dtype=self.dtype_params,
                 dtype=jnp.float16,
             )(x)
             x = nn.relu(x)
         x = nn.Dense(
             self.num_actions,
-            kernel_init=lecun_normal(dtype=DTYPE),
-            param_dtype=DTYPE,
+            kernel_init=lecun_normal(dtype=self.dtype_params),
+            param_dtype=self.dtype_params,
             dtype=jnp.float16,
         )(x)
         return x
