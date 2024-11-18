@@ -19,6 +19,7 @@ from Networks import MLP, CNN
 from Evaluation import plotting, visualize_policy
 from Agents.ddqn_per import DDQN_PER
 from Agents.dqn_masking import DQN_Masking
+from Agents.dqn_per_masking import DQN_PER_Masking
 from Utils import hand_crafted_graphs
 from Utils.invalid_action_masking import decide_validity_of_action_space
 import json
@@ -29,10 +30,10 @@ from Evaluation.optimal_path_length import dijkstra_shortest_path
 from datetime import datetime
 import warnings
 
-warnings.simplefilter("error")
-warnings.filterwarnings(
-    "ignore", category=RuntimeWarning, message="overflow encountered in cast"
-)
+# warnings.simplefilter("error")
+# warnings.filterwarnings(
+#    "ignore", category=RuntimeWarning, message="overflow encountered in cast"
+# )
 
 NUM_CHANNELS_IN_BELIEF_STATE = 3
 FACTOR_TO_MULTIPLY_INFERENCE_TIMESTEPS = 100
@@ -120,7 +121,16 @@ def main(args):
     online_net_params = model.init(
         online_key, jax.random.normal(online_key, state_shape)
     )
-    optimizer = optax.adam(learning_rate=args.learning_rate)
+
+    # Select optimizer
+    if args.optimizer == "Adam":
+        optimizer = optax.adam(learning_rate=args.learning_rate)
+    elif args.optimizer == "Adabelief":
+        optimizer = optax.adabelief(learning_rate=args.learning_rate)
+    elif args.optimizer == "RMSProp":
+        optimizer = optax.rmsprop(learning_rate=args.learning_rate)
+    else:
+        optimizer = optax.adamw(learning_rate=args.learning_rate)
 
     # Initialize the environment
     if args.hand_crafted_graph == "diamond":
@@ -171,11 +181,15 @@ def main(args):
             agent = DDQN_PER(
                 model, args.discount_factor, environment.action_spaces.num_categories[0]
             )
-        else:
+        elif args.no_action_masking:
             agent = DQN_PER(
                 model,
                 args.discount_factor,
                 environment.action_spaces.num_categories[0],
+            )
+        else:
+            agent = DQN_PER_Masking(
+                model, args.discount_factor, environment.action_spaces.num_categories[0]
             )
     else:
         if args.no_action_masking:
@@ -421,6 +435,11 @@ def main(args):
             "[\n" + ",\n".join(json.dumps(row) for row in policy.tolist()) + "\n]"
         )
         fh.write(json_str)
+        # Log the network architecture
+        fh.write("\nNetwork architecture: \n")
+        for layer_name, layer_weights in out["model_params"]["params"].items():
+            kernel_weights = layer_weights["kernel"]
+            fh.write(f"Layer: {layer_name}, Shape: {kernel_weights.shape}\n")
     print("All done!")
 
 
@@ -449,7 +468,7 @@ if __name__ == "__main__":
         required=False,
         default=1000000,
     )
-    parser.add_argument("--learning_rate", type=float, required=False, default=0.001)
+    parser.add_argument("--learning_rate", type=float, required=False, default=0.0001)
     parser.add_argument("--discount_factor", type=float, required=False, default=1.0)
     parser.add_argument("--epsilon_start", type=float, required=False, default=0.8)
     parser.add_argument("--epsilon_end", type=float, required=False, default=0.05)
@@ -527,6 +546,13 @@ if __name__ == "__main__":
         help="Size of each layer of the network (excluding the first convolutional layer and last layer) as a string. Ex. [128,64,32,16]",
         required=False,
         default="[600,300,100,50]",
+    )
+    parser.add_argument(
+        "--optimizer",
+        type=str,
+        help="Adam,Adabelief,RMSProp,Adamw",
+        required=False,
+        default="Adam",
     )
 
     # Args related to running/managing experiments
