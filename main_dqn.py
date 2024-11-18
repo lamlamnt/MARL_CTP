@@ -52,8 +52,8 @@ def main(args):
     # Determine belief state shape
     state_shape = (
         NUM_CHANNELS_IN_BELIEF_STATE,
-        args.n_agent + args.n_node,
-        args.n_node,
+        args.n_agent + n_node,
+        n_node,
     )
 
     if args.replay_buffer_type == "per":
@@ -93,7 +93,7 @@ def main(args):
     print("Network size (excluding the last layer): ", args.network_size)
     if args.network_type == "CNN":
         if args.num_filters is None:
-            num_filters = args.n_node * 4
+            num_filters = n_node * 4
         else:
             num_filters = args.num_filters
         print("First layer size - convolutional: ", num_filters)
@@ -103,16 +103,16 @@ def main(args):
             model = CNN.Flax_CNN(
                 num_filters,
                 ast.literal_eval(args.network_size),
-                args.n_node,
+                n_node,
                 jnp.float16,
             )
         else:
             print("Using float32 for network parameters")
             model = CNN.Flax_CNN(
-                num_filters, ast.literal_eval(args.network_size), args.n_node
+                num_filters, ast.literal_eval(args.network_size), n_node
             )
     else:
-        model = MLP.Flax_FCNetwork(ast.literal_eval(args.network_size), args.n_node)
+        model = MLP.Flax_FCNetwork(ast.literal_eval(args.network_size), n_node)
 
     # Initialize network parameters and optimizer
     key = jax.random.PRNGKey(args.random_seed_for_training)
@@ -138,34 +138,34 @@ def main(args):
 
     # Initialize the environment
     if args.hand_crafted_graph == "diamond":
-        n_nodes, defined_graph = CTP_generator.get_diamond_shaped_graph()
+        _, defined_graph = hand_crafted_graphs.get_diamond_shaped_graph()
         environment = CTP_environment.CTP(
             num_agents=1,
             num_goals=1,
-            num_nodes=n_nodes,
+            num_nodes=n_node,
             key=environment_key,
-            defined_graph=defined_graph,
             reward_for_invalid_action=args.reward_for_invalid_action,
             reward_for_goal=args.reward_for_goal,
             factor_expensive_edge=args.factor_expensive_edge,
+            handcrafted_graph=defined_graph,
         )
     elif args.hand_crafted_graph == "n_stochastic":
-        n_nodes, defined_graph = hand_crafted_graphs.get_stochastic_edge_graph()
+        _, defined_graph = hand_crafted_graphs.get_stochastic_edge_graph()
         environment = CTP_environment.CTP(
             num_agents=1,
             num_goals=1,
-            num_nodes=n_nodes,
+            num_nodes=n_node,
             key=environment_key,
-            defined_graph=defined_graph,
             reward_for_invalid_action=args.reward_for_invalid_action,
             reward_for_goal=args.reward_for_goal,
             factor_expensive_edge=args.factor_expensive_edge,
+            handcrafted_graph=defined_graph,
         )
     else:
         environment = CTP_environment.CTP(
             args.n_agent,
             1,
-            args.n_node,
+            n_node,
             environment_key,
             prop_stoch=args.prop_stoch,
             k_edges=args.k_edges,
@@ -303,7 +303,7 @@ def main(args):
     # Evaluate the model
     # Test on the same graph
     print("Start evaluating ...")
-    num_steps_for_inference = args.n_node * FACTOR_TO_MULTIPLY_INFERENCE_TIMESTEPS
+    num_steps_for_inference = n_node * FACTOR_TO_MULTIPLY_INFERENCE_TIMESTEPS
     test_all_rewards = jnp.zeros([num_steps_for_inference], dtype=jnp.float16)
     test_all_actions = jnp.zeros([num_steps_for_inference], dtype=jnp.uint8)
     test_all_positions = jnp.zeros([num_steps_for_inference], dtype=jnp.int8)
@@ -410,9 +410,7 @@ def main(args):
     )
 
     # Visualize the policy
-    policy = visualize_policy.get_policy(
-        args.n_node, test_all_actions, test_all_positions
-    )
+    policy = visualize_policy.get_policy(n_node, test_all_actions, test_all_positions)
 
     # Record hyperparameters and results in JSON file
     current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -472,7 +470,7 @@ if __name__ == "__main__":
         required=False,
         default=1000000,
     )
-    parser.add_argument("--learning_rate", type=float, required=False, default=0.0001)
+    parser.add_argument("--learning_rate", type=float, required=False, default=0.001)
     parser.add_argument("--discount_factor", type=float, required=False, default=1.0)
     parser.add_argument("--epsilon_start", type=float, required=False, default=0.8)
     parser.add_argument("--epsilon_end", type=float, required=False, default=0.05)
@@ -615,4 +613,13 @@ if __name__ == "__main__":
     log_directory = os.path.join(current_directory, "Logs", args.log_directory)
     if not os.path.exists(log_directory):
         os.makedirs(log_directory)
+
+    # Decide on num of nodes
+    if args.hand_crafted_graph == "diamond":
+        n_node, defined_graph = hand_crafted_graphs.get_diamond_shaped_graph()
+    elif args.hand_crafted_graph == "n_stochastic":
+        n_node, defined_graph = hand_crafted_graphs.get_stochastic_edge_graph()
+    else:
+        n_node = args.n_node
+
     main(args)
