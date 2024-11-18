@@ -124,12 +124,16 @@ def main(args):
 
     # Select optimizer
     if args.optimizer == "Adam":
+        print("Using Adam optimizer")
         optimizer = optax.adam(learning_rate=args.learning_rate)
     elif args.optimizer == "Adabelief":
+        print("Using Adabelief optimizer")
         optimizer = optax.adabelief(learning_rate=args.learning_rate)
     elif args.optimizer == "RMSProp":
+        print("Using RMSProp optimizer")
         optimizer = optax.rmsprop(learning_rate=args.learning_rate)
     else:
+        print("Using AdamW optimizer")
         optimizer = optax.adamw(learning_rate=args.learning_rate)
 
     # Initialize the environment
