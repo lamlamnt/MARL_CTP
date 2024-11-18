@@ -27,6 +27,14 @@ class Flax_CNN(nn.Module):
             dtype=jnp.float16,
         )(x)
         x = nn.relu(x)
+        x = nn.Conv(
+            features=self.num_filters * 2,
+            kernel_size=(2, 2),
+            kernel_init=lecun_normal(dtype=self.dtype_params),
+            param_dtype=self.dtype_params,
+            dtype=jnp.float16,
+        )(x)
+        x = nn.relu(x)
         x = x.reshape(-1)
         for hidden_dim in self.hidden_dims:
             x = nn.Dense(

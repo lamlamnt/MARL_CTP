@@ -452,7 +452,7 @@ if __name__ == "__main__":
     parser.add_argument("--learning_rate", type=float, required=False, default=0.001)
     parser.add_argument("--discount_factor", type=float, required=False, default=1.0)
     parser.add_argument("--epsilon_start", type=float, required=False, default=0.8)
-    parser.add_argument("--epsilon_end", type=float, required=False, default=0.0)
+    parser.add_argument("--epsilon_end", type=float, required=False, default=0.05)
     parser.add_argument(
         "--epsilon_exploration_rate", type=float, required=False, default=0.6
     )
