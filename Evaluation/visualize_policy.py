@@ -20,12 +20,6 @@ def get_policy(num_node, all_actions: jnp.array, all_positions: jnp.array):
         lambda i, policy: update_policy(policy, all_positions[i], all_actions[i]),
         policy,
     )
-    """
-    for i in range(len(all_positions)):
-        start = all_positions[i]
-        end = all_actions[i]
-        policy = policy.at[start, end].add(1)
-    """
     # Normalize to get probabilities
     row_sums = policy.sum(axis=1, keepdims=True)
     policy = policy / row_sums

@@ -547,7 +547,7 @@ if __name__ == "__main__":
         type=str,
         help="Size of each layer of the network (excluding the first convolutional layer and last layer) as a string. Ex. [128,64,32,16]",
         required=False,
-        default="[600,300,100,50]",
+        default="[550,275,137,68]",
     )
     parser.add_argument(
         "--optimizer",
