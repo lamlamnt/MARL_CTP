@@ -1,8 +1,8 @@
 {"n_node": 5, "n_agent": 1, "time_steps": 1000, "reward_for_invalid_action": -200.0, "reward_for_goal": 0, "factor_expensive_edge": 1.0, "prop_stoch": 0.4, "k_edges": null, "grid_size": 10, "random_seed_for_training": 30, "random_seed_for_inference": 40, "discount_factor": 1.0, "learning_rate": 0.00025, "num_update_epochs": 4, "save_model": true, "log_directory": "test_ppo", "num_steps_before_update": 128, "gae_lambda": 0.95, "clip_eps": 0.2, "vf_coeff": 0.5, "ent_coeff": 0.01, "num_minibatches": 4}
 {
-    "current_datetime": "2024-11-19 00:39:29"
+    "current_datetime": "2024-11-19 01:14:06"
 }
-{"Total training time in seconds": 4.761632442474365}
+{"Total training time in seconds": 4.37111759185791}
 
 Training results: 
 {
@@ -11,4 +11,30 @@ Training results:
     "avg_reward_last_episode": -237.76800117492675,
     "max_reward": -10.390000343322754
 }
+Testing results: 
+{
+    "average_regret": 261.2618713378906,
+    "average_comparative_ratio": 25.982439041137695,
+    "average_reward": -271.718505859375
+}
+Policy: 
+[
+[0.19480518996715546, 0.16883116960525513, 0.07792207598686218, 0.2467532455921173, 0.31168830394744873],
+[0.19540229439735413, 0.14942528307437897, 0.18390804529190063, 0.18390804529190063, 0.28735631704330444],
+[0.19780220091342926, 0.17582418024539948, 0.18681319057941437, 0.1538461595773697, 0.2857142984867096],
+[0.16734693944454193, 0.2122448980808258, 0.16326530277729034, 0.20000000298023224, 0.2571428716182709],
+[NaN, NaN, NaN, NaN, NaN]
+]
 Network architecture: 
+params/Dense_0/bias: (64,)
+params/Dense_0/kernel: (90, 64)
+params/Dense_1/bias: (64,)
+params/Dense_1/kernel: (64, 64)
+params/Dense_2/bias: (5,)
+params/Dense_2/kernel: (64, 5)
+params/Dense_3/bias: (64,)
+params/Dense_3/kernel: (90, 64)
+params/Dense_4/bias: (64,)
+params/Dense_4/kernel: (64, 64)
+params/Dense_5/bias: (1,)
+params/Dense_5/kernel: (64, 1)

@@ -47,6 +47,14 @@ class PPO:
         self.batch_size = batch_size
         self.num_minibatches = num_minibatches
 
+    # For inference only
+    @partial(jax.jit, static_argnums=(0,))
+    def act(self, key, params, belief_state, unused):
+        pi, _ = self.model.apply(params, belief_state)
+        action = pi.sample(seed=key)
+        old_key, new_key = jax.random.split(key)
+        return action, new_key
+
     @partial(jax.jit, static_argnums=(0,))
     def env_step(self, runner_state, unused):
         # Collect trajectories

@@ -13,6 +13,8 @@ import flax
 import time
 from datetime import datetime
 import json
+from Utils.get_params import extract_params
+from Evaluation.inference import plotting_inference
 
 NUM_CHANNELS_IN_BELIEF_STATE = 3
 
@@ -118,47 +120,16 @@ def train_agent(args):
     # Metrics will be stacked
     out = jax.tree_util.tree_map(lambda x: jnp.reshape(x, (-1,)), metrics)
 
-    print("Start plotting and storing weights ...")
-    with open(os.path.join(log_directory, "weights.flax"), "wb") as f:
-        f.write(flax.serialization.to_bytes(train_state.params))
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-
-    """
-    last_average_loss = plotting.plot_loss(
-        out["all_done"], out["losses"], log_directory
-    )
-    """
-
-    training_result_dict = plotting.save_data_and_plotting(
-        out["all_done"],
-        out["all_rewards"],
-        out["all_optimal_path_lengths"],
+    plotting_inference(
         log_directory,
-        training=True,
+        start_time,
+        train_state.params,
+        out,
+        environment,
+        agent,
+        args,
+        args.n_node,
     )
-
-    print("Start evaluation ...")
-    current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    date_time = {"current_datetime": current_datetime}
-    dict_args = vars(args)
-    args_path = os.path.join(log_directory, "Hyperparamters_Results" + ".json")
-    with open(args_path, "w") as fh:
-        json.dump(dict_args, fh)
-        fh.write("\n")
-        json.dump(date_time, fh, indent=4)
-        fh.write("\n")
-        json.dump({"Total training time in seconds": elapsed_time}, fh)
-        fh.write("\n")
-        # json.dump({"Last average loss:": last_average_loss}, fh)
-        fh.write("\n")
-        fh.write("Training results: \n")
-        json.dump(training_result_dict, fh, indent=4)
-        # Log the network architecture
-        fh.write("\nNetwork architecture: \n")
-        # for layer_name, layer_weights in train_state.params.items():
-        #    fh.write(f"Layer: {layer_name}, Shape: {layer_weights.shape}\n")
-    print("All done!")
 
 
 if __name__ == "__main__":
