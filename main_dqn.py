@@ -355,7 +355,7 @@ if __name__ == "__main__":
         default=None,
     )
     parser.add_argument(
-        "--grid_size", type=int, help="Size of the grid", required=False, default=10
+        "--grid_size", type=int, help="Size of the grid", required=False, default=None
     )
     parser.add_argument(
         "--random_seed_for_training", type=int, required=False, default=30

@@ -5,6 +5,7 @@ from Networks.actor_critic_network import (
     ActorCritic,
     ActorCritic_CNN,
     ActorCritic_Narrow,
+    ActorCritic_Narrow_Relu,
 )
 from Environment import CTP_environment, CTP_generator
 from Agents.ppo import PPO
@@ -61,9 +62,12 @@ def main(args):
     if args.network_type == "FC":
         model = ActorCritic(args.n_node, args.network_activation)
     elif args.network_type == "CNN":
-        model = ActorCritic_CNN(args.n_node, args.network_activation)
+        model = ActorCritic_CNN(args.n_node)
     else:
-        model = ActorCritic_Narrow(args.n_node, args.network_activation)
+        if args.network_activation == "relu":
+            model = ActorCritic_Narrow_Relu(args.n_node)
+        else:
+            model = ActorCritic_Narrow(args.n_node)
     init_params = model.init(
         jax.random.PRNGKey(0), jax.random.normal(online_key, state_shape)
     )
@@ -206,7 +210,7 @@ if __name__ == "__main__":
         default=None,
     )
     parser.add_argument(
-        "--grid_size", type=int, help="Size of the grid", required=False, default=10
+        "--grid_size", type=int, help="Size of the grid", required=False, default=None
     )
     parser.add_argument(
         "--random_seed_for_training", type=int, required=False, default=30
