@@ -1,7 +1,7 @@
 import os
 import jax
 import jax.numpy as jnp
-from Networks.actor_critic_network import ActorCritic
+from Networks.actor_critic_network import ActorCritic, ActorCritic_CNN
 from Environment import CTP_environment, CTP_generator
 from Agents.ppo import PPO
 from Evaluation import plotting
@@ -19,7 +19,12 @@ from Evaluation.inference import plotting_inference
 NUM_CHANNELS_IN_BELIEF_STATE = 3
 
 
-def train_agent(args):
+def linear_schedule(count):
+    frac = 1.0 - (count // args.num_minibatches * args.num_update_epochs) / num_loops
+    return args.learning_rate * frac
+
+
+def main(args):
     # Initialize and setting things up
     print("Setting up the environment ...")
     # Determine belief state shape
@@ -49,16 +54,23 @@ def train_agent(args):
         directory=log_directory, file_name="training_graph.png"
     )
 
-    model = ActorCritic(args.n_node)
+    model = ActorCritic_CNN(args.n_node)
     init_params = model.init(
         jax.random.PRNGKey(0), jax.random.normal(online_key, state_shape)
     )
 
     # Clip by global norm can be an args
-    optimizer = optax.chain(
-        optax.clip_by_global_norm(0.5),
-        optax.adam(args.learning_rate, eps=1e-5),
-    )
+    if args.anneal_lr:
+        optimizer = optax.chain(
+            optax.clip_by_global_norm(0.5),
+            optax.adam(learning_rate=linear_schedule, eps=1e-5),
+        )
+    else:
+        optimizer = optax.chain(
+            optax.clip_by_global_norm(0.5),
+            optax.adam(learning_rate=args.learning_rate, eps=1e-5),
+        )
+
     train_state = TrainState.create(
         apply_fn=model.apply,
         params=init_params,
@@ -155,7 +167,7 @@ if __name__ == "__main__":
         type=int,
         help="Probably around num_episodes you want * num_nodes* 2",
         required=False,
-        default=100000,
+        default=1000000,
     )
     parser.add_argument(
         "--reward_for_invalid_action", type=float, required=False, default=-200.0
@@ -194,6 +206,7 @@ if __name__ == "__main__":
         "--random_seed_for_inference", type=int, required=False, default=40
     )
     parser.add_argument("--discount_factor", type=float, required=False, default=1.0)
+    parser.add_argument("--anneal_lr", type=bool, required=False, default=True)
     parser.add_argument("--learning_rate", type=float, required=False, default=0.00025)
     parser.add_argument("--num_update_epochs", type=int, required=False, default=4)
 
@@ -204,7 +217,7 @@ if __name__ == "__main__":
 
     # Args specific to PPO:
     parser.add_argument(
-        "--num_steps_before_update", type=int, required=False, default=128
+        "--num_steps_before_update", type=int, required=False, default=512
     )
     parser.add_argument("--gae_lambda", type=float, required=False, default=0.95)
     parser.add_argument("--clip_eps", type=float, required=False, default=0.2)
@@ -218,4 +231,4 @@ if __name__ == "__main__":
     if not os.path.exists(log_directory):
         os.makedirs(log_directory)
     num_loops = args.time_steps // args.num_steps_before_update
-    train_agent(args)
+    main(args)

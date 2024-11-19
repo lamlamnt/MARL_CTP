@@ -70,5 +70,6 @@ def test_actor_critic_network(printer):
     key = jax.random.PRNGKey(100)
     params = model.init(key, jnp.ones((3, 6, 5)))
     action_values, critic = model.apply(params, jnp.ones((3, 6, 5)))
-    action_values.sample(key)
-    # action_values are how likely each action is to be chosen
+    # action_values.probs is the probabilities after applying softmax. action_values.logits is the raw output before softmax
+    action = action_values.sample(seed=key)
+    log_prob = action_values.log_prob(action)

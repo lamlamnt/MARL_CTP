@@ -1,39 +1,43 @@
-{"n_node": 5, "n_agent": 1, "time_steps": 1000, "reward_for_invalid_action": -200.0, "reward_for_goal": 0, "factor_expensive_edge": 1.0, "prop_stoch": 0.4, "k_edges": null, "grid_size": 10, "random_seed_for_training": 30, "random_seed_for_inference": 40, "discount_factor": 1.0, "learning_rate": 0.00025, "num_update_epochs": 4, "save_model": true, "log_directory": "test_ppo", "num_steps_before_update": 128, "gae_lambda": 0.95, "clip_eps": 0.2, "vf_coeff": 0.5, "ent_coeff": 0.01, "num_minibatches": 4}
+{"n_node": 5, "n_agent": 1, "time_steps": 100000, "reward_for_invalid_action": -200.0, "reward_for_goal": 0, "factor_expensive_edge": 1.0, "prop_stoch": 0.4, "k_edges": null, "grid_size": 10, "random_seed_for_training": 30, "random_seed_for_inference": 40, "discount_factor": 1.0, "anneal_lr": true, "learning_rate": 0.00025, "num_update_epochs": 4, "log_directory": "test_ppo", "num_steps_before_update": 512, "gae_lambda": 0.95, "clip_eps": 0.2, "vf_coeff": 0.5, "ent_coeff": 0.01, "num_minibatches": 4}
 {
-    "current_datetime": "2024-11-19 01:14:06"
+    "current_datetime": "2024-11-19 20:30:09"
 }
-{"Total training time in seconds": 4.37111759185791}
+{"Total training time in seconds": 16.968120098114014}
 
 Training results: 
 {
     "final_regret": 46.17000198364258,
     "final_comparative_ratio": 5.443696022033691,
-    "avg_reward_last_episode": -237.76800117492675,
+    "avg_reward_last_episode": -47.59500112533569,
     "max_reward": -10.390000343322754
 }
 Testing results: 
 {
-    "average_regret": 261.2618713378906,
-    "average_comparative_ratio": 25.982439041137695,
-    "average_reward": -271.718505859375
+    "average_regret": 40.56496810913086,
+    "average_comparative_ratio": 4.880810260772705,
+    "average_reward": -51.01738739013672
 }
 Policy: 
 [
-[0.19480518996715546, 0.16883116960525513, 0.07792207598686218, 0.2467532455921173, 0.31168830394744873],
-[0.19540229439735413, 0.14942528307437897, 0.18390804529190063, 0.18390804529190063, 0.28735631704330444],
-[0.19780220091342926, 0.17582418024539948, 0.18681319057941437, 0.1538461595773697, 0.2857142984867096],
-[0.16734693944454193, 0.2122448980808258, 0.16326530277729034, 0.20000000298023224, 0.2571428716182709],
+[0.0, 0.0, 0.0, 0.1818181872367859, 0.8181818127632141],
+[0.0, 0.0, 0.1111111119389534, 0.1666666716337204, 0.7222222089767456],
+[0.0, 0.0, 0.0, 0.14814814925193787, 0.8518518805503845],
+[0.050808314234018326, 0.04157043993473053, 0.05773672088980675, 0.0, 0.8498845100402832],
 [NaN, NaN, NaN, NaN, NaN]
 ]
 Network architecture: 
+params/Conv_0/bias: (32,)
+params/Conv_0/kernel: (1, 1, 3, 32)
+params/Conv_1/bias: (32,)
+params/Conv_1/kernel: (1, 1, 3, 32)
 params/Dense_0/bias: (64,)
-params/Dense_0/kernel: (90, 64)
+params/Dense_0/kernel: (960, 64)
 params/Dense_1/bias: (64,)
 params/Dense_1/kernel: (64, 64)
 params/Dense_2/bias: (5,)
 params/Dense_2/kernel: (64, 5)
 params/Dense_3/bias: (64,)
-params/Dense_3/kernel: (90, 64)
+params/Dense_3/kernel: (960, 64)
 params/Dense_4/bias: (64,)
 params/Dense_4/kernel: (64, 64)
 params/Dense_5/bias: (1,)

@@ -1,6 +1,8 @@
 import jax
 import jax.numpy as jnp
 import sys
+import distrax
+from distrax._src.utils import math
 
 sys.path.append("..")
 from Environment import CTP_generator

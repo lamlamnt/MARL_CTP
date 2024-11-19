@@ -7,3 +7,4 @@ import sys
 sys.path.append("..")
 from Agents.ppo import PPO
 from Networks import actor_critic_network
+import distrax
