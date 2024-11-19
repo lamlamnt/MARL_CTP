@@ -7,7 +7,9 @@ from Environment import CTP_generator, CTP_environment
 
 
 # Returns a n_node x n_node matrix where the element at (i,j) is the probability of moving from node i to node j
-def get_policy(num_node, all_actions: jnp.array, all_positions: jnp.array):
+def get_policy(
+    num_node, all_actions: jnp.array, all_positions: jnp.array
+) -> jnp.ndarray:
     policy = jnp.zeros((num_node, num_node))
 
     def update_policy(policy, start, end):

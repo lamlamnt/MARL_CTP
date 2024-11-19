@@ -163,7 +163,7 @@ def plotting_inference(
     current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     date_time = {"current_datetime": current_datetime}
     dict_args = vars(args)
-    args_path = os.path.join(log_directory, "Hyperparamters_Results" + ".json")
+    args_path = os.path.join(log_directory, "Hyperparameters_Results" + ".json")
     with open(args_path, "w") as fh:
         json.dump(dict_args, fh)
         fh.write("\n")
@@ -188,4 +188,22 @@ def plotting_inference(
         fh.write("\nNetwork architecture: \n")
         for layer_name, weights in extract_params(model_params):
             fh.write(f"{layer_name}: {weights.shape}\n")
+        fh.write("\nGraph Weights: \n")
+        fh.write(
+            "[\n"
+            + ",\n".join(
+                json.dumps(row)
+                for row in environment.graph_realisation.graph.weights.tolist()
+            )
+            + "\n]"
+        )
+        fh.write("\nBlocking Probabilities: \n")
+        fh.write(
+            "[\n"
+            + ",\n".join(
+                json.dumps(row)
+                for row in environment.graph_realisation.graph.blocking_prob.tolist()
+            )
+            + "\n]"
+        )
     print("All done!")

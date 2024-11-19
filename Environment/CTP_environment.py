@@ -25,7 +25,7 @@ class CTP(MultiAgentEnv):
         key: chex.PRNGKey,
         prop_stoch=None,
         k_edges=None,
-        grid_size=10,
+        grid_size=None,
         reward_for_invalid_action=-200.0,
         reward_for_goal=0,
         factor_expensive_edge=1.0,

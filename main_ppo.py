@@ -217,7 +217,13 @@ if __name__ == "__main__":
     parser.add_argument("--discount_factor", type=float, required=False, default=1.0)
     parser.add_argument("--anneal_lr", type=bool, required=False, default=False)
     parser.add_argument("--learning_rate", type=float, required=False, default=0.00025)
-    parser.add_argument("--num_update_epochs", type=int, required=False, default=4)
+    parser.add_argument(
+        "--num_update_epochs",
+        type=int,
+        help="After collecting trajectories, how many times each minibatch is updated.",
+        required=False,
+        default=4,
+    )
     parser.add_argument(
         "--network_type", type=str, help="FC,CNN,Narrow", required=False, default="FC"
     )
@@ -236,13 +242,47 @@ if __name__ == "__main__":
 
     # Args specific to PPO:
     parser.add_argument(
-        "--num_steps_before_update", type=int, required=False, default=200
+        "--num_steps_before_update",
+        type=int,
+        help="How many timesteps to collect before updating the network",
+        required=False,
+        default=200,
     )
-    parser.add_argument("--gae_lambda", type=float, required=False, default=0.95)
-    parser.add_argument("--clip_eps", type=float, required=False, default=0.2)
-    parser.add_argument("--vf_coeff", type=float, required=False, default=0.5)
-    parser.add_argument("--ent_coeff", type=float, required=False, default=0.01)
-    parser.add_argument("--num_minibatches", type=int, required=False, default=4)
+    parser.add_argument(
+        "--gae_lambda",
+        help="Control the trade-off between bias and variance in advantage estimates. High = Low bias, High variance as it depends on longer trajectories",
+        type=float,
+        required=False,
+        default=0.95,
+    )
+    parser.add_argument(
+        "--clip_eps",
+        help="Related to how big of an update can be made",
+        type=float,
+        required=False,
+        default=0.2,
+    )
+    parser.add_argument(
+        "--vf_coeff",
+        help="Contribution of the value loss to the total loss",
+        type=float,
+        required=False,
+        default=0.5,
+    )
+    parser.add_argument(
+        "--ent_coeff",
+        help="Exploration coefficient",
+        type=float,
+        required=False,
+        default=0.01,
+    )
+    parser.add_argument(
+        "--num_minibatches",
+        help="Related to how the trajectory batch is split up for performing updating of the network",
+        type=int,
+        required=False,
+        default=4,
+    )
 
     args = parser.parse_args()
     current_directory = os.getcwd()
