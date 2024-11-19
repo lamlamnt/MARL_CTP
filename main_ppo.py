@@ -1,7 +1,11 @@
 import os
 import jax
 import jax.numpy as jnp
-from Networks.actor_critic_network import ActorCritic, ActorCritic_CNN
+from Networks.actor_critic_network import (
+    ActorCritic,
+    ActorCritic_CNN,
+    ActorCritic_Narrow,
+)
 from Environment import CTP_environment, CTP_generator
 from Agents.ppo import PPO
 from Evaluation import plotting
@@ -54,7 +58,12 @@ def main(args):
         directory=log_directory, file_name="training_graph.png"
     )
 
-    model = ActorCritic_CNN(args.n_node)
+    if args.network_type == "FC":
+        model = ActorCritic(args.n_node, args.network_activation)
+    elif args.network_type == "CNN":
+        model = ActorCritic_CNN(args.n_node, args.network_activation)
+    else:
+        model = ActorCritic_Narrow(args.n_node, args.network_activation)
     init_params = model.init(
         jax.random.PRNGKey(0), jax.random.normal(online_key, state_shape)
     )
@@ -206,9 +215,19 @@ if __name__ == "__main__":
         "--random_seed_for_inference", type=int, required=False, default=40
     )
     parser.add_argument("--discount_factor", type=float, required=False, default=1.0)
-    parser.add_argument("--anneal_lr", type=bool, required=False, default=True)
+    parser.add_argument("--anneal_lr", type=bool, required=False, default=False)
     parser.add_argument("--learning_rate", type=float, required=False, default=0.00025)
     parser.add_argument("--num_update_epochs", type=int, required=False, default=4)
+    parser.add_argument(
+        "--network_type", type=str, help="FC,CNN,Narrow", required=False, default="FC"
+    )
+    parser.add_argument(
+        "--network_activation",
+        type=str,
+        help="tanh/relu",
+        required=False,
+        default="tanh",
+    )
 
     # Args related to running/managing experiments
     parser.add_argument(
@@ -217,7 +236,7 @@ if __name__ == "__main__":
 
     # Args specific to PPO:
     parser.add_argument(
-        "--num_steps_before_update", type=int, required=False, default=512
+        "--num_steps_before_update", type=int, required=False, default=200
     )
     parser.add_argument("--gae_lambda", type=float, required=False, default=0.95)
     parser.add_argument("--clip_eps", type=float, required=False, default=0.2)
