@@ -155,7 +155,7 @@ if __name__ == "__main__":
         type=int,
         help="Probably around num_episodes you want * num_nodes* 2",
         required=False,
-        default=1000,
+        default=100000,
     )
     parser.add_argument(
         "--reward_for_invalid_action", type=float, required=False, default=-200.0
@@ -198,13 +198,6 @@ if __name__ == "__main__":
     parser.add_argument("--num_update_epochs", type=int, required=False, default=4)
 
     # Args related to running/managing experiments
-    parser.add_argument(
-        "--save_model",
-        type=bool,
-        help="Whether to save the weights or not",
-        required=False,
-        default=True,
-    )
     parser.add_argument(
         "--log_directory", type=str, help="Directory to store logs", required=True
     )
