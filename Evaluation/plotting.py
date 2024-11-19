@@ -74,7 +74,7 @@ def save_data_and_plotting(
         index=False,
     )
 
-    if episodes_df.shape[0] < 1000000:
+    if df.shape[0] < 1000000:
         df.to_excel(
             os.path.join(directory, beginning_str + file_name_excel_sheet_timestep),
             sheet_name="Sheet1",
