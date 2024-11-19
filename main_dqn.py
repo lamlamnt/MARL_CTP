@@ -315,7 +315,7 @@ def main(args):
         jnp.arange(3) + args.random_seed_for_inference
     )
     env_state, belief_state = environment.reset(init_key)
-    """
+
     def _fori_inference(i: int, val: tuple):
         (
             action_key,
@@ -328,8 +328,6 @@ def main(args):
             test_all_done,
             test_all_optimal_path_lengths,
         ) = val
-    """
-    for i in range(1000):
         current_belief_state = belief_state
         current_env_state = env_state
         action, action_key = agent.act(
@@ -360,7 +358,6 @@ def main(args):
         test_all_positions = test_all_positions.at[i].set(
             jnp.argmax(current_env_state[0, : args.n_agent]).astype(jnp.int8)
         )
-    """
         val = (
             action_key,
             env_key,
@@ -388,7 +385,7 @@ def main(args):
     vals = jax.lax.fori_loop(
         0, num_steps_for_inference, _fori_inference, testing_val_init
     )
-    
+
     (
         action_key,
         env_key,
@@ -400,7 +397,7 @@ def main(args):
         test_all_done,
         test_all_optimal_path_lengths,
     ) = vals
-    """
+
     testing_result_dict = plotting.save_data_and_plotting(
         test_all_done,
         test_all_rewards,

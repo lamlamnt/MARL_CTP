@@ -1,5 +1,4 @@
 from functools import partial
-
 import haiku as hk
 import jax.numpy as jnp
 import optax

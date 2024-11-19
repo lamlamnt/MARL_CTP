@@ -6,7 +6,7 @@ import haiku as hk
 import sys
 
 sys.path.append("..")
-from Networks import MLP, CNN
+from Networks import MLP, CNN, actor_critic_network
 
 
 # Test that the forward pass does not error
@@ -63,3 +63,12 @@ def test_dtype():
     assert output.dtype == jnp.float16
     assert params["params"]["Conv_0"]["kernel"].dtype == jnp.float16
     assert params["params"]["Dense_0"]["kernel"].dtype == jnp.float16
+
+
+def test_actor_critic_network(printer):
+    model = actor_critic_network.ActorCritic(5)
+    key = jax.random.PRNGKey(100)
+    params = model.init(key, jnp.ones((3, 6, 5)))
+    action_values, critic = model.apply(params, jnp.ones((3, 6, 5)))
+    action_values.sample(key)
+    # action_values are how likely each action is to be chosen
