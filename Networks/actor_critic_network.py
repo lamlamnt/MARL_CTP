@@ -151,6 +151,7 @@ class ActorCritic_CNN(nn.Module):
             kernel_size=(1, 1),
             kernel_init=orthogonal(np.sqrt(2)),
             bias_init=constant(0.0),
+            name="actor_conv_1_32",
         )(actor_mean)
         actor_mean = activation(actor_mean)
 
@@ -160,15 +161,24 @@ class ActorCritic_CNN(nn.Module):
         actor_mean = actor_mean.reshape(-1)
 
         actor_mean = nn.Dense(
-            64, kernel_init=orthogonal(np.sqrt(2)), bias_init=constant(0.0)
+            64,
+            kernel_init=orthogonal(np.sqrt(2)),
+            bias_init=constant(0.0),
+            name="actor_dense_1_64",
         )(actor_mean)
         actor_mean = activation(actor_mean)
         actor_mean = nn.Dense(
-            128, kernel_init=orthogonal(np.sqrt(2)), bias_init=constant(0.0)
+            128,
+            kernel_init=orthogonal(np.sqrt(2)),
+            bias_init=constant(0.0),
+            name="actor_dense_2_128",
         )(actor_mean)
         actor_mean = activation(actor_mean)
         actor_mean = nn.Dense(
-            256, kernel_init=orthogonal(np.sqrt(2)), bias_init=constant(0.0)
+            256,
+            kernel_init=orthogonal(np.sqrt(2)),
+            bias_init=constant(0.0),
+            name="actor_dense_3_256",
         )(actor_mean)
         actor_mean = activation(actor_mean)
 
@@ -179,9 +189,20 @@ class ActorCritic_CNN(nn.Module):
         )
         actor_mean = actor_mean.reshape(-1)
 
+        actor_mean = nn.Dense(
+            64,
+            kernel_init=orthogonal(np.sqrt(2)),
+            bias_init=constant(0.0),
+            name="actor_dense_4_64",
+        )(actor_mean)
+        actor_mean = activation(actor_mean)
+
         actor_mean = activation(actor_mean)
         actor_mean = nn.Dense(
-            self.num_actions, kernel_init=orthogonal(0.01), bias_init=constant(0.0)
+            self.num_actions,
+            kernel_init=orthogonal(0.01),
+            bias_init=constant(0.0),
+            name="actor_dense_5_actions",
         )(actor_mean)
 
         # Do action masking
@@ -194,6 +215,7 @@ class ActorCritic_CNN(nn.Module):
             kernel_size=(1, 1),
             kernel_init=he_normal(),
             bias_init=constant(0.0),
+            name="critic_conv_1_32",
         )(critic)
         critic = activation(critic)
         critic = nn.max_pool(
@@ -202,15 +224,24 @@ class ActorCritic_CNN(nn.Module):
         critic = critic.reshape(-1)
 
         critic = nn.Dense(
-            64, kernel_init=orthogonal(np.sqrt(2)), bias_init=constant(0.0)
+            64,
+            kernel_init=orthogonal(np.sqrt(2)),
+            bias_init=constant(0.0),
+            name="critic_dense_1_64",
         )(critic)
         critic = activation(critic)
         critic = nn.Dense(
-            128, kernel_init=orthogonal(np.sqrt(2)), bias_init=constant(0.0)
+            128,
+            kernel_init=orthogonal(np.sqrt(2)),
+            bias_init=constant(0.0),
+            name="critic_dense_2_128",
         )(critic)
         critic = activation(critic)
         critic = nn.Dense(
-            256, kernel_init=orthogonal(np.sqrt(2)), bias_init=constant(0.0)
+            256,
+            kernel_init=orthogonal(np.sqrt(2)),
+            bias_init=constant(0.0),
+            name="critic_dense_3_256",
         )(critic)
         critic = activation(critic)
 
@@ -219,12 +250,18 @@ class ActorCritic_CNN(nn.Module):
         critic = critic.reshape(-1)
 
         critic = nn.Dense(
-            64, kernel_init=orthogonal(np.sqrt(2)), bias_init=constant(0.0)
+            64,
+            kernel_init=orthogonal(np.sqrt(2)),
+            bias_init=constant(0.0),
+            name="critic_dense_4_64",
         )(critic)
         critic = activation(critic)
-        critic = nn.Dense(1, kernel_init=orthogonal(1.0), bias_init=constant(0.0))(
-            critic
-        )
+        critic = nn.Dense(
+            1,
+            kernel_init=orthogonal(1.0),
+            bias_init=constant(0.0),
+            name="critic_dense_5_1",
+        )(critic)
         return pi, jnp.squeeze(critic, axis=-1)
 
 
