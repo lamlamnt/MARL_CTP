@@ -19,6 +19,7 @@ import time
 from datetime import datetime
 import json
 from Utils.get_params import extract_params
+from Utils import hand_crafted_graphs
 from Evaluation.inference import plotting_inference
 
 NUM_CHANNELS_IN_BELIEF_STATE = 3
@@ -35,39 +36,64 @@ def main(args):
     # Determine belief state shape
     state_shape = (
         NUM_CHANNELS_IN_BELIEF_STATE,
-        args.n_agent + args.n_node,
-        args.n_node,
+        args.n_agent + n_node,
+        n_node,
     )
 
     key = jax.random.PRNGKey(args.random_seed_for_training)
     subkeys = jax.random.split(key, num=2)
     online_key, environment_key = subkeys
 
-    environment = CTP_environment.CTP(
-        args.n_agent,
-        1,
-        args.n_node,
-        environment_key,
-        prop_stoch=args.prop_stoch,
-        k_edges=args.k_edges,
-        grid_size=args.grid_size,
-        reward_for_invalid_action=args.reward_for_invalid_action,
-        reward_for_goal=args.reward_for_goal,
-        factor_expensive_edge=args.factor_expensive_edge,
-    )
+    if args.hand_crafted_graph == "diamond":
+        _, defined_graph = hand_crafted_graphs.get_diamond_shaped_graph()
+        environment = CTP_environment.CTP(
+            num_agents=1,
+            num_goals=1,
+            num_nodes=n_node,
+            key=environment_key,
+            reward_for_invalid_action=args.reward_for_invalid_action,
+            reward_for_goal=args.reward_for_goal,
+            factor_expensive_edge=args.factor_expensive_edge,
+            handcrafted_graph=defined_graph,
+        )
+    elif args.hand_crafted_graph == "n_stochastic":
+        _, defined_graph = hand_crafted_graphs.get_stochastic_edge_graph()
+        environment = CTP_environment.CTP(
+            num_agents=1,
+            num_goals=1,
+            num_nodes=n_node,
+            key=environment_key,
+            reward_for_invalid_action=args.reward_for_invalid_action,
+            reward_for_goal=args.reward_for_goal,
+            factor_expensive_edge=args.factor_expensive_edge,
+            handcrafted_graph=defined_graph,
+        )
+    else:
+        environment = CTP_environment.CTP(
+            args.n_agent,
+            1,
+            n_node,
+            environment_key,
+            prop_stoch=args.prop_stoch,
+            k_edges=args.k_edges,
+            grid_size=args.grid_size,
+            reward_for_invalid_action=args.reward_for_invalid_action,
+            reward_for_goal=args.reward_for_goal,
+            factor_expensive_edge=args.factor_expensive_edge,
+        )
     environment.graph_realisation.graph.plot_nx_graph(
         directory=log_directory, file_name="training_graph.png"
     )
 
     if args.network_type == "FC":
-        model = ActorCritic(args.n_node, args.network_activation)
+        model = ActorCritic(n_node, args.network_activation)
     elif args.network_type == "CNN":
-        model = ActorCritic_CNN(args.n_node)
+        model = ActorCritic_CNN(n_node)
     else:
         if args.network_activation == "relu":
-            model = ActorCritic_Narrow_Relu(args.n_node)
+            model = ActorCritic_Narrow_Relu(n_node)
         else:
-            model = ActorCritic_Narrow(args.n_node)
+            model = ActorCritic_Narrow(n_node)
     init_params = model.init(
         jax.random.PRNGKey(0), jax.random.normal(online_key, state_shape)
     )
@@ -153,7 +179,7 @@ def main(args):
         environment,
         agent,
         args,
-        args.n_node,
+        n_node,
     )
 
 
@@ -243,6 +269,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--log_directory", type=str, help="Directory to store logs", required=True
     )
+    parser.add_argument(
+        "--hand_crafted_graph",
+        type=str,
+        help="Options: None,diamond,n_stochastic. If anything other than None is specified, all other args relating to environment such as num of nodes are ignored.",
+        required=False,
+        default="None",
+    )
 
     # Args specific to PPO:
     parser.add_argument(
@@ -293,5 +326,15 @@ if __name__ == "__main__":
     log_directory = os.path.join(current_directory, "Logs", args.log_directory)
     if not os.path.exists(log_directory):
         os.makedirs(log_directory)
+
     num_loops = args.time_steps // args.num_steps_before_update
+
+    # Decide on num of nodes
+    if args.hand_crafted_graph == "diamond":
+        n_node, defined_graph = hand_crafted_graphs.get_diamond_shaped_graph()
+    elif args.hand_crafted_graph == "n_stochastic":
+        n_node, defined_graph = hand_crafted_graphs.get_stochastic_edge_graph()
+    else:
+        n_node = args.n_node
+
     main(args)

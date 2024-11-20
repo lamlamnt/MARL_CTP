@@ -52,6 +52,8 @@ class PPO:
     def act(self, key, params, belief_state, unused):
         pi, _ = self.model.apply(params, belief_state)
         action = pi.sample(seed=key)
+        # action = pi.mode()
+        # OR pi.mode()
         old_key, new_key = jax.random.split(key)
         return action, new_key
 

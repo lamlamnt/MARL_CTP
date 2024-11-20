@@ -22,7 +22,7 @@ class CTPGraph:
         self,
         key: jax.random.PRNGKey,
         n_nodes: int,
-        grid_size=0,
+        grid_size=None,
         prop_stoch=None,
         k_edges=None,
         num_goals=1,
@@ -52,7 +52,7 @@ class CTPGraph:
             self.goal = jnp.array([handcrafted_graph["goal"]])
             self.n_edges = handcrafted_graph["n_edges"]
         else:
-            if grid_size == 0:
+            if grid_size == None:
                 grid_size = n_nodes
             if (prop_stoch is None and k_edges is None) or (
                 prop_stoch is not None and k_edges is not None

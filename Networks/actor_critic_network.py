@@ -147,6 +147,98 @@ class ActorCritic_CNN(nn.Module):
 
         actor_mean = jnp.transpose(x, (1, 2, 0))
         actor_mean = nn.Conv(
+            features=32,
+            kernel_size=(1, 1),
+            kernel_init=orthogonal(np.sqrt(2)),
+            bias_init=constant(0.0),
+        )(actor_mean)
+        actor_mean = activation(actor_mean)
+
+        actor_mean = nn.max_pool(
+            actor_mean, window_shape=(3, 3), strides=(1, 1), padding="SAME"
+        )
+        actor_mean = actor_mean.reshape(-1)
+
+        actor_mean = nn.Dense(
+            64, kernel_init=orthogonal(np.sqrt(2)), bias_init=constant(0.0)
+        )(actor_mean)
+        actor_mean = activation(actor_mean)
+        actor_mean = nn.Dense(
+            128, kernel_init=orthogonal(np.sqrt(2)), bias_init=constant(0.0)
+        )(actor_mean)
+        actor_mean = activation(actor_mean)
+        actor_mean = nn.Dense(
+            256, kernel_init=orthogonal(np.sqrt(2)), bias_init=constant(0.0)
+        )(actor_mean)
+        actor_mean = activation(actor_mean)
+
+        # Convert to 2D to use max pool
+        actor_mean = actor_mean.reshape(-1, 1)
+        actor_mean = nn.max_pool(
+            actor_mean, window_shape=(4,), strides=(1,), padding="SAME"
+        )
+        actor_mean = actor_mean.reshape(-1)
+
+        actor_mean = activation(actor_mean)
+        actor_mean = nn.Dense(
+            self.num_actions, kernel_init=orthogonal(0.01), bias_init=constant(0.0)
+        )(actor_mean)
+
+        # Do action masking
+        actor_mean = jnp.where(action_mask == -jnp.inf, -jnp.inf, actor_mean)
+        pi = distrax.Categorical(logits=actor_mean)
+
+        critic = jnp.transpose(x, (1, 2, 0))
+        critic = nn.Conv(
+            features=32,
+            kernel_size=(1, 1),
+            kernel_init=he_normal(),
+            bias_init=constant(0.0),
+        )(critic)
+        critic = activation(critic)
+        critic = nn.max_pool(
+            critic, window_shape=(3, 3), strides=(1, 1), padding="VALID"
+        )
+        critic = critic.reshape(-1)
+
+        critic = nn.Dense(
+            64, kernel_init=orthogonal(np.sqrt(2)), bias_init=constant(0.0)
+        )(critic)
+        critic = activation(critic)
+        critic = nn.Dense(
+            128, kernel_init=orthogonal(np.sqrt(2)), bias_init=constant(0.0)
+        )(critic)
+        critic = activation(critic)
+        critic = nn.Dense(
+            256, kernel_init=orthogonal(np.sqrt(2)), bias_init=constant(0.0)
+        )(critic)
+        critic = activation(critic)
+
+        critic = critic.reshape(-1, 1)
+        critic = nn.max_pool(critic, window_shape=(4,), strides=(1,), padding="SAME")
+        critic = critic.reshape(-1)
+
+        critic = nn.Dense(
+            64, kernel_init=orthogonal(np.sqrt(2)), bias_init=constant(0.0)
+        )(critic)
+        critic = activation(critic)
+        critic = nn.Dense(1, kernel_init=orthogonal(1.0), bias_init=constant(0.0))(
+            critic
+        )
+        return pi, jnp.squeeze(critic, axis=-1)
+
+
+class ActorCritic_CNN_Old(nn.Module):
+    num_actions: int
+
+    @nn.compact
+    def __call__(self, x: jnp.ndarray) -> tuple[distrax.Categorical, float]:
+        activation = nn.tanh
+
+        action_mask = decide_validity_of_action_space(x)
+
+        actor_mean = jnp.transpose(x, (1, 2, 0))
+        actor_mean = nn.Conv(
             features=64,
             kernel_size=(3, 3),
             kernel_init=orthogonal(np.sqrt(2)),

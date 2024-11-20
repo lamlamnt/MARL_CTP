@@ -1,0 +1,57 @@
+{"n_node": 5, "n_agent": 1, "time_steps": 1000000, "reward_for_invalid_action": -200.0, "reward_for_goal": 0, "factor_expensive_edge": 1.0, "prop_stoch": 0.4, "k_edges": null, "grid_size": null, "random_seed_for_training": 30, "random_seed_for_inference": 40, "discount_factor": 1.0, "anneal_lr": false, "learning_rate": 0.00025, "num_update_epochs": 4, "network_type": "FC", "network_activation": "tanh", "log_directory": "deterministic", "hand_crafted_graph": "None", "num_steps_before_update": 200, "gae_lambda": 0.95, "clip_eps": 0.2, "vf_coeff": 0.5, "ent_coeff": 0.01, "num_minibatches": 4}
+{
+    "current_datetime": "2024-11-20 01:16:13"
+}
+{"Total training time in seconds": 27.9543559551239}
+
+Training results: 
+{
+    "final_regret": 0.0,
+    "final_comparative_ratio": 1.0,
+    "avg_reward_last_episode": -16.112000274658204,
+    "max_reward": -6.239999771118164
+}
+Testing results: 
+{
+    "average_regret": 0.4914454519748688,
+    "average_comparative_ratio": 1.0787572860717773,
+    "average_reward": -18.768142700195312
+}
+Policy: 
+[
+[NaN, NaN, NaN, NaN, NaN],
+[0.0, 0.0, 0.529411792755127, 0.0, 0.47058823704719543],
+[NaN, NaN, NaN, NaN, NaN],
+[NaN, NaN, NaN, NaN, NaN],
+[0.0, 0.0, 1.0, 0.0, 0.0]
+]
+Network architecture: 
+params/Dense_0/bias: (64,)
+params/Dense_0/kernel: (90, 64)
+params/Dense_1/bias: (64,)
+params/Dense_1/kernel: (64, 64)
+params/Dense_2/bias: (5,)
+params/Dense_2/kernel: (64, 5)
+params/Dense_3/bias: (64,)
+params/Dense_3/kernel: (90, 64)
+params/Dense_4/bias: (64,)
+params/Dense_4/kernel: (64, 64)
+params/Dense_5/bias: (1,)
+params/Dense_5/kernel: (64, 1)
+
+Graph Weights: 
+[
+[-1.0, -1.0, 5.09765625, -1.0, 1.0],
+[-1.0, -1.0, 28.28125, 2.0, 3.0],
+[5.09765625, 28.28125, -1.0, 4.2421875, 5.0],
+[-1.0, 2.0, 4.2421875, -1.0, 3.60546875],
+[1.0, 3.0, 5.0, 3.60546875, -1.0]
+]
+Blocking Probabilities: 
+[
+[1.0, 1.0, 0.469970703125, 1.0, 0.0],
+[1.0, 1.0, 0.0, 0.9501953125, 0.52001953125],
+[0.469970703125, 0.0, 1.0, 0.0, 0.0],
+[1.0, 0.9501953125, 0.0, 1.0, 0.0],
+[0.0, 0.52001953125, 0.0, 0.0, 1.0]
+]

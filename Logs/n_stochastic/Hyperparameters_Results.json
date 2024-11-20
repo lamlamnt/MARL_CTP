@@ -1,0 +1,76 @@
+{"n_node": 5, "n_agent": 1, "time_steps": 200000, "reward_for_invalid_action": -200.0, "reward_for_goal": 0, "factor_expensive_edge": 1.0, "prop_stoch": 0.4, "k_edges": null, "grid_size": null, "random_seed_for_training": 30, "random_seed_for_inference": 40, "discount_factor": 1.0, "anneal_lr": false, "learning_rate": 0.00025, "num_update_epochs": 4, "network_type": "narrow", "network_activation": "tanh", "log_directory": "n_stochastic", "hand_crafted_graph": "n_stochastic", "num_steps_before_update": 200, "gae_lambda": 0.95, "clip_eps": 0.2, "vf_coeff": 0.5, "ent_coeff": 0.01, "num_minibatches": 4}
+{
+    "current_datetime": "2024-11-20 01:32:51"
+}
+{"Total training time in seconds": 24.067870616912842}
+
+Training results: 
+{
+    "final_regret": 0.0,
+    "final_comparative_ratio": 1.0,
+    "avg_reward_last_episode": -4.3,
+    "max_reward": -2.0
+}
+Testing results: 
+{
+    "average_regret": 0.008016032166779041,
+    "average_comparative_ratio": 1.00160551071167,
+    "average_reward": -4.230461120605469
+}
+Policy: 
+[
+[0.0, 0.006000000052154064, 0.017999999225139618, 0.06599999964237213, 0.12200000137090683, 0.17800000309944153, 0.23600000143051147, 0.25200000405311584, 0.12200000137090683, 0.0],
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+[NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN]
+]
+Network architecture: 
+params/Dense_0/bias: (128,)
+params/Dense_0/kernel: (330, 128)
+params/Dense_1/bias: (64,)
+params/Dense_1/kernel: (128, 64)
+params/Dense_2/bias: (32,)
+params/Dense_2/kernel: (64, 32)
+params/Dense_3/bias: (10,)
+params/Dense_3/kernel: (32, 10)
+params/Dense_4/bias: (128,)
+params/Dense_4/kernel: (330, 128)
+params/Dense_5/bias: (64,)
+params/Dense_5/kernel: (128, 64)
+params/Dense_6/bias: (32,)
+params/Dense_6/kernel: (64, 32)
+params/Dense_7/bias: (1,)
+params/Dense_7/kernel: (32, 1)
+
+Graph Weights: 
+[
+[-1, 8, 7, 6, 5, 4, 3, 2, 1, -1],
+[8, -1, -1, -1, -1, -1, -1, -1, -1, 1],
+[7, -1, -1, -1, -1, -1, -1, -1, -1, 1],
+[6, -1, -1, -1, -1, -1, -1, -1, -1, 1],
+[5, -1, -1, -1, -1, -1, -1, -1, -1, 1],
+[4, -1, -1, -1, -1, -1, -1, -1, -1, 1],
+[3, -1, -1, -1, -1, -1, -1, -1, -1, 1],
+[2, -1, -1, -1, -1, -1, -1, -1, -1, 1],
+[1, -1, -1, -1, -1, -1, -1, -1, -1, 1],
+[-1, 1, 1, 1, 1, 1, 1, 1, 1, -1]
+]
+Blocking Probabilities: 
+[
+[1.0, 0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0],
+[0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+[0.125, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+[0.25, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+[0.375, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+[0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+[0.625, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+[0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+[0.875, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+[1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+]
