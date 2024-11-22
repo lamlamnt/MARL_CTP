@@ -79,24 +79,23 @@ class CTPGraph:
                 self.goal = jnp.array([self.goal])
                 self.origin = jnp.array([self.origin])
 
-            # Add expensive edge if no edge between goal and origin
-            if self.weights[self.origin, self.goal] == NOT_CONNECTED:
-                upper_bound = (
-                    (self.n_nodes - 1)
-                    * jnp.sqrt(grid_size**2 + grid_size**2)
-                    * factor_expensive_edge
-                )
-                self.weights = self.weights.at[self.origin, self.goal].set(upper_bound)
-                self.weights = self.weights.at[self.goal, self.origin].set(upper_bound)
-                self.blocking_prob = self.blocking_prob.at[self.origin, self.goal].set(
-                    0
-                )
-                self.blocking_prob = self.blocking_prob.at[self.goal, self.origin].set(
-                    0
-                )
+            # Always add expensive edge. If there's already an edge between goal and origin,
+            # we replace it with an expensive edge
+            if self.weights[self.goal, self.origin] == NOT_CONNECTED:
                 self.senders = jnp.append(self.senders, self.origin)
                 self.receivers = jnp.append(self.receivers, self.goal)
                 self.n_edges += 1
+            upper_bound = (
+                (self.n_nodes - 1) * jnp.max(self.weights) * factor_expensive_edge
+            )
+            self.weights = self.weights.at[self.origin, self.goal].set(upper_bound)
+            self.weights = self.weights.at[self.goal, self.origin].set(upper_bound)
+            self.blocking_prob = self.blocking_prob.at[self.origin, self.goal].set(0)
+            self.blocking_prob = self.blocking_prob.at[self.goal, self.origin].set(0)
+
+        # Normalize the weights
+        max_weight = jnp.max(self.weights)
+        self.weights = self.weights / max_weight
 
     # Returns the weight adjacency matrix and n_edges
     def __generate_connectivity_weight(

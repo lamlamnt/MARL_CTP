@@ -36,6 +36,11 @@ class PPO:
         ent_coeff: float,
         batch_size: int,
         num_minibatches: int,
+        horizon_length: int,
+        reward_exceed_horizon: float,
+        num_loops: int,
+        anneal_ent_coeff: bool,
+        deterministic_inference_policy: bool,
     ) -> None:
         self.model = model
         self.environment = environment
@@ -46,21 +51,42 @@ class PPO:
         self.ent_coeff = ent_coeff
         self.batch_size = batch_size
         self.num_minibatches = num_minibatches
+        self.horizon_length = horizon_length
+        self.reward_exceed_horizon = jnp.float16(reward_exceed_horizon)
+        self.num_loops = num_loops
+        self.anneal_ent_coeff = anneal_ent_coeff
+        self.deterministic_inference_policy = deterministic_inference_policy
+
+    def _ent_coeff_schedule(self, loop_count):
+        frac = 1.0 - loop_count / self.num_loops
+        return self.ent_coeff * frac
 
     # For inference only
     @partial(jax.jit, static_argnums=(0,))
     def act(self, key, params, belief_state, unused):
         pi, _ = self.model.apply(params, belief_state)
-        action = pi.sample(seed=key)
+        action = jax.lax.cond(
+            self.deterministic_inference_policy,
+            lambda _: pi.mode(),
+            lambda _: pi.sample(seed=key),
+            operand=None,
+        )
+        # action = pi.sample(seed=key)
         # action = pi.mode()
-        # OR pi.mode()
         old_key, new_key = jax.random.split(key)
         return action, new_key
 
     @partial(jax.jit, static_argnums=(0,))
     def env_step(self, runner_state, unused):
         # Collect trajectories
-        train_state, new_env_state, current_belief_state, key = runner_state
+        (
+            train_state,
+            new_env_state,
+            current_belief_state,
+            key,
+            timestep_in_episode,
+            loop_count,
+        ) = runner_state
         action_key, env_key = jax.random.split(key, 2)
 
         current_env_state = new_env_state
@@ -74,7 +100,36 @@ class PPO:
         new_env_state, new_belief_state, reward, done, env_key = self.environment.step(
             env_key, new_env_state, current_belief_state, action
         )
+
         action = action[0]
+
+        # Stop the episode and reset if exceed horizon length
+        env_key, reset_key = jax.random.split(env_key)
+        # Reset timestep if finish episode
+        timestep_in_episode = jax.lax.cond(
+            done, lambda _: 0, lambda _: timestep_in_episode, operand=None
+        )
+        # Reset if exceed horizon length. Otherwise, increment
+        new_env_state, new_belief_state, reward, timestep_in_episode, done = (
+            jax.lax.cond(
+                timestep_in_episode >= self.horizon_length,
+                lambda _: (
+                    *self.environment.reset(reset_key),
+                    self.reward_exceed_horizon,
+                    0,
+                    True,
+                ),
+                lambda _: (
+                    new_env_state,
+                    new_belief_state,
+                    reward,
+                    timestep_in_episode + 1,
+                    done,
+                ),
+                operand=None,
+            )
+        )
+
         shortest_path = jax.lax.cond(
             done,
             lambda _: dijkstra_shortest_path(
@@ -86,7 +141,14 @@ class PPO:
             operand=None,
         )
 
-        runner_state = (train_state, new_env_state, new_belief_state, env_key)
+        runner_state = (
+            train_state,
+            new_env_state,
+            new_belief_state,
+            env_key,
+            timestep_in_episode,
+            loop_count,
+        )
         transition = Transition(
             done,
             action,
@@ -123,7 +185,7 @@ class PPO:
         )
         return advantages, advantages + traj_batch.critic_value
 
-    def _loss_fn(self, params, traj_batch: Transition, gae, targets):
+    def _loss_fn(self, params, traj_batch: Transition, gae, targets, ent_coeff):
         # RERUN NETWORK
         pi, value = jax.vmap(self.model.apply, in_axes=(None, 0))(
             params, traj_batch.belief_state
@@ -155,23 +217,29 @@ class PPO:
         loss_actor = loss_actor.mean()
         entropy = pi.entropy().mean()
 
-        total_loss = loss_actor + self.vf_coeff * value_loss - self.ent_coeff * entropy
+        total_loss = loss_actor + self.vf_coeff * value_loss - ent_coeff * entropy
         return total_loss, (value_loss, loss_actor, entropy)
 
     @partial(jax.jit, static_argnums=(0,))
     def _update_epoch(self, update_state, unused):
         def _update_minbatch(train_state, batch_info):
             traj_batch, advantages, targets = batch_info
-            train_state, traj_batch, advantages, targets, rng = update_state
+            train_state, traj_batch, advantages, targets, rng, loop_count = update_state
+            ent_coeff = jax.lax.cond(
+                self.anneal_ent_coeff,
+                lambda _: self._ent_coeff_schedule(loop_count),
+                lambda _: self.ent_coeff,
+                operand=None,
+            )
             rng, _rng = jax.random.split(rng)
             grad_fn = jax.value_and_grad(self._loss_fn, has_aux=True)
             total_loss, grads = grad_fn(
-                train_state.params, traj_batch, advantages, targets
+                train_state.params, traj_batch, advantages, targets, ent_coeff
             )
             train_state = train_state.apply_gradients(grads=grads)
             return train_state, total_loss
 
-        train_state, traj_batch, advantages, targets, rng = update_state
+        train_state, traj_batch, advantages, targets, rng, loop_count = update_state
         rng, _rng = jax.random.split(rng)
         permutation = jax.random.permutation(_rng, self.batch_size)
         batch = (traj_batch, advantages, targets)
@@ -190,5 +258,5 @@ class PPO:
         train_state, total_loss = jax.lax.scan(
             _update_minbatch, train_state, minibatches
         )
-        update_state = (train_state, traj_batch, advantages, targets, rng)
+        update_state = (train_state, traj_batch, advantages, targets, rng, loop_count)
         return update_state, total_loss

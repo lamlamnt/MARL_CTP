@@ -1,0 +1,69 @@
+{"n_node": 5, "n_agent": 1, "time_steps": 10000, "reward_for_invalid_action": -200.0, "reward_for_goal": 0, "factor_expensive_edge": 1.0, "prop_stoch": 0.4, "k_edges": null, "grid_size": null, "random_seed_for_training": 60, "random_seed_for_inference": 40, "discount_factor": 1.0, "anneal_lr": false, "learning_rate": 0.01, "num_update_epochs": 4, "network_type": "CNN", "network_activation": "tanh", "log_directory": "fix_cnn", "hand_crafted_graph": "None", "num_steps_before_update": 200, "gae_lambda": 0.95, "clip_eps": 0.2, "vf_coeff": 0.2, "ent_coeff": 0.01, "num_minibatches": 4}
+{
+    "current_datetime": "2024-11-21 21:05:34"
+}
+{"Total training time in seconds": 13.127384424209595}
+
+Training results: 
+{
+    "final_regret": 0.0,
+    "final_comparative_ratio": 1.0,
+    "avg_reward_last_episode": -4.46999979019165,
+    "max_reward": -4.46999979019165
+}
+Testing results: 
+{
+    "average_regret": 0.0,
+    "average_comparative_ratio": 1.0,
+    "average_reward": -4.470000267028809
+}
+Policy: 
+[
+[NaN, NaN, NaN, NaN, NaN],
+[0.0, 0.0, 0.0, 1.0, 0.0],
+[NaN, NaN, NaN, NaN, NaN],
+[0.0, 0.0, 0.0, 0.0, 1.0],
+[NaN, NaN, NaN, NaN, NaN]
+]
+Network architecture: 
+params/actor_conv_1_32/bias: (32,)
+params/actor_conv_1_32/kernel: (1, 1, 3, 32)
+params/actor_dense_1_64/bias: (64,)
+params/actor_dense_1_64/kernel: (960, 64)
+params/actor_dense_2_128/bias: (128,)
+params/actor_dense_2_128/kernel: (64, 128)
+params/actor_dense_3_256/bias: (256,)
+params/actor_dense_3_256/kernel: (128, 256)
+params/actor_dense_4_64/bias: (64,)
+params/actor_dense_4_64/kernel: (256, 64)
+params/actor_dense_5_actions/bias: (5,)
+params/actor_dense_5_actions/kernel: (64, 5)
+params/critic_conv_1_32/bias: (32,)
+params/critic_conv_1_32/kernel: (1, 1, 3, 32)
+params/critic_dense_1_64/bias: (64,)
+params/critic_dense_1_64/kernel: (960, 64)
+params/critic_dense_2_128/bias: (128,)
+params/critic_dense_2_128/kernel: (64, 128)
+params/critic_dense_3_256/bias: (256,)
+params/critic_dense_3_256/kernel: (128, 256)
+params/critic_dense_4_64/bias: (64,)
+params/critic_dense_4_64/kernel: (256, 64)
+params/critic_dense_5_1/bias: (1,)
+params/critic_dense_5_1/kernel: (64, 1)
+
+Graph Weights: 
+[
+[-1.0, 1.0, -1.0, 2.0, 3.60546875],
+[1.0, -1.0, -1.0, 2.236328125, 28.28125],
+[-1.0, -1.0, -1.0, 1.4140625, 1.0],
+[2.0, 2.236328125, 1.4140625, -1.0, 2.236328125],
+[3.60546875, 28.28125, 1.0, 2.236328125, -1.0]
+]
+Blocking Probabilities: 
+[
+[1.0, 0.0, 1.0, 0.0, 0.85986328125],
+[0.0, 1.0, 1.0, 0.0, 0.0],
+[1.0, 1.0, 1.0, 0.07000732421875, 0.509765625],
+[0.0, 0.0, 0.07000732421875, 1.0, 0.0],
+[0.85986328125, 0.0, 0.509765625, 0.0, 1.0]
+]

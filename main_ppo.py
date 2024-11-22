@@ -21,6 +21,7 @@ import json
 from Utils.get_params import extract_params
 from Utils import hand_crafted_graphs
 from Evaluation.inference import plotting_inference
+import numpy as np
 
 NUM_CHANNELS_IN_BELIEF_STATE = 3
 
@@ -128,6 +129,11 @@ def main(args):
         args.ent_coeff,
         batch_size=args.num_steps_before_update,
         num_minibatches=args.num_minibatches,
+        horizon_length=args.horizon_length_factor * n_node,
+        reward_exceed_horizon=args.reward_exceed_horizon,
+        num_loops=num_loops,
+        anneal_ent_coeff=args.anneal_ent_coeff,
+        deterministic_inference_policy=args.deterministic_inference_policy,
     )
 
     print("Start training ...")
@@ -138,20 +144,39 @@ def main(args):
             agent.env_step, runner_state, None, args.num_steps_before_update
         )
         # Calculate advantages
-        train_state, new_env_state, current_belief_state, key = runner_state
+        # timestep_in_episode is unused here
+        (
+            train_state,
+            new_env_state,
+            current_belief_state,
+            key,
+            timestep_in_episode,
+            loop_count,
+        ) = runner_state
         _, last_critic_val = model.apply(train_state.params, current_belief_state)
         advantages, targets = agent.calculate_gae(traj_batch, last_critic_val)
         # advantages and targets are of shape (num_steps_before_update,)
 
         # Update the network
-        update_state = (train_state, traj_batch, advantages, targets, key)
+        update_state = (train_state, traj_batch, advantages, targets, key, loop_count)
         # traj_batch is a Transition tuple object where for ex.  traj_batch["done"] is of shape (num_steps_before_update,)
         update_state, total_loss = jax.lax.scan(
             agent._update_epoch, update_state, None, args.num_update_epochs
         )
         train_state = update_state[0]
-        rng = update_state[-1]
-        runner_state = (train_state, new_env_state, current_belief_state, rng)
+        rng = update_state[-2]
+
+        # Increment loop count
+        loop_count += 1
+
+        runner_state = (
+            train_state,
+            new_env_state,
+            current_belief_state,
+            rng,
+            timestep_in_episode,
+            loop_count,
+        )
 
         # Collect metrics
         metrics = {
@@ -165,11 +190,25 @@ def main(args):
 
     start_time = time.time()
     new_env_state, new_belief_state = environment.reset(init_key)
-    runner_state = (train_state, new_env_state, new_belief_state, env_action_key)
+    timestep_in_episode = jnp.int32(0)
+    loop_count = jnp.int32(0)
+    runner_state = (
+        train_state,
+        new_env_state,
+        new_belief_state,
+        env_action_key,
+        timestep_in_episode,
+        loop_count,
+    )
     runner_state, metrics = jax.lax.scan(_update_step, runner_state, None, num_loops)
     train_state = runner_state[0]
     # Metrics will be stacked
     out = jax.tree_util.tree_map(lambda x: jnp.reshape(x, (-1,)), metrics)
+
+    total_loss = out["losses"][0]
+    value_loss = out["losses"][1][0]
+    loss_actor = out["losses"][1][1]
+    entropy_loss = out["losses"][1][2]
 
     plotting_inference(
         log_directory,
@@ -180,6 +219,10 @@ def main(args):
         agent,
         args,
         n_node,
+        np.array(total_loss),
+        np.array(value_loss),
+        np.array(loss_actor),
+        np.array(entropy_loss),
     )
 
 
@@ -219,6 +262,20 @@ if __name__ == "__main__":
         default=0,
     )
     parser.add_argument(
+        "--reward_exceed_horizon",
+        type=float,
+        help="Should be equal to or more negative than -1",
+        required=False,
+        default=-1.1,
+    )
+    parser.add_argument(
+        "--horizon_length_factor",
+        type=int,
+        help="Factor to multiply with number of nodes to get the maximum horizon length",
+        required=False,
+        default=5,
+    )
+    parser.add_argument(
         "--factor_expensive_edge", type=float, required=False, default=1.0
     )
     parser.add_argument(
@@ -255,7 +312,7 @@ if __name__ == "__main__":
         default=4,
     )
     parser.add_argument(
-        "--network_type", type=str, help="FC,CNN,Narrow", required=False, default="FC"
+        "--network_type", type=str, help="FC,CNN,Narrow", required=False, default="CNN"
     )
     parser.add_argument(
         "--network_activation",
@@ -314,11 +371,23 @@ if __name__ == "__main__":
         default=0.01,
     )
     parser.add_argument(
+        "--anneal_ent_coeff",
+        action="store_true",
+        required=False,
+        help="Whether to anneal the entropy (exploration) coefficient",
+    )
+    parser.add_argument(
         "--num_minibatches",
         help="Related to how the trajectory batch is split up for performing updating of the network",
         type=int,
         required=False,
         default=4,
+    )
+    parser.add_argument(
+        "--deterministic_inference_policy",
+        action="store_true",
+        required=False,
+        help="Whether to choose the action with the highest probability instead of sampling from the distribution",
     )
 
     args = parser.parse_args()

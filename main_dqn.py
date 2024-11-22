@@ -287,6 +287,7 @@ def main(args):
         agent,
         args,
         n_node,
+        out["losses"],
     )
 
 

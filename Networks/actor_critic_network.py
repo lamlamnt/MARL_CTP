@@ -213,13 +213,13 @@ class ActorCritic_CNN(nn.Module):
         critic = nn.Conv(
             features=32,
             kernel_size=(1, 1),
-            kernel_init=he_normal(),
+            kernel_init=orthogonal(np.sqrt(2)),
             bias_init=constant(0.0),
             name="critic_conv_1_32",
         )(critic)
         critic = activation(critic)
         critic = nn.max_pool(
-            critic, window_shape=(3, 3), strides=(1, 1), padding="VALID"
+            critic, window_shape=(3, 3), strides=(1, 1), padding="SAME"
         )
         critic = critic.reshape(-1)
 

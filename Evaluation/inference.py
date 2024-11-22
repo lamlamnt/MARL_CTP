@@ -13,6 +13,7 @@ from Evaluation import visualize_policy
 from Utils.get_params import extract_params
 from datetime import datetime
 import json
+import matplotlib.pyplot as plt
 
 FACTOR_TO_MULTIPLY_INFERENCE_TIMESTEPS = 100
 
@@ -26,6 +27,10 @@ def plotting_inference(
     agent,
     args,
     n_node,
+    total_losses,
+    value_loss=None,
+    loss_actor=None,
+    entropy_loss=None,
 ):
     print("Start plotting and storing weights ...")
     # Store weights in a file (for loading in the future)
@@ -35,12 +40,6 @@ def plotting_inference(
     # Put here to ensure timing is correct (plotting time is negligible)
     end_time = time.time()
     elapsed_time = end_time - start_time
-
-    """
-    last_average_loss = plotting.plot_loss(
-        out["all_done"], out["losses"], log_directory
-    )
-    """
 
     training_result_dict = plotting.save_data_and_plotting(
         out["all_done"],
@@ -77,6 +76,7 @@ def plotting_inference(
             test_all_rewards,
             test_all_done,
             test_all_optimal_path_lengths,
+            timestep_in_episode,
         ) = val
         current_belief_state = belief_state
         current_env_state = env_state
@@ -89,6 +89,32 @@ def plotting_inference(
             env_key, current_env_state, current_belief_state, action
         )
         action = action[0]
+
+        # Stop the episode and reset if exceed horizon length
+        env_key, reset_key = jax.random.split(env_key)
+        # Reset timestep if finish episode
+        timestep_in_episode = jax.lax.cond(
+            done, lambda _: 0, lambda _: timestep_in_episode, operand=None
+        )
+        # Reset if exceed horizon length. Otherwise, increment
+        env_state, belief_state, reward, timestep_in_episode, done = jax.lax.cond(
+            timestep_in_episode >= agent.horizon_length,
+            lambda _: (
+                *environment.reset(reset_key),
+                agent.reward_exceed_horizon,
+                0,
+                True,
+            ),
+            lambda _: (
+                env_state,
+                belief_state,
+                reward,
+                timestep_in_episode + 1,
+                done,
+            ),
+            operand=None,
+        )
+
         shortest_path = jax.lax.cond(
             done,
             lambda _: dijkstra_shortest_path(
@@ -118,6 +144,7 @@ def plotting_inference(
             test_all_rewards,
             test_all_done,
             test_all_optimal_path_lengths,
+            timestep_in_episode,
         )
         return val
 
@@ -131,6 +158,7 @@ def plotting_inference(
         test_all_rewards,
         test_all_done,
         test_all_optimal_path_lengths,
+        0,
     )
     vals = jax.lax.fori_loop(
         0, num_steps_for_inference, _fori_inference, testing_val_init
@@ -146,6 +174,7 @@ def plotting_inference(
         test_all_rewards,
         test_all_done,
         test_all_optimal_path_lengths,
+        timestep_in_episode,
     ) = vals
 
     testing_result_dict = plotting.save_data_and_plotting(
@@ -155,6 +184,41 @@ def plotting_inference(
         log_directory,
         training=False,
     )
+
+    # Plot the loss
+    if value_loss is not None:
+        plt.figure(figsize=(10, 6))
+        plt.plot(total_losses, linestyle="-", color="red", label="Total Weighted Loss")
+        plt.plot(
+            args.vf_coeff * value_loss,
+            linestyle="-",
+            color="blue",
+            label="Weighted Value Loss",
+        )
+        plt.plot(loss_actor, linestyle="-", color="green", label="Actor Loss")
+        plt.plot(
+            args.ent_coeff * entropy_loss,
+            linestyle="-",
+            color="orange",
+            label="Weighted Entropy Loss",
+        )
+        plt.xlabel("Iteration")
+        plt.ylabel("Loss")
+        plt.title("Loss Plot")
+        plt.legend()
+        plt.savefig(os.path.join(log_directory, "PPO_Loss.png"))
+        loss = {
+            "Total Loss": total_losses[-1].astype(float),
+            "Weighted Value Loss": args.vf_coeff * value_loss[-1].astype(float),
+            "Actor Loss": loss_actor[-1].astype(float),
+            "Weighted Entropy Loss": args.ent_coeff * entropy_loss[-1].astype(float),
+        }
+    else:
+        # DQN
+        last_average_loss = plotting.plot_loss(
+            out["all_done"], total_losses, log_directory
+        )
+        loss = {"Last average loss": last_average_loss}
 
     # Visualize the policy
     policy = visualize_policy.get_policy(n_node, test_all_actions, test_all_positions)
@@ -171,7 +235,7 @@ def plotting_inference(
         fh.write("\n")
         json.dump({"Total training time in seconds": elapsed_time}, fh)
         fh.write("\n")
-        # json.dump({"Last average loss:": last_average_loss}, fh)
+        json.dump(loss, fh)
         fh.write("\n")
         fh.write("Training results: \n")
         json.dump(training_result_dict, fh, indent=4)
