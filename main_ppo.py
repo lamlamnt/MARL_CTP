@@ -302,7 +302,12 @@ if __name__ == "__main__":
         "--random_seed_for_inference", type=int, required=False, default=40
     )
     parser.add_argument("--discount_factor", type=float, required=False, default=1.0)
-    parser.add_argument("--anneal_lr", type=bool, required=False, default=False)
+    parser.add_argument(
+        "--anneal_lr",
+        action="store_true",
+        required=False,
+        help="Whether to anneal the learning rate",
+    )
     parser.add_argument("--learning_rate", type=float, required=False, default=0.00025)
     parser.add_argument(
         "--num_update_epochs",
