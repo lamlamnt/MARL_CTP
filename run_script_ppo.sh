@@ -1,7 +1,7 @@
 #!/bin/bash
 
 learning_rates=("0.001" "0.00025" "0.0001")
-#anneal learning rate
+#anneal learning rate and ent_coeff
 clip_range=("0.1" "0.3")
 ent_coef=("0.01" "0.03")
 num_steps_before_update=("128" "256" "512")

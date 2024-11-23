@@ -236,7 +236,7 @@ class ActorCritic_CNN_30(nn.Module):
     def __call__(self, x: jnp.ndarray) -> tuple[distrax.Categorical, float]:
         action_mask = decide_validity_of_action_space(x)
         actor_mean = jnp.transpose(x, (1, 2, 0))
-        actor_mean = Beginning_CNN_Block(15)(actor_mean)  # 3 conv layers
+        actor_mean = Beginning_CNN_Block(32)(actor_mean)  # 3 conv layers
         actor_mean = Middle_FC_Block(512, 256)(actor_mean)  # 2 dense layers
         actor_mean = Middle_FC_Block(128, 64)(actor_mean)  # 2 dense layers
         actor_mean = End_Block(32)(actor_mean)  # 1 dense layer
