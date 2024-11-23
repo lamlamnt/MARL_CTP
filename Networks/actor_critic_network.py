@@ -147,18 +147,19 @@ class ActorCritic_CNN_10(nn.Module):
 
 
 class Middle_FC_Block(nn.Module):
-    num_neurons: int
+    num_neurons_1: int
+    num_neurons_2: int
 
     @nn.compact
     def __call__(self, x):
         x = nn.Dense(
-            self.num_neurons,
+            self.num_neurons_1,
             kernel_init=orthogonal(np.sqrt(2)),
             bias_init=constant(0.0),
         )(x)
         x = nn.tanh(x)
         x = nn.Dense(
-            jnp.floor_divide(self.num_neurons, 2),
+            self.num_neurons_2,
             kernel_init=orthogonal(np.sqrt(2)),
             bias_init=constant(0.0),
         )(x)
@@ -236,8 +237,8 @@ class ActorCritic_CNN_30(nn.Module):
         action_mask = decide_validity_of_action_space(x)
         actor_mean = jnp.transpose(x, (1, 2, 0))
         actor_mean = Beginning_CNN_Block(15)(actor_mean)  # 3 conv layers
-        actor_mean = Middle_FC_Block(512)(actor_mean)  # 2 dense layers
-        actor_mean = Middle_FC_Block(128)(actor_mean)  # 2 dense layers
+        actor_mean = Middle_FC_Block(512, 256)(actor_mean)  # 2 dense layers
+        actor_mean = Middle_FC_Block(128, 64)(actor_mean)  # 2 dense layers
         actor_mean = End_Block(32)(actor_mean)  # 1 dense layer
         actor_mean = nn.Dense(
             self.num_actions,
@@ -252,8 +253,8 @@ class ActorCritic_CNN_30(nn.Module):
 
         critic = jnp.transpose(x, (1, 2, 0))
         critic = Beginning_CNN_Block(15)(critic)
-        critic = Middle_FC_Block(512)(critic)
-        critic = Middle_FC_Block(128)(critic)
+        critic = Middle_FC_Block(512, 256)(critic)
+        critic = Middle_FC_Block(128, 64)(critic)
         critic = End_Block(32)(critic)
         critic = nn.Dense(
             1,
