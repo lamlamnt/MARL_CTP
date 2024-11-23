@@ -158,7 +158,7 @@ class Middle_FC_Block(nn.Module):
         )(x)
         x = nn.tanh(x)
         x = nn.Dense(
-            jnp.floor_divide(self.num_neurons),
+            jnp.floor_divide(self.num_neurons, 2),
             kernel_init=orthogonal(np.sqrt(2)),
             bias_init=constant(0.0),
         )(x)
