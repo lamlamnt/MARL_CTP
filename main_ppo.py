@@ -296,7 +296,8 @@ if __name__ == "__main__":
     parser.add_argument("--discount_factor", type=float, required=False, default=1.0)
     parser.add_argument(
         "--anneal_lr",
-        action="store_true",
+        type=bool,
+        default=False,
         required=False,
         help="Whether to anneal the learning rate",
     )
@@ -369,8 +370,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--anneal_ent_coeff",
-        action="store_true",
+        type=bool,
         required=False,
+        default=True,
         help="Whether to anneal the entropy (exploration) coefficient",
     )
     parser.add_argument(
@@ -382,7 +384,8 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--deterministic_inference_policy",
-        action="store_true",
+        type=bool,
+        default=False,
         required=False,
         help="Whether to choose the action with the highest probability instead of sampling from the distribution",
     )
