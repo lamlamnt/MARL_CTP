@@ -183,7 +183,7 @@ class Beginning_CNN_Block(nn.Module):
         x = nn.Conv(
             features=self.num_filters,
             kernel_size=(4, 4),
-            stride=(2, 2),
+            strides=(2, 2),
             kernel_init=orthogonal(np.sqrt(2)),
             bias_init=constant(0.0),
             name="conv_2",
@@ -192,7 +192,7 @@ class Beginning_CNN_Block(nn.Module):
         x = nn.Conv(
             features=self.num_filters,
             kernel_size=(4, 4),
-            stride=(2, 2),
+            strides=(2, 2),
             kernel_init=orthogonal(np.sqrt(2)),
             bias_init=constant(0.0),
             name="conv_3",
