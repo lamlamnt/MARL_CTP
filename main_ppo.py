@@ -1,12 +1,7 @@
 import os
 import jax
 import jax.numpy as jnp
-from Networks.actor_critic_network import (
-    ActorCritic,
-    ActorCritic_CNN,
-    ActorCritic_Narrow,
-    ActorCritic_Narrow_Relu,
-)
+from Networks.actor_critic_network import ActorCritic_CNN_10, ActorCritic_CNN_30
 from Environment import CTP_environment, CTP_generator
 from Agents.ppo import PPO
 from Evaluation import plotting
@@ -22,6 +17,7 @@ from Utils.get_params import extract_params
 from Utils import hand_crafted_graphs
 from Evaluation.inference import plotting_inference
 import numpy as np
+import wandb
 
 NUM_CHANNELS_IN_BELIEF_STATE = 3
 
@@ -86,15 +82,11 @@ def main(args):
         directory=log_directory, file_name="training_graph.png"
     )
 
-    if args.network_type == "FC":
-        model = ActorCritic(n_node, args.network_activation)
-    elif args.network_type == "CNN":
-        model = ActorCritic_CNN(n_node)
+    if n_node <= 10:
+        model = ActorCritic_CNN_10(n_node)
     else:
-        if args.network_activation == "relu":
-            model = ActorCritic_Narrow_Relu(n_node)
-        else:
-            model = ActorCritic_Narrow(n_node)
+        model = ActorCritic_CNN_30(n_node)
+
     init_params = model.init(
         jax.random.PRNGKey(0), jax.random.normal(online_key, state_shape)
     )
@@ -316,16 +308,6 @@ if __name__ == "__main__":
         required=False,
         default=4,
     )
-    parser.add_argument(
-        "--network_type", type=str, help="FC,CNN,Narrow", required=False, default="CNN"
-    )
-    parser.add_argument(
-        "--network_activation",
-        type=str,
-        help="tanh/relu",
-        required=False,
-        default="tanh",
-    )
 
     # Args related to running/managing experiments
     parser.add_argument(
@@ -337,6 +319,16 @@ if __name__ == "__main__":
         help="Options: None,diamond,n_stochastic. If anything other than None is specified, all other args relating to environment such as num of nodes are ignored.",
         required=False,
         default="None",
+    )
+    parser.add_argument(
+        "--wandb_mode",
+        type=str,
+        help="offline/online/disabled",
+        required=False,
+        default="disabled",
+    )
+    parser.add_argument(
+        "--wandb_project_name", type=str, required=False, default="no_name"
     )
 
     # Args specific to PPO:
@@ -366,7 +358,7 @@ if __name__ == "__main__":
         help="Contribution of the value loss to the total loss",
         type=float,
         required=False,
-        default=0.5,
+        default=0.2,
     )
     parser.add_argument(
         "--ent_coeff",
@@ -411,4 +403,12 @@ if __name__ == "__main__":
     else:
         n_node = args.n_node
 
+    # Initialize wandb project
+    wandb.init(
+        project=args.wandb_project_name,
+        name=args.log_directory,
+        config=vars(args),
+        mode=args.wandb_mode,
+    )
     main(args)
+    wandb.finish()

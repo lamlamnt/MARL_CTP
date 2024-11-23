@@ -95,7 +95,9 @@ class CTPGraph:
 
         # Normalize the weights
         max_weight = jnp.max(self.weights)
-        self.weights = self.weights / max_weight
+        self.weights = jnp.where(
+            self.weights != NOT_CONNECTED, self.weights / max_weight, NOT_CONNECTED
+        )
 
     # Returns the weight adjacency matrix and n_edges
     def __generate_connectivity_weight(
@@ -245,9 +247,9 @@ class CTPGraph:
         weights = nx.get_edge_attributes(G, "weight")
         edge_labels = {
             e: (
-                f"{np.round(w,2)}\np: {np.round(probs[e],2)}"
+                f"{np.round(w,3)}\np: {np.round(probs[e],2)}"
                 if e in probs
-                else f"{np.round(w,2)}"
+                else f"{np.round(w,3)}"
             )
             for e, w in weights.items()
         }
@@ -301,7 +303,7 @@ class CTPGraph_Realisation:
         self,
         key: int,
         n_nodes: int,
-        grid_size=0,
+        grid_size=None,
         prop_stoch=None,
         k_edges=None,
         num_goals=1,
@@ -404,9 +406,9 @@ class CTPGraph_Realisation:
         ]
         edge_labels = {
             e: (
-                f"{np.round(w,2)}\np: {np.round(probs[e],2)}"
+                f"{np.round(w,3)}\np: {np.round(probs[e],2)}"
                 if e in probs
-                else f"{np.round(w,2)}"
+                else f"{np.round(w,3)}"
             )
             for e, w in weights.items()
         }

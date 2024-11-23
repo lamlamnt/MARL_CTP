@@ -104,3 +104,13 @@ def test_goal_origin_connected(graphRealisation: CTP_generator.CTPGraph_Realisat
     assert graphRealisation.graph.weights[
         graphRealisation.graph.origin, graphRealisation.graph.goal
     ] == jnp.max(graphRealisation.graph.weights)
+
+
+def test_normalize(graphRealisation: CTP_generator.CTPGraph_Realisation):
+    assert jnp.all(graphRealisation.graph.weights <= 1)
+    assert jnp.max(graphRealisation.graph.weights) == 1
+    # NOT_CONNECTED for weights if blocking_prob is 1
+    assert jnp.all(
+        graphRealisation.graph.weights[graphRealisation.graph.blocking_prob == 1]
+        == CTP_generator.NOT_CONNECTED
+    )

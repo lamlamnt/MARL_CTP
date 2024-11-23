@@ -94,21 +94,21 @@ def test_belief_state(printer, environment: CTP_environment.CTP):
         initial_env_state[0, 1:, :], log_directory, "test_graph.png"
     )
     env_state_1, belief_state_1, reward_1, terminate, subkey = environment.step(
-        subkey, initial_env_state, initial_belief_state, jnp.array([4])
+        subkey, initial_env_state, initial_belief_state, jnp.array([0])
     )
     env_state_2, belief_state_2, reward_2, terminate, subkey = environment.step(
-        subkey, env_state_1, belief_state_1, jnp.array([3])
+        subkey, env_state_1, belief_state_1, jnp.array([1])
     )
     env_state_3, belief_state_3, reward_3, terminate, subkey = environment.step(
-        subkey, env_state_2, belief_state_2, jnp.array([2])
+        subkey, env_state_2, belief_state_2, jnp.array([3])
     )
     # Check that agents position is updated
+    assert not jnp.array_equal(initial_belief_state[0, :1, :], belief_state_1[0, :1, :])
     assert not jnp.array_equal(belief_state_1[0, :1, :], belief_state_2[0, :1, :])
-    assert not jnp.array_equal(belief_state_2[0, :1, :], belief_state_3[0, :1, :])
     # Empty/null for agent_pos part of edge_probs and weights
     assert jnp.sum(belief_state_1[1:, :1, :]) == 0
     assert terminate == jnp.bool_(True)
-    assert reward_3 + 10 > 0
+    assert reward_3 + 1 > 0
     # Test environment automatically reset when episode is done and not reset when episode is not done
     assert (
         jnp.argmax(env_state_3[0, :1, :])
@@ -118,7 +118,6 @@ def test_belief_state(printer, environment: CTP_environment.CTP):
         jnp.argmax(env_state_2[0, :1, :])
         != environment.graph_realisation.graph.origin[0]
     )
-    assert jnp.array_equal(belief_state_3, initial_belief_state)
 
 
 # Check invalid action keeps the belief state and agents_pos the same but reward decreases

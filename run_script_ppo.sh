@@ -5,9 +5,8 @@ clip_range=("0.1" "0.3")
 ent_coef=("0.01" "0.03")
 num_steps_before_update=("128" "256" "512")
 num_minibatches=("4" "6" "8" "10")
-network_activation=("tanh" "relu")
-network_type=("CNN" "Narrow")
 gae_lambdas=("0.93" "0.95" "0.97" "0.99")
+random_seed_for_training=("0" "1") #check the graph in advance 
 
 for lr in "${learning_rates[@]}"
 do

@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 import numpy as np
+import wandb
 
 N_EPISODES_TO_AVERAGE_OVER = 10
 
@@ -157,4 +158,6 @@ def save_data_and_plotting(
             "average_comparative_ratio": float(episodes_df["comparative_ratio"].mean()),
             "average_reward": float(episodes_df["reward"].mean()),
         }
+        for key, value in result_dict.items():
+            wandb.summary[key] = value
     return result_dict

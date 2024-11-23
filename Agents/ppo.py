@@ -7,7 +7,6 @@ from flax.training.train_state import TrainState
 
 sys.path.append("..")
 from edited_jym.agents.base_agents import BaseDeepRLAgent
-from Networks.actor_critic_network import ActorCritic
 from Environment import CTP_environment, CTP_generator
 from Evaluation.optimal_path_length import dijkstra_shortest_path
 import flax.linen as nn

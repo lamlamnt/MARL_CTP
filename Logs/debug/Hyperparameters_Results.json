@@ -1,29 +1,29 @@
-{"n_node": 5, "n_agent": 1, "time_steps": 1000, "reward_for_invalid_action": -200.0, "reward_for_goal": 0, "reward_exceed_horizon": -1.1, "horizon_length_factor": 1, "factor_expensive_edge": 1.0, "prop_stoch": 0.4, "k_edges": null, "grid_size": null, "random_seed_for_training": 31, "random_seed_for_inference": 40, "discount_factor": 1.0, "anneal_lr": false, "learning_rate": 0.00025, "num_update_epochs": 4, "network_type": "CNN", "network_activation": "tanh", "log_directory": "debug", "hand_crafted_graph": "None", "num_steps_before_update": 200, "gae_lambda": 0.95, "clip_eps": 0.2, "vf_coeff": 0.5, "ent_coeff": 0.01, "num_minibatches": 4}
+{"n_node": 5, "n_agent": 1, "time_steps": 200, "reward_for_invalid_action": -200.0, "reward_for_goal": 0, "reward_exceed_horizon": -1.1, "horizon_length_factor": 5, "factor_expensive_edge": 1.0, "prop_stoch": 0.4, "k_edges": null, "grid_size": null, "random_seed_for_training": 30, "random_seed_for_inference": 40, "discount_factor": 1.0, "anneal_lr": false, "learning_rate": 0.00025, "num_update_epochs": 4, "network_type": "CNN", "network_activation": "tanh", "log_directory": "debug", "hand_crafted_graph": "None", "num_steps_before_update": 200, "gae_lambda": 0.95, "clip_eps": 0.2, "vf_coeff": 0.5, "ent_coeff": 0.01, "anneal_ent_coeff": false, "num_minibatches": 4, "deterministic_inference_policy": false}
 {
-    "current_datetime": "2024-11-22 16:53:21"
+    "current_datetime": "2024-11-22 23:11:56"
 }
-{"Total training time in seconds": 8.38529896736145}
-{"Total Loss": 0.01882605440914631, "Weighted Value Loss": 0.041936811059713364, "Actor Loss": -0.013782794587314129, "Weighted Entropy Loss": 0.009327963590621949}
+{"Total training time in seconds": 12.682677030563354}
+{"Total Loss": 0.13998574018478394, "Weighted Value Loss": 0.14924725890159607, "Actor Loss": -0.0030694485176354647, "Weighted Entropy Loss": 0.0061920762062072756}
 Training results: 
 {
-    "final_regret": 0.3099999725818634,
-    "final_comparative_ratio": 2.1481480598449707,
-    "avg_reward_last_episode": -1.0030000001192092,
-    "max_reward": -0.27000001072883606
+    "final_regret": 0.0,
+    "final_comparative_ratio": 1.0,
+    "avg_reward_last_episode": -0.9019999980926514,
+    "max_reward": -0.3100000023841858
 }
 Testing results: 
 {
-    "average_regret": 0.4593364894390106,
-    "average_comparative_ratio": 2.365269422531128,
-    "average_reward": -1.1099052429199219
+    "average_regret": 0.2815040647983551,
+    "average_comparative_ratio": 1.7435393333435059,
+    "average_reward": -0.9496341347694397
 }
 Policy: 
 [
-[0.0, 0.08695652335882187, 0.0, 0.33992093801498413, 0.573122501373291],
-[0.234375, 0.0, 0.390625, 0.375, 0.0],
-[0.0, 0.42592594027519226, 0.0, 0.5740740895271301, 0.0],
-[0.25581395626068115, 0.24031007289886475, 0.3100775182247162, 0.0, 0.19379845261573792],
-[NaN, NaN, NaN, NaN, NaN]
+[0.0, 0.0, 0.20000000298023224, 0.0, 0.800000011920929],
+[0.0, 0.0, 0.6666666865348816, 0.04609929025173187, 0.28723403811454773],
+[NaN, NaN, NaN, NaN, NaN],
+[0.0, 0.1607142835855484, 0.3571428656578064, 0.0, 0.4821428656578064],
+[0.22727273404598236, 0.19696970283985138, 0.25, 0.32575756311416626, 0.0]
 ]
 Network architecture: 
 params/actor_conv_1_32/bias: (32,)
@@ -53,17 +53,17 @@ params/critic_dense_5_1/kernel: (64, 1)
 
 Graph Weights: 
 [
-[-0.0693359375, 0.0693359375, -0.0693359375, 0.196044921875, 1.0],
-[0.0693359375, -0.0693359375, 0.0693359375, 0.155029296875, -0.0693359375],
-[-0.0693359375, 0.0693359375, -0.0693359375, 0.138671875, -0.0693359375],
-[0.196044921875, 0.155029296875, 0.138671875, -0.0693359375, 0.0693359375],
-[1.0, -0.0693359375, -0.0693359375, 0.0693359375, -0.0693359375]
+[-1.0, -1.0, 0.25, -1.0, 0.049041748046875],
+[-1.0, -1.0, 1.0, 0.09808349609375, 0.1470947265625],
+[0.25, 1.0, -1.0, 0.2080078125, 0.2452392578125],
+[-1.0, 0.09808349609375, 0.2080078125, -1.0, 0.1768798828125],
+[0.049041748046875, 0.1470947265625, 0.2452392578125, 0.1768798828125, -1.0]
 ]
 Blocking Probabilities: 
 [
-[1.0, 0.68994140625, 1.0, 0.0, 0.0],
-[0.68994140625, 1.0, 0.0, 0.0, 1.0],
-[1.0, 0.0, 1.0, 0.0, 1.0],
-[0.0, 0.0, 0.0, 1.0, 0.5400390625],
-[0.0, 1.0, 1.0, 0.5400390625, 1.0]
+[1.0, 1.0, 0.469970703125, 1.0, 0.0],
+[1.0, 1.0, 0.0, 0.9501953125, 0.52001953125],
+[0.469970703125, 0.0, 1.0, 0.0, 0.0],
+[1.0, 0.9501953125, 0.0, 1.0, 0.0],
+[0.0, 0.52001953125, 0.0, 0.0, 1.0]
 ]

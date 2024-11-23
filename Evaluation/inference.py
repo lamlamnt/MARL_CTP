@@ -14,6 +14,8 @@ from Utils.get_params import extract_params
 from datetime import datetime
 import json
 import matplotlib.pyplot as plt
+import numpy as np
+import wandb
 
 FACTOR_TO_MULTIPLY_INFERENCE_TIMESTEPS = 100
 
@@ -196,8 +198,21 @@ def plotting_inference(
             label="Weighted Value Loss",
         )
         plt.plot(loss_actor, linestyle="-", color="green", label="Actor Loss")
+        if args.anneal_ent_coeff:
+            ent_coeff_values = np.array(
+                [
+                    agent._ent_coeff_schedule(i)
+                    for i in range(args.time_steps // args.num_steps_before_update)
+                ]
+            )
+            ent_coeff_values = np.repeat(
+                ent_coeff_values, args.num_update_epochs * args.num_minibatches
+            )
+        else:
+            ent_coeff_values = np.full(entropy_loss.shape, args.ent_coeff)
+        weighted_entropy_loss = ent_coeff_values * entropy_loss
         plt.plot(
-            args.ent_coeff * entropy_loss,
+            weighted_entropy_loss,
             linestyle="-",
             color="orange",
             label="Weighted Entropy Loss",
