@@ -23,7 +23,7 @@ do
           do
             for nt in "${network_type[@]}"
             do
-              log_dir="logs/lr_${lr}_cr_${cr}_ec_${ec}_nsbu_${nsbu}_nmb_${nmb}_na_${na}_nt_${nt}"
+              log_dir="lr_${lr}_cr_${cr}_ec_${ec}_nsbu_${nsbu}_nmb_${nmb}_na_${na}_nt_${nt}"
               echo "Running experiment with lr=$lr, clip_range=$cr, ent_coef=$ec, num_steps_before_update=$nsbu, num_mini_batch=$nmb, network_activation=$na, network_type=$nt"
               python main_ppo.py --n_node 30 --time_steps 2000000 --log_directory $log_dir --learning_rate $lr --clip_range $cr --ent_coef $ec --num_steps_before_update $nsbu --num_minibatches $nmb --network_activation $na --network_type $nt
             done
