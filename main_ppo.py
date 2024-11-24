@@ -385,7 +385,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--deterministic_inference_policy",
         type=bool,
-        default=False,
+        default=True,
         required=False,
         help="Whether to choose the action with the highest probability instead of sampling from the distribution",
     )
