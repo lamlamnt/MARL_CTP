@@ -18,6 +18,7 @@ from Utils import hand_crafted_graphs
 from Evaluation.inference import plotting_inference
 import numpy as np
 import wandb
+from distutils.util import strtobool
 
 NUM_CHANNELS_IN_BELIEF_STATE = 3
 
@@ -296,7 +297,7 @@ if __name__ == "__main__":
     parser.add_argument("--discount_factor", type=float, required=False, default=1.0)
     parser.add_argument(
         "--anneal_lr",
-        type=bool,
+        type=lambda x: bool(strtobool(x)),
         default=False,
         required=False,
         help="Whether to anneal the learning rate",
@@ -370,7 +371,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--anneal_ent_coeff",
-        type=bool,
+        type=lambda x: bool(strtobool(x)),
         required=False,
         default=True,
         help="Whether to anneal the entropy (exploration) coefficient",
@@ -384,8 +385,8 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--deterministic_inference_policy",
-        type=bool,
-        default=True,
+        type=lambda x: bool(strtobool(x)),
+        default=False,
         required=False,
         help="Whether to choose the action with the highest probability instead of sampling from the distribution",
     )

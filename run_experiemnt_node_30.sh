@@ -1,6 +1,8 @@
 #!/bin/bash
 
 learning_rates=("0.001" "0.00025" "0.0001")
+anneal_lr=("True" "False")
+prop_stoch=(0.4 0.8)
 #anneal learning rate and ent_coeff
 clip_range=("0.1" "0.3")
 ent_coef=("0.01" "0.03")
