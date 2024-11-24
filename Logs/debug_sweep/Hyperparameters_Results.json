@@ -1,29 +1,29 @@
-{"n_node": 5, "n_agent": 1, "time_steps": 1000, "reward_for_invalid_action": -200.0, "reward_for_goal": 0, "reward_exceed_horizon": -1.1, "horizon_length_factor": 5, "factor_expensive_edge": 1.0, "prop_stoch": 0.4, "k_edges": null, "grid_size": null, "random_seed_for_training": 30, "random_seed_for_inference": 40, "discount_factor": 1.0, "anneal_lr": true, "learning_rate": 0.00025, "num_update_epochs": 4, "log_directory": "debug_sweep", "hand_crafted_graph": "None", "wandb_mode": "disabled", "wandb_project_name": "no_name", "num_steps_before_update": 200, "gae_lambda": 0.95, "clip_eps": 0.2, "vf_coeff": 0.2, "ent_coeff": 0.01, "anneal_ent_coeff": true, "num_minibatches": 4, "deterministic_inference_policy": false}
+{"n_node": 5, "n_agent": 1, "time_steps": 100000, "reward_for_invalid_action": -200.0, "reward_for_goal": 0, "reward_exceed_horizon": -1.1, "horizon_length_factor": 5, "factor_expensive_edge": 1.0, "prop_stoch": 0.6, "k_edges": null, "grid_size": null, "random_seed_for_training": 34, "random_seed_for_inference": 40, "discount_factor": 1.0, "anneal_lr": false, "learning_rate": 0.00025, "num_update_epochs": 4, "log_directory": "debug_sweep", "hand_crafted_graph": "None", "wandb_mode": "disabled", "wandb_project_name": "no_name", "num_steps_before_update": 600, "gae_lambda": 0.95, "clip_eps": 0.2, "vf_coeff": 0.2, "ent_coeff": 0.05, "anneal_ent_coeff": true, "num_minibatches": 4, "deterministic_inference_policy": false}
 {
-    "current_datetime": "2024-11-24 12:07:39"
+    "current_datetime": "2024-11-24 12:45:11"
 }
-{"Total training time in seconds": 8.160058498382568}
-{"Total Loss": 0.7941244840621948, "Weighted Value Loss": 0.7936699867248536, "Actor Loss": 0.0016541194636374712, "Weighted Entropy Loss": 0.0059983074665069585}
+{"Total training time in seconds": 34.97162699699402}
+{"Total Loss": -1.935736463565263e-06, "Weighted Value Loss": 1.8242317878502946e-09, "Actor Loss": 0.0, "Weighted Entropy Loss": 0.0003216330893337727}
 Training results: 
 {
-    "final_regret": 0.6100000143051147,
-    "final_comparative_ratio": 2.5641026496887207,
-    "avg_reward_last_episode": -0.877999997138977,
-    "max_reward": -0.3100000023841858
+    "final_regret": 0.5600000023841858,
+    "final_comparative_ratio": 2.2727272510528564,
+    "avg_reward_last_episode": -1.0,
+    "max_reward": -0.4399999976158142
 }
 Testing results: 
 {
-    "average_regret": 0.28379595279693604,
-    "average_comparative_ratio": 1.749288558959961,
-    "average_reward": -0.9530612230300903
+    "average_regret": 0.15585170686244965,
+    "average_comparative_ratio": 1.3477661609649658,
+    "average_reward": -1.0
 }
 Policy: 
 [
-[0.0, 0.0, 0.20000000298023224, 0.0, 0.800000011920929],
-[0.0, 0.0, 0.6690391302108765, 0.049822062253952026, 0.2811387777328491],
 [NaN, NaN, NaN, NaN, NaN],
-[0.0, 0.1551724076271057, 0.36206895112991333, 0.0, 0.48275861144065857],
-[0.22900763154029846, 0.19847328960895538, 0.23664122819900513, 0.3358778655529022, 0.0]
+[NaN, NaN, NaN, NaN, NaN],
+[NaN, NaN, NaN, NaN, NaN],
+[0.0, 1.0, 0.0, 0.0, 0.0],
+[NaN, NaN, NaN, NaN, NaN]
 ]
 Network architecture: 
 params/actor_conv_1_32/bias: (32,)
@@ -53,17 +53,17 @@ params/critic_dense_5/kernel: (32, 1)
 
 Graph Weights: 
 [
-[-1.0, -1.0, 0.25, -1.0, 0.049041748046875],
-[-1.0, -1.0, 1.0, 0.09808349609375, 0.1470947265625],
-[0.25, 1.0, -1.0, 0.2080078125, 0.2452392578125],
-[-1.0, 0.09808349609375, 0.2080078125, -1.0, 0.1768798828125],
-[0.049041748046875, 0.1470947265625, 0.2452392578125, 0.1768798828125, -1.0]
+[-1.0, -1.0, 0.1864013671875, 0.11785888671875, 0.1666259765625],
+[-1.0, -1.0, 0.1864013671875, 1.0, 0.1666259765625],
+[0.1864013671875, 0.1864013671875, -1.0, 0.25, 0.08331298828125],
+[0.11785888671875, 1.0, 0.25, -1.0, -1.0],
+[0.1666259765625, 0.1666259765625, 0.08331298828125, -1.0, -1.0]
 ]
 Blocking Probabilities: 
 [
-[1.0, 1.0, 0.469970703125, 1.0, 0.0],
-[1.0, 1.0, 0.0, 0.9501953125, 0.52001953125],
-[0.469970703125, 0.0, 1.0, 0.0, 0.0],
-[1.0, 0.9501953125, 0.0, 1.0, 0.0],
-[0.0, 0.52001953125, 0.0, 0.0, 1.0]
+[1.0, 1.0, 0.0, 0.0, 0.0200042724609375],
+[1.0, 1.0, 0.919921875, 0.0, 0.77001953125],
+[0.0, 0.919921875, 1.0, 0.0, 0.429931640625],
+[0.0, 0.0, 0.0, 1.0, 1.0],
+[0.0200042724609375, 0.77001953125, 0.429931640625, 1.0, 1.0]
 ]
