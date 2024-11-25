@@ -1,26 +1,12 @@
-**Things currently in progress:**
-<br>-Right now, I haven't included the goal as part of the state. It's treated right now as part of the environment. I will include the goal as part of the state like we discussed (expanded adjacency matrix form) soon.
-<br>-I am doing [1,0,-1] corresponding to [Blocked, Not Blocked,Unknown]. When updating the belief, I am checking each element instead of adding them up, which would have been easier with Unknown = 0. -> Will consider changing this in the future for multi-agent. Speed is not an issue rn, so this is not a big issue rn.  
-<br>-Inside the step function, when the agent reaches the goal, I calculated the observation, belief state, and env state for the goal, then reset the environment, and then returned the starting env state and belief. If we need to speed things up, remove the calculation of observation and belief state, which are not used. 
-
-**Python/code management in progress:**
-<br>-Pycache keeps being uploaded despite .gitignore. 
-<br>-Make the project into a package and removing sys.path.append(".."). 
-<br>-Fix the warnings when running pytest and main_training
-
 **Note:**
-<br>-Ignore the "Discarded_Code" folder. 
-<br>-Files edited in JYM (minor changes): deep_rl_rollout.py, dqn.py, dqn_per.py, per_rollout.py
-<br>-DDQN a combination of JYM and JAX-RL (Hamish)
-<br>-PPO taken from PureJAXRL with modifications 
-
-**Current progress status: (Nov 12th)**
-<br>-I implemented DQN with uniform sampling, DQN with prioritized sampling, and DDQN with prioritized sampling. For 5-node graphs and simple 10-node graphs, all of them were able to learn reasonable policies with DQN with prioritized sampling being the best. However, for more complicated 10-node graphs, it's struggling to learn (either choose to take the expensive edge or get stuck near the origin without progressing towards the goal)
-<br>-I am in the progress of implementing PPO. 
+<br>-Ignore the "Discarded_Code" folder.
+<br>-Logs folder is chaotic right now and not up to date. Most of my results are on the server. 
+<br>-DQN taken from JYM with modifications and additions
+<br>-PPO taken from PureJAXRL with modifications and additions
 
 **Instructions for setting up**
-<br>1. Get JaxMARL. Use JaxMARL's Dockerfile to set up a Docker container. 
-<br>2. pip install pytest-print jax-tqdm==0.2.2 networkx pandas openpyxl dm-haiku. 
+<br>1. Use JaxMARL's Dockerfile to set up a Docker container. 
+<br>2. pip install pytest-print jax-tqdm==0.2.2 networkx pandas openpyxl dm-haiku wandb. 
 
 
 

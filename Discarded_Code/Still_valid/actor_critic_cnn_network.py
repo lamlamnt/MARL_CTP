@@ -57,7 +57,6 @@ class ActorCritic_CNN(nn.Module):
             bias_init=constant(0.0),
             name="actor_dense_4_64",
         )(actor_mean)
-        actor_mean = activation(actor_mean)
 
         actor_mean = activation(actor_mean)
         actor_mean = nn.Dense(

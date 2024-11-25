@@ -302,7 +302,7 @@ if __name__ == "__main__":
         required=False,
         help="Whether to anneal the learning rate",
     )
-    parser.add_argument("--learning_rate", type=float, required=False, default=0.00025)
+    parser.add_argument("--learning_rate", type=float, required=False, default=0.001)
     parser.add_argument(
         "--num_update_epochs",
         type=int,
@@ -339,7 +339,7 @@ if __name__ == "__main__":
         type=int,
         help="How many timesteps to collect before updating the network",
         required=False,
-        default=200,
+        default=600,
     )
     parser.add_argument(
         "--gae_lambda",
@@ -367,7 +367,7 @@ if __name__ == "__main__":
         help="Exploration coefficient",
         type=float,
         required=False,
-        default=0.01,
+        default=0.05,
     )
     parser.add_argument(
         "--anneal_ent_coeff",

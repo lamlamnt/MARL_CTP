@@ -30,7 +30,7 @@ def plot_loss(all_done, all_loss, directory, file_name="loss.png"):
 
 
 # Save data for plotting different agents on the same graph
-# Low regret (0) and comparative ratio (1) is good
+# Low regret (0) and competitive ratio (1) is good
 def save_data_and_plotting(
     all_done,
     all_rewards,
@@ -40,7 +40,7 @@ def save_data_and_plotting(
     file_name_excel_sheet_episode="episode_output.xlsx",
     file_name_excel_sheet_timestep="timestep_output.xlsx",
     file_name_regret_episode="episode_regret.png",
-    file_name_comparative_ratio_episode="episode_comparative_ratio.png",
+    file_name_competitive_ratio_episode="episode_competitive_ratio.png",
     file_name_episodic_reward="episodic_reward.png",
 ) -> dict[str, float]:
     if training == True:
@@ -66,7 +66,7 @@ def save_data_and_plotting(
     episodes_df["regret"] = (
         episodes_df["reward"].abs() - episodes_df["optimal_path_length"]
     )
-    episodes_df["comparative_ratio"] = (
+    episodes_df["competitive_ratio"] = (
         episodes_df["reward"].abs() / episodes_df["optimal_path_length"]
     )
     episodes_df.to_excel(
@@ -94,12 +94,12 @@ def save_data_and_plotting(
         )
     )
     plt.figure(figsize=(10, 6))
-    plt.plot(episodes_df.index, episodes_df["comparative_ratio"], linestyle="-")
+    plt.plot(episodes_df.index, episodes_df["competitive_ratio"], linestyle="-")
     plt.xlabel("Episode number")
-    plt.ylabel("Comparative Ratio")
-    plt.title("Comparative Ratio Over Time (By Episode)")
+    plt.ylabel("Competitive Ratio")
+    plt.title("Compettive Ratio Over Time (By Episode)")
     plt.savefig(
-        os.path.join(directory, beginning_str + file_name_comparative_ratio_episode)
+        os.path.join(directory, beginning_str + file_name_competitive_ratio_episode)
     )
 
     plt.figure(figsize=(10, 6))
@@ -114,7 +114,7 @@ def save_data_and_plotting(
         )
     )
 
-    # Plot histogram of rewards, regret, and comparative ratio for testing only
+    # Plot histogram of rewards, regret, and competitive ratio for testing only
     if training == False:
         plt.figure(figsize=(10, 6))
         plt.hist(episodes_df["reward"], bins=10)
@@ -131,12 +131,12 @@ def save_data_and_plotting(
         plt.savefig(os.path.join(directory, beginning_str + "histogram_regret.png"))
 
         plt.figure(figsize=(10, 6))
-        plt.hist(episodes_df["comparative_ratio"], bins=10)
-        plt.xlabel("Comparative Ratio")
+        plt.hist(episodes_df["competitive_ratio"], bins=10)
+        plt.xlabel("Competitive Ratio")
         plt.ylabel("Frequency")
-        plt.title("Histogram of Comparative Ratio")
+        plt.title("Histogram of Competitive Ratio")
         plt.savefig(
-            os.path.join(directory, beginning_str + "histogram_comparative_ratio.png")
+            os.path.join(directory, beginning_str + "histogram_competitive_ratio.png")
         )
 
     episodes_df["avg_reward_n_episodes"] = (
@@ -146,7 +146,7 @@ def save_data_and_plotting(
     if training == True:
         result_dict = {
             "final_regret": float(episodes_df["regret"].iloc[-1]),
-            "final_comparative_ratio": float(episodes_df["comparative_ratio"].iloc[-1]),
+            "final_competitive_ratio": float(episodes_df["competitive_ratio"].iloc[-1]),
             "avg_reward_last_episode": float(
                 episodes_df["avg_reward_n_episodes"].iloc[-1]
             ),
@@ -155,7 +155,7 @@ def save_data_and_plotting(
     else:
         result_dict = {
             "average_regret": float(episodes_df["regret"].mean()),
-            "average_comparative_ratio": float(episodes_df["comparative_ratio"].mean()),
+            "average_competitive_ratio": float(episodes_df["competitive_ratio"].mean()),
             "average_reward": float(episodes_df["reward"].mean()),
         }
         for key, value in result_dict.items():
