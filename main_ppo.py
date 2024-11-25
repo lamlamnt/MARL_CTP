@@ -360,7 +360,7 @@ if __name__ == "__main__":
         help="Contribution of the value loss to the total loss",
         type=float,
         required=False,
-        default=0.2,
+        default=0.05,
     )
     parser.add_argument(
         "--ent_coeff",
