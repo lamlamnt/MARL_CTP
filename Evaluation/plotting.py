@@ -69,11 +69,13 @@ def save_data_and_plotting(
     episodes_df["competitive_ratio"] = (
         episodes_df["reward"].abs() / episodes_df["optimal_path_length"]
     )
-    episodes_df.to_excel(
-        os.path.join(directory, beginning_str + file_name_excel_sheet_episode),
-        sheet_name="Sheet1",
-        index=False,
-    )
+
+    if episodes_df.shape[0] < 1000000:
+        episodes_df.to_excel(
+            os.path.join(directory, beginning_str + file_name_excel_sheet_episode),
+            sheet_name="Sheet1",
+            index=False,
+        )
 
     if df.shape[0] < 1000000:
         df.to_excel(

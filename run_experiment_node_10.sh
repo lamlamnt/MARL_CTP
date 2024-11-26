@@ -1,12 +1,12 @@
 #!/bin/bash
 
-random_seed_for_training=(72 73 74 75)
-prop_stoch=(0.5 0.7 0.8 0.9)
-num_update_epochs=(4 6 8)
-num_steps_before_update=(600 1000 1200)
+random_seed_for_training=(73 74 75)
+prop_stoch=(0.7 0.8 0.9)
+num_update_epochs=(6 8)
+num_steps_before_update=(1000 1200)
 clip_eps=(0.1 0.2 0.4)
 vf_coeff=(0.01 0.05)
-deterministic_inference_policy=(True False)
+deterministic_inference_policy=(False)
 
 for deter in "${deterministic_inference_policy[@]}"
 do

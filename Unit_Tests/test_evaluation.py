@@ -10,6 +10,7 @@ from Evaluation.optimal_path_length import dijkstra_shortest_path
 import os
 import pytest
 import pytest_print as pp
+from Networks.actor_critic_network import ActorCritic_CNN_10
 
 
 def test_load_model():
@@ -17,13 +18,13 @@ def test_load_model():
     # Load the parameters from the file
     current_directory = os.getcwd()
     parent_dir = os.path.dirname(current_directory)
-    log_directory = os.path.join(parent_dir, "Logs/Unit_Tests")
-    file_name = os.path.join(log_directory, "weights_5.flax")
+    log_directory = os.path.join(parent_dir, "Logs", "Unit_Tests")
+    file_name = os.path.join(log_directory, "weights.flax")
     with open(file_name, "rb") as f:
         serialized_params = f.read()
 
     # Initialize your model (assuming you know the input shape or have example inputs)
-    flax_model = MLP.Flax_FCNetwork([150, 75, 37, 18], 5)
+    flax_model = ActorCritic_CNN_10(5)
     example_input = jnp.zeros((3, 6, 5))
     initial_params = flax_model.init(key, example_input)
     random_output = flax_model.apply(initial_params, example_input)

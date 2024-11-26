@@ -66,7 +66,7 @@ def test_dtype():
 
 
 def test_actor_critic_network(printer):
-    model = actor_critic_network.ActorCritic(5)
+    model = actor_critic_network.ActorCritic_CNN_10(5)
     key = jax.random.PRNGKey(100)
     params = model.init(key, jnp.ones((3, 6, 5)))
     action_values, critic = model.apply(params, jnp.ones((3, 6, 5)))

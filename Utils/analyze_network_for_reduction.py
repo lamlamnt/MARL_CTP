@@ -5,22 +5,24 @@ from typing import Dict, Any
 import numpy as np
 import os
 import sys
+import argparse
 
 sys.path.append("..")
 from Networks.CNN import Flax_CNN
+from Networks.actor_critic_network import ActorCritic_CNN_10, ActorCritic_CNN_30
 
 
-def load_checkpoint(file_path: str) -> Dict[str, Any]:
+def load_checkpoint(args, file_path: str) -> Dict[str, Any]:
     """Loads weights from a Flax checkpoint file."""
-    model = Flax_CNN(32, [550, 275, 137, 68], 10)
-    example_input = jax.numpy.ones((3, 11, 10))
+    model = ActorCritic_CNN_10(args.n_node)
+    example_input = jax.numpy.ones((3, args.n_node + 1, args.n_node))
     variables = model.init(jax.random.PRNGKey(0), example_input)
     with open(file_path, "rb") as f:
         loaded_params = flax.serialization.from_bytes(variables, f.read())
     return loaded_params
 
 
-def analyze_weights(weights: Dict[str, Any], threshold: float = 1e-2):
+def analyze_weights(args, weights: Dict[str, Any], threshold: float = 1e-2):
     results = []
     for layer_name, layer_weights in weights["params"].items():
         kernel_weights = layer_weights["kernel"]
@@ -48,14 +50,29 @@ def analyze_weights(weights: Dict[str, Any], threshold: float = 1e-2):
 
 # Example Usage
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Parse command-line arguments for this unit test"
+    )
+    parser.add_argument(
+        "--n_node",
+        type=int,
+        help="Number of nodes in the graph",
+        required=False,
+        default=5,
+    )
+    parser.add_argument(
+        "--folder_name", type=str, help="Name of the folder", required=True
+    )
+    args = parser.parse_args()
+
     current_dir = os.getcwd()
     parent_dir = os.path.dirname(current_dir)
-    logs_dir = os.path.join(parent_dir, "logs")
+    logs_dir = os.path.join(parent_dir, "Logs")
 
     checkpoint_file = "weights.flax"  # Replace with your checkpoint path
     model_weights = load_checkpoint(
-        os.path.join(logs_dir, "DQN_uniform_10", checkpoint_file)
+        args, os.path.join(logs_dir, args.folder_name, checkpoint_file)
     )
 
     print("\nAnalyzing weights...")
-    results = analyze_weights(model_weights, threshold=1e-2)
+    results = analyze_weights(args, model_weights, threshold=1e-2)

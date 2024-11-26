@@ -1,0 +1,84 @@
+{"n_node": 10, "n_agent": 1, "time_steps": 100000, "reward_for_invalid_action": -200.0, "reward_for_goal": 0, "reward_exceed_horizon": -1.1, "horizon_length_factor": 5, "factor_expensive_edge": 1.0, "prop_stoch": 0.3, "k_edges": null, "grid_size": null, "random_seed_for_training": 71, "random_seed_for_inference": 40, "discount_factor": 1.0, "anneal_lr": false, "learning_rate": 0.00025, "num_update_epochs": 4, "log_directory": "node10/random_seed_71_prop_stoch_0.3", "hand_crafted_graph": "None", "wandb_mode": "online", "wandb_project_name": "node10_different_graphs", "num_steps_before_update": 200, "gae_lambda": 0.95, "clip_eps": 0.2, "vf_coeff": 0.2, "ent_coeff": 0.01, "anneal_ent_coeff": true, "num_minibatches": 4, "deterministic_inference_policy": true}
+{
+    "current_datetime": "2024-11-24 01:04:52"
+}
+{"Total training time in seconds": 38.849773645401}
+{"Total Loss": -0.0011387757258489728, "Weighted Value Loss": 2.4571854737587273e-05, "Actor Loss": -0.0011615835828706622, "Weighted Entropy Loss": 0.0008820118010044098}
+Training results: 
+{
+    "final_regret": 0.01000000536441803,
+    "final_comparative_ratio": 1.047619104385376,
+    "avg_reward_last_episode": -0.22199999839067458,
+    "max_reward": -0.20999999344348907
+}
+Testing results: 
+{
+    "average_regret": 0.006642067804932594,
+    "average_comparative_ratio": 1.031421184539795,
+    "average_reward": -0.22221402823925018
+}
+Policy: 
+[
+[NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN],
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+[NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN],
+[0.0, 0.11029411852359772, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.8897058963775635, 0.0],
+[0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+[0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+[NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN],
+[NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN],
+[0.0, 0.0, 0.43382352590560913, 0.0, 0.5661764740943909, 0.0, 0.0, 0.0, 0.0, 0.0],
+[NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN]
+]
+Network architecture: 
+params/actor_conv_1_32/bias: (32,)
+params/actor_conv_1_32/kernel: (1, 1, 3, 32)
+params/actor_dense_1/bias: (256,)
+params/actor_dense_1/kernel: (640, 256)
+params/actor_dense_2/bias: (128,)
+params/actor_dense_2/kernel: (256, 128)
+params/actor_dense_3/bias: (64,)
+params/actor_dense_3/kernel: (128, 64)
+params/actor_dense_4/bias: (32,)
+params/actor_dense_4/kernel: (64, 32)
+params/actor_dense_5_actions/bias: (10,)
+params/actor_dense_5_actions/kernel: (32, 10)
+params/critic_conv_1_32/bias: (32,)
+params/critic_conv_1_32/kernel: (1, 1, 3, 32)
+params/critic_dense_1/bias: (256,)
+params/critic_dense_1/kernel: (640, 256)
+params/critic_dense_2/bias: (128,)
+params/critic_dense_2/kernel: (256, 128)
+params/critic_dense_3/bias: (64,)
+params/critic_dense_3/kernel: (128, 64)
+params/critic_dense_4/bias: (32,)
+params/critic_dense_4/kernel: (64, 32)
+params/critic_dense_5/bias: (1,)
+params/critic_dense_5/kernel: (32, 1)
+
+Graph Weights: 
+[
+[-1.0, 0.0173492431640625, -1.0, 0.0173492431640625, -1.0, 0.049072265625, 0.049072265625, -1.0, -1.0, -1.0],
+[0.0173492431640625, -1.0, -1.0, 0.0245361328125, -1.0, -1.0, 0.06256103515625, 0.05206298828125, 0.06256103515625, 0.0867919921875],
+[-1.0, -1.0, -1.0, -1.0, 0.0736083984375, 1.0, -1.0, -1.0, 0.111083984375, 0.07159423828125],
+[0.0173492431640625, 0.0245361328125, -1.0, -1.0, -1.0, 0.038818359375, -1.0, -1.0, 0.07159423828125, -1.0],
+[-1.0, -1.0, 0.0736083984375, -1.0, -1.0, -1.0, -1.0, 0.0173492431640625, 0.038818359375, 0.07159423828125],
+[0.049072265625, -1.0, 1.0, 0.038818359375, -1.0, -1.0, 0.06939697265625, -1.0, 0.1041259765625, -1.0],
+[0.049072265625, 0.06256103515625, -1.0, -1.0, -1.0, 0.06939697265625, -1.0, -1.0, -1.0, 0.1097412109375],
+[-1.0, 0.05206298828125, -1.0, -1.0, 0.0173492431640625, -1.0, -1.0, -1.0, 0.034698486328125, 0.06939697265625],
+[-1.0, 0.06256103515625, 0.111083984375, 0.07159423828125, 0.038818359375, 0.1041259765625, -1.0, 0.034698486328125, -1.0, -1.0],
+[-1.0, 0.0867919921875, 0.07159423828125, -1.0, 0.07159423828125, -1.0, 0.1097412109375, 0.06939697265625, -1.0, -1.0]
+]
+Blocking Probabilities: 
+[
+[1.0, 0.0, 1.0, 0.60009765625, 1.0, 0.340087890625, 0.0, 1.0, 1.0, 1.0],
+[0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+[1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.56982421875, 0.0],
+[0.60009765625, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.1300048828125, 1.0],
+[1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.580078125, 0.0, 0.0],
+[0.340087890625, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.83984375, 1.0],
+[0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.56005859375],
+[1.0, 0.0, 1.0, 1.0, 0.580078125, 1.0, 1.0, 1.0, 0.0, 0.0],
+[1.0, 0.0, 0.56982421875, 0.1300048828125, 0.0, 0.83984375, 1.0, 0.0, 1.0, 1.0],
+[1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.56005859375, 0.0, 1.0, 1.0]
+]

@@ -236,10 +236,10 @@ class ActorCritic_CNN_30(nn.Module):
     def __call__(self, x: jnp.ndarray) -> tuple[distrax.Categorical, float]:
         action_mask = decide_validity_of_action_space(x)
         actor_mean = jnp.transpose(x, (1, 2, 0))
-        actor_mean = Beginning_CNN_Block(32)(actor_mean)  # 3 conv layers
+        actor_mean = Beginning_CNN_Block(64)(actor_mean)  # 3 conv layers
         actor_mean = Middle_FC_Block(512, 256)(actor_mean)  # 2 dense layers
         actor_mean = Middle_FC_Block(128, 64)(actor_mean)  # 2 dense layers
-        actor_mean = End_Block(32)(actor_mean)  # 1 dense layer
+        actor_mean = End_Block(64)(actor_mean)  # 1 dense layer
         actor_mean = nn.Dense(
             self.num_actions,
             kernel_init=orthogonal(0.01),
@@ -252,10 +252,10 @@ class ActorCritic_CNN_30(nn.Module):
         pi = distrax.Categorical(logits=actor_mean)
 
         critic = jnp.transpose(x, (1, 2, 0))
-        critic = Beginning_CNN_Block(15)(critic)
+        critic = Beginning_CNN_Block(64)(critic)
         critic = Middle_FC_Block(512, 256)(critic)
         critic = Middle_FC_Block(128, 64)(critic)
-        critic = End_Block(32)(critic)
+        critic = End_Block(64)(critic)
         critic = nn.Dense(
             1,
             kernel_init=orthogonal(1.0),
