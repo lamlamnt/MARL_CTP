@@ -384,7 +384,7 @@ class CTPGraph_Realisation:
             graph_NX, self.graph.origin.item(), self.graph.goal.item()
         )
         self.solvable = solvable
-        return solvable
+        return jnp.bool_(solvable)
 
     def plot_realised_graph(
         self, blocking_status: jnp.ndarray, directory, file_name="realised_graph.png"

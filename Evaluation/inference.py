@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import wandb
 
-FACTOR_TO_MULTIPLY_INFERENCE_TIMESTEPS = 100
+FACTOR_TO_MULTIPLY_INFERENCE_TIMESTEPS = 1000
 
 
 def plotting_inference(

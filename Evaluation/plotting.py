@@ -158,6 +158,10 @@ def save_data_and_plotting(
         result_dict = {
             "average_regret": float(episodes_df["regret"].mean()),
             "average_competitive_ratio": float(episodes_df["competitive_ratio"].mean()),
+            "median_competitive_ratio": float(
+                episodes_df["competitive_ratio"].median()
+            ),
+            "max_competitive_ratio": float(episodes_df["competitive_ratio"].max()),
             "average_reward": float(episodes_df["reward"].mean()),
         }
         for key, value in result_dict.items():

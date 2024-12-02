@@ -1,0 +1,71 @@
+{"n_node": 5, "n_agent": 1, "time_steps": 200000, "reward_for_invalid_action": -200.0, "reward_for_goal": 0, "reward_exceed_horizon": -1.1, "horizon_length_factor": 5, "factor_expensive_edge": 1.0, "prop_stoch": 0.4, "k_edges": null, "grid_size": null, "random_seed_for_training": 31, "random_seed_for_inference": 40, "discount_factor": 1.0, "anneal_lr": false, "learning_rate": 0.001, "num_update_epochs": 4, "log_directory": "test_new", "hand_crafted_graph": "None", "wandb_mode": "disabled", "wandb_project_name": "no_name", "num_steps_before_update": 600, "gae_lambda": 0.95, "clip_eps": 0.1, "vf_coeff": 0.05, "ent_coeff": 0.05, "anneal_ent_coeff": true, "num_minibatches": 4, "deterministic_inference_policy": false}
+{
+    "current_datetime": "2024-12-01 21:21:05"
+}
+{"Total training time in seconds": 55.25350093841553}
+{"Total Loss": 0.004427263513207436, "Weighted Value Loss": 0.0012651700526475906, "Actor Loss": 0.0032141872216016054, "Weighted Entropy Loss": 0.017347374558448793}
+Training results: 
+{
+    "final_regret": 0.7300000190734863,
+    "final_competitive_ratio": 3.7037036418914795,
+    "avg_reward_last_episode": -1.0049999982118607,
+    "max_reward": -0.27000001072883606
+}
+Testing results: 
+{
+    "average_regret": 0.33094853162765503,
+    "average_competitive_ratio": 2.134239673614502,
+    "median_competitive_ratio": 1.0,
+    "max_competitive_ratio": 3.7037036418914795,
+    "average_reward": -0.9913969039916992
+}
+Policy: 
+[
+[0.0, 0.0, 0.0, 0.13327288627624512, 0.8667271137237549],
+[NaN, NaN, NaN, NaN, NaN],
+[NaN, NaN, NaN, NaN, NaN],
+[0.5986394286155701, 0.0, 0.0, 0.0, 0.40136054158210754],
+[NaN, NaN, NaN, NaN, NaN]
+]
+Network architecture: 
+params/actor_conv_1_32/bias: (40,)
+params/actor_conv_1_32/kernel: (1, 1, 4, 40)
+params/actor_dense_1/bias: (256,)
+params/actor_dense_1/kernel: (160, 256)
+params/actor_dense_2/bias: (128,)
+params/actor_dense_2/kernel: (256, 128)
+params/actor_dense_3/bias: (64,)
+params/actor_dense_3/kernel: (128, 64)
+params/actor_dense_4/bias: (32,)
+params/actor_dense_4/kernel: (64, 32)
+params/actor_dense_5_actions/bias: (5,)
+params/actor_dense_5_actions/kernel: (32, 5)
+params/critic_conv_1_32/bias: (32,)
+params/critic_conv_1_32/kernel: (1, 1, 4, 32)
+params/critic_dense_1/bias: (256,)
+params/critic_dense_1/kernel: (128, 256)
+params/critic_dense_2/bias: (128,)
+params/critic_dense_2/kernel: (256, 128)
+params/critic_dense_3/bias: (64,)
+params/critic_dense_3/kernel: (128, 64)
+params/critic_dense_4/bias: (32,)
+params/critic_dense_4/kernel: (64, 32)
+params/critic_dense_5/bias: (1,)
+params/critic_dense_5/kernel: (32, 1)
+
+Graph Weights: 
+[
+[-1.0, 0.0693359375, -1.0, 0.196044921875, 1.0],
+[0.0693359375, -1.0, 0.0693359375, 0.155029296875, -1.0],
+[-1.0, 0.0693359375, -1.0, 0.138671875, -1.0],
+[0.196044921875, 0.155029296875, 0.138671875, -1.0, 0.0693359375],
+[1.0, -1.0, -1.0, 0.0693359375, -1.0]
+]
+Blocking Probabilities: 
+[
+[1.0, 0.68994140625, 1.0, 0.0, 0.0],
+[0.68994140625, 1.0, 0.0, 0.0, 1.0],
+[1.0, 0.0, 1.0, 0.0, 1.0],
+[0.0, 0.0, 0.0, 1.0, 0.5400390625],
+[0.0, 1.0, 1.0, 0.5400390625, 1.0]
+]

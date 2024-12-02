@@ -23,7 +23,7 @@ class ActorCritic_CNN_10(nn.Module):
 
         actor_mean = jnp.transpose(x, (1, 2, 0))
         actor_mean = nn.Conv(
-            features=32,
+            features=40,
             kernel_size=(1, 1),
             kernel_init=orthogonal(np.sqrt(2)),
             bias_init=constant(0.0),

@@ -1,31 +1,30 @@
 import jax
 import jax.numpy as jnp
 import sys
+import pytest
 
 sys.path.append("..")
 from Environment import CTP_generator, CTP_environment
 
 
-def pure_function(key):
+def pure_function(key, prob):
     key, subkey = jax.random.split(key)
-    graph = CTP_generator.CTPGraph_Realisation(key, 5, 10, 0.9)
+    graph = CTP_generator.CTPGraph_Realisation(key, 5, 10, prob)
     blocking_status = graph.sample_blocking_status(subkey)
-    return jnp.array([graph.is_solvable(blocking_status)])
+    return graph.is_solvable(blocking_status)
 
 
 @jax.jit
-def test_func(key):
+def overall_func(key, prob):
     # dummy lines to simulate jax-jittable code
     a = jnp.array([1, 2, 3])
     # Non-jax-jittable code
-    x = jnp.array([jnp.bool_(True)])
-    result_shape = jax.ShapeDtypeStruct(x.shape, x.dtype)
-    is_solvable = jax.pure_callback(pure_function, result_shape, key)
+    is_solvable = jax.pure_callback(pure_function, jnp.bool_(False), key, prob)
     return is_solvable
 
 
-if __name__ == "__main__":
+def test_callback():
     # Create a CTP environment
     key = jax.random.PRNGKey(0)
-    is_solvable = test_func(key)
-    print(is_solvable.item())
+    is_solvable = overall_func(key, 0.4)
+    assert is_solvable == jnp.bool_(True)

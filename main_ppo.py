@@ -20,7 +20,7 @@ import numpy as np
 import wandb
 from distutils.util import strtobool
 
-NUM_CHANNELS_IN_BELIEF_STATE = 3
+NUM_CHANNELS_IN_BELIEF_STATE = 4
 
 
 def linear_schedule(count):

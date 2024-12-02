@@ -195,16 +195,19 @@ def test_non_zero(environment: CTP_environment.CTP):
 
 # Test that if try to go down blocked edges, will get very negative reward
 def test_invalid_action(environment: CTP_environment.CTP):
+    current_directory = os.getcwd()
+    parent_dir = os.path.dirname(current_directory)
+    log_directory = os.path.join(parent_dir, "Logs/Unit_Tests")
     key = jax.random.PRNGKey(30)
     key, subkey = jax.random.split(key)
     initial_env_state, initial_belief_state = environment.reset(key)
+    environment.graph_realisation.plot_realised_graph(
+        initial_env_state[0, 1:, :], log_directory, "invalid_action.png"
+    )
     env_state_1, belief_state_1, reward_1, terminate, subkey = environment.step(
         subkey, initial_env_state, initial_belief_state, jnp.array([4])
     )
-    env_state_2, belief_state_2, reward_2, terminate, subkey = environment.step(
-        subkey, env_state_1, belief_state_1, jnp.array([1])
-    )
-    assert reward_2 < -100
+    assert reward_1 < -100
 
 
 def test_hand_crafted_graphs():
@@ -251,3 +254,27 @@ def test_float_16_environment(environment: CTP_environment.CTP):
     assert env_state_1.dtype == jnp.float16
     assert belief_state_1.dtype == jnp.float16
     assert reward_1.dtype == jnp.float16
+
+
+# Test that 0 everywhere except for goal node
+# Test that stepping does not change the matrix
+def test_goal_matrix(environment: CTP_environment.CTP):
+    key = jax.random.PRNGKey(30)
+    key, subkey = jax.random.split(key)
+    initial_env_state, initial_belief_state = environment.reset(key)
+    env_state_1, belief_state_1, reward_1, terminate, subkey = environment.step(
+        subkey, initial_env_state, initial_belief_state, jnp.array([0])
+    )
+    assert jnp.all(initial_env_state[3, :1, :] == 0)
+    assert (
+        initial_env_state[
+            3,
+            1 + environment.graph_realisation.graph.goal,
+            environment.graph_realisation.graph.goal,
+        ]
+        == 1
+    )
+    assert jnp.array_equal(initial_env_state[3, :, :], initial_belief_state[3, :, :])
+    assert jnp.array_equal(initial_env_state[3, :, :], env_state_1[3, :, :])
+    assert jnp.array_equal(env_state_1[3, :, :], initial_belief_state[3, :, :])
+    assert jnp.array_equal(initial_belief_state[3, :, :], belief_state_1[3, :, :])

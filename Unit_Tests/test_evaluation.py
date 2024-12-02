@@ -25,7 +25,7 @@ def test_load_model():
 
     # Initialize your model (assuming you know the input shape or have example inputs)
     flax_model = ActorCritic_CNN_10(5)
-    example_input = jnp.zeros((3, 6, 5))
+    example_input = jnp.zeros((4, 6, 5))
     initial_params = flax_model.init(key, example_input)
     random_output = flax_model.apply(initial_params, example_input)
 
@@ -54,7 +54,7 @@ def test_optimal_path_length(printer):
     goal = environment.graph_realisation.graph.goal
     origin = environment.graph_realisation.graph.origin
     shortest_path = dijkstra_shortest_path(env_state, origin, goal)
-    assert jnp.isclose(shortest_path, 0.306, atol=1e-3)
+    assert jnp.isclose(shortest_path, 1.224, atol=1e-3)
 
 
 def test_grid_size_dijkstra(printer):

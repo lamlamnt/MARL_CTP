@@ -8,8 +8,11 @@ from chex import dataclass
 from Environment import CTP_generator
 from typing import TypeAlias
 
-# Belief_state contains the agents' positions + current knowledge about blocked status, edge_weights, and edge_probs in this order
-# 3D tensor where each channel is size (num_agents+num_nodes, num_agents+num_nodes)
+# How many times we try to find a solvable blocking status before giving up
+PATIENCE = 3
+
+# Belief_state contains the agents' positions + current knowledge about blocked status, edge_weights, edge_probs, and goals in this order
+# 4D tensor where each channel is size (num_agents+num_nodes, num_agents+num_nodes)
 Belief_State: TypeAlias = jnp.ndarray
 # current location of agents and knowledge of blocking status of connected edges
 Observation: TypeAlias = jnp.ndarray
@@ -68,6 +71,15 @@ class CTP(MultiAgentEnv):
         key, subkey = jax.random.split(key)
         new_blocking_status = self.graph_realisation.sample_blocking_status(subkey)
 
+        """
+        result_shape = jax.ShapeDtypeStruct(
+            (self.num_nodes, self.num_nodes), jnp.float16
+        )
+        new_blocking_status = jax.pure_callback(
+            self.get_solvable_realisation, result_shape, subkey
+        )
+        """
+
         # update agents' positions to origin
         agents_pos = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.float16)
         agents_pos = agents_pos.at[0, self.graph_realisation.graph.origin[0]].set(1)
@@ -90,7 +102,12 @@ class CTP(MultiAgentEnv):
             blocking_status_knowledge
         )
         initial_belief_state = jnp.stack(
-            (pos_and_blocking_status, env_state[1, :, :], env_state[2, :, :]),
+            (
+                pos_and_blocking_status,
+                env_state[1, :, :],
+                env_state[2, :, :],
+                env_state[3, :, :],
+            ),
             axis=0,
             dtype=jnp.float16,
         )
@@ -129,7 +146,7 @@ class CTP(MultiAgentEnv):
             terminate = jnp.bool_(False)
             return current_env_state, reward, terminate
 
-        # Function that gets called if at goal -> reset to origin
+        # Function that gets called if at goal
         def _at_goal(args) -> tuple[jnp.array, int, bool]:
             current_env_state, actions = args
             reward = (
@@ -141,6 +158,7 @@ class CTP(MultiAgentEnv):
             new_env_state = current_env_state.at[0, : self.num_agents, :].set(
                 agents_pos
             )
+            new_env_state = new_env_state.at[3, : self.num_agents, actions[0]].add(1)
             terminate = jnp.bool_(True)
             return new_env_state, reward, terminate
 
@@ -241,8 +259,33 @@ class CTP(MultiAgentEnv):
             (empty, graph_realisation.graph.blocking_prob), axis=0
         )
         pos_and_blocking_status = jnp.concatenate((agents_pos, blocking_status), axis=0)
+
+        # Top part is each agent's service history. Bottom part is number of times each goal needs to
+        # be serviced
+        goal_matrix = jnp.zeros_like(pos_and_blocking_status)
+        goal_matrix = goal_matrix.at[
+            self.num_agents + graph_realisation.graph.goal[0],
+            graph_realisation.graph.goal[0],
+        ].set(1)
+
         return jnp.stack(
-            (pos_and_blocking_status, edge_weights, edge_probs),
+            (pos_and_blocking_status, edge_weights, edge_probs, goal_matrix),
             axis=0,
             dtype=jnp.float16,
         )
+
+    def get_solvable_realisation(self, subkey: jax.random.PRNGKey):
+        patience_counter = 0
+        is_solvable = jnp.bool_(False)
+        # switch to using jax.lax.while_loop
+        while is_solvable == jnp.bool_(False) and patience_counter < PATIENCE:
+            key, subkey = jax.random.split(subkey)
+            new_blocking_status = self.graph_realisation.sample_blocking_status(subkey)
+            is_solvable = self.graph_realisation.is_solvable(new_blocking_status)
+            patience_counter += 1
+        # error if is_solvable is False
+        if is_solvable == jnp.bool_(False):
+            raise ValueError(
+                "Could not find enough solvable blocking status. Please decrease the prop_stoch."
+            )
+        return new_blocking_status

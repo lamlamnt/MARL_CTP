@@ -24,7 +24,7 @@ def test_dqn_masking(printer):
     environment = CTP_environment.CTP(1, 1, 5, key, prop_stoch=0.4)
 
     model = CNN.Flax_CNN(32, [600, 300, 100], 5)
-    model_params = model.init(subkey, jnp.ones((3, 6, 5)))
+    model_params = model.init(subkey, jnp.ones((4, 6, 5)))
 
     agent = DQN_Masking(model, 1, 5)
     new_env_state, new_belief_state = environment.reset(env_key)
