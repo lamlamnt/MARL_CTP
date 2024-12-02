@@ -28,6 +28,7 @@ class CTPGraph:
         num_goals=1,
         factor_expensive_edge=1.0,
         handcrafted_graph=None,
+        expensive_edge=True,
     ):
         """
         List of properties:
@@ -81,17 +82,22 @@ class CTPGraph:
 
             # Always add expensive edge. If there's already an edge between goal and origin,
             # we replace it with an expensive edge
-            if self.weights[self.goal, self.origin] == NOT_CONNECTED:
-                self.senders = jnp.append(self.senders, self.origin)
-                self.receivers = jnp.append(self.receivers, self.goal)
-                self.n_edges += 1
-            upper_bound = (
-                (self.n_nodes - 1) * jnp.max(self.weights) * factor_expensive_edge
-            )
-            self.weights = self.weights.at[self.origin, self.goal].set(upper_bound)
-            self.weights = self.weights.at[self.goal, self.origin].set(upper_bound)
-            self.blocking_prob = self.blocking_prob.at[self.origin, self.goal].set(0)
-            self.blocking_prob = self.blocking_prob.at[self.goal, self.origin].set(0)
+            if expensive_edge:
+                if self.weights[self.goal, self.origin] == NOT_CONNECTED:
+                    self.senders = jnp.append(self.senders, self.origin)
+                    self.receivers = jnp.append(self.receivers, self.goal)
+                    self.n_edges += 1
+                upper_bound = (
+                    (self.n_nodes - 1) * jnp.max(self.weights) * factor_expensive_edge
+                )
+                self.weights = self.weights.at[self.origin, self.goal].set(upper_bound)
+                self.weights = self.weights.at[self.goal, self.origin].set(upper_bound)
+                self.blocking_prob = self.blocking_prob.at[self.origin, self.goal].set(
+                    0
+                )
+                self.blocking_prob = self.blocking_prob.at[self.goal, self.origin].set(
+                    0
+                )
 
         # Normalize the weights
         max_weight = jnp.max(self.weights)
@@ -105,6 +111,25 @@ class CTPGraph:
     ) -> tuple[jnp.ndarray, int, jnp.array, jnp.array, jnp.ndarray]:
         def __convert_to_grid(i, ymax):
             return (i // (ymax + 1), i % (ymax + 1))
+
+        def __on_same_line(grid_nodes):
+            # Extract x and y coordinates
+            x_coords = grid_nodes[:, 0]
+            y_coords = grid_nodes[:, 1]
+            # Check if all x-coordinates or all y-coordinates are the same
+            all_same_x = jnp.all(x_coords == x_coords[0])
+            all_same_y = jnp.all(y_coords == y_coords[0])
+            return jnp.logical_or(all_same_x, all_same_y)
+
+        def __resample(key):
+            subkey1, subkey2 = jax.random.split(key)
+            node_pos = jax.random.choice(
+                subkey2, grid_size * grid_size, (self.n_nodes,), replace=False
+            )
+            grid_nodes = jax.vmap(__convert_to_grid, in_axes=(0, None))(
+                node_pos, grid_size
+            )
+            return grid_nodes
 
         def __extract_edges(simplex):
             edges = jnp.array(
@@ -130,6 +155,16 @@ class CTPGraph:
         # Generate random points in the grid
         node_pos = jax.random.choice(key, xmax * ymax, (self.n_nodes,), replace=False)
         grid_nodes = jax.vmap(__convert_to_grid, in_axes=(0, None))(node_pos, ymax)
+        # Check that not all points are on the same line (have the same x or y coordinate)
+        """
+        grid_nodes = jax.lax.cond(
+            __on_same_line(grid_nodes),
+            lambda key: __resample(key),
+            lambda _: grid_nodes,
+            key,
+        )
+        """
+
         grid_nodes_jax = jnp.array(grid_nodes, dtype=jnp.float16).T
 
         # Apply Delauney triangulation to get edges
@@ -309,6 +344,7 @@ class CTPGraph_Realisation:
         num_goals=1,
         factor_expensive_edge=1.0,
         handcrafted_graph=None,
+        expensive_edge=True,
     ):
         """
         List of properties:
@@ -325,6 +361,7 @@ class CTPGraph_Realisation:
                 k_edges,
                 num_goals,
                 factor_expensive_edge,
+                expensive_edge=expensive_edge,
             )
 
     def sample_blocking_status(self, key: jax.random.PRNGKey) -> jnp.ndarray:

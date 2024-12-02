@@ -2,7 +2,7 @@ import os
 import jax
 import jax.numpy as jnp
 from Networks.actor_critic_network import ActorCritic_CNN_10, ActorCritic_CNN_30
-from Environment import CTP_environment, CTP_generator
+from Environment import CTP_environment, CTP_generator, CTP_environment_generalize
 from Agents.ppo import PPO
 from Evaluation import plotting
 import argparse
@@ -28,9 +28,22 @@ def linear_schedule(count):
     return args.learning_rate * frac
 
 
+def decide_hand_crafted_graph(args):
+    if args.hand_crafted_graph == "diamond":
+        n_node, defined_graph = hand_crafted_graphs.get_diamond_shaped_graph()
+    elif args.hand_crafted_graph == "n_stochastic":
+        n_node, defined_graph = hand_crafted_graphs.get_stochastic_edge_graph()
+    else:
+        n_node = args.n_node
+    return n_node, defined_graph
+
+
 def main(args):
     # Initialize and setting things up
     print("Setting up the environment ...")
+    print("Add expensive edge: ", args.expensive_edge)
+    if args.expensive_edge is False:
+        print("Patience: ", args.patience)
     # Determine belief state shape
     state_shape = (
         NUM_CHANNELS_IN_BELIEF_STATE,
@@ -42,32 +55,8 @@ def main(args):
     subkeys = jax.random.split(key, num=2)
     online_key, environment_key = subkeys
 
-    if args.hand_crafted_graph == "diamond":
-        _, defined_graph = hand_crafted_graphs.get_diamond_shaped_graph()
-        environment = CTP_environment.CTP(
-            num_agents=1,
-            num_goals=1,
-            num_nodes=n_node,
-            key=environment_key,
-            reward_for_invalid_action=args.reward_for_invalid_action,
-            reward_for_goal=args.reward_for_goal,
-            factor_expensive_edge=args.factor_expensive_edge,
-            handcrafted_graph=defined_graph,
-        )
-    elif args.hand_crafted_graph == "n_stochastic":
-        _, defined_graph = hand_crafted_graphs.get_stochastic_edge_graph()
-        environment = CTP_environment.CTP(
-            num_agents=1,
-            num_goals=1,
-            num_nodes=n_node,
-            key=environment_key,
-            reward_for_invalid_action=args.reward_for_invalid_action,
-            reward_for_goal=args.reward_for_goal,
-            factor_expensive_edge=args.factor_expensive_edge,
-            handcrafted_graph=defined_graph,
-        )
-    else:
-        environment = CTP_environment.CTP(
+    if args.generalize:
+        environment = CTP_environment_generalize.CTP_General(
             args.n_agent,
             1,
             n_node,
@@ -78,10 +67,40 @@ def main(args):
             reward_for_invalid_action=args.reward_for_invalid_action,
             reward_for_goal=args.reward_for_goal,
             factor_expensive_edge=args.factor_expensive_edge,
+            expensive_edge=args.expensive_edge,
+            patience=args.patience,
         )
-    environment.graph_realisation.graph.plot_nx_graph(
-        directory=log_directory, file_name="training_graph.png"
-    )
+    else:
+        if args.hand_crafted_graph != "None":
+            _, defined_graph = decide_hand_crafted_graph(args)
+            environment = CTP_environment.CTP(
+                num_agents=1,
+                num_goals=1,
+                num_nodes=n_node,
+                key=environment_key,
+                reward_for_invalid_action=args.reward_for_invalid_action,
+                reward_for_goal=args.reward_for_goal,
+                factor_expensive_edge=args.factor_expensive_edge,
+                handcrafted_graph=defined_graph,
+            )
+        else:
+            environment = CTP_environment.CTP(
+                args.n_agent,
+                1,
+                n_node,
+                environment_key,
+                prop_stoch=args.prop_stoch,
+                k_edges=args.k_edges,
+                grid_size=args.grid_size,
+                reward_for_invalid_action=args.reward_for_invalid_action,
+                reward_for_goal=args.reward_for_goal,
+                factor_expensive_edge=args.factor_expensive_edge,
+                expensive_edge=args.expensive_edge,
+                patience=args.patience,
+            )
+        environment.graph_realisation.graph.plot_nx_graph(
+            directory=log_directory, file_name="training_graph.png"
+        )
 
     if n_node <= 10:
         model = ActorCritic_CNN_10(n_node)
@@ -332,6 +351,20 @@ if __name__ == "__main__":
     parser.add_argument(
         "--wandb_project_name", type=str, required=False, default="no_name"
     )
+    parser.add_argument(
+        "--expensive_edge",
+        type=lambda x: bool(strtobool(x)),
+        default=True,
+        required=False,
+        help="Whether to add an expensive edge (regardless of whether the realisation is already solvable or not), which would make all realisations solvable",
+    )
+    parser.add_argument(
+        "--generalize",
+        type=lambda x: bool(strtobool(x)),
+        default=True,
+        required=False,
+        help="Whether to train and perform inference with multiple different graphs",
+    )
 
     # Args specific to PPO:
     parser.add_argument(
@@ -390,6 +423,13 @@ if __name__ == "__main__":
         required=False,
         help="Whether to choose the action with the highest probability instead of sampling from the distribution",
     )
+    parser.add_argument(
+        "--patience",
+        type=int,
+        required=False,
+        default=5,
+        help="Number of times we try to resample a solvable realisation before giving up. If add expensive edge is True, then this is not applicable",
+    )
 
     args = parser.parse_args()
     current_directory = os.getcwd()
@@ -414,5 +454,12 @@ if __name__ == "__main__":
         config=vars(args),
         mode=args.wandb_mode,
     )
+
+    # temporary
+    if args.expensive_edge == False and args.generalize == True:
+        raise ValueError(
+            "Currently cannot have expensive edge as False and generalize as True"
+        )
+
     main(args)
     wandb.finish()

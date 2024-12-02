@@ -16,7 +16,7 @@ Observation: TypeAlias = jnp.ndarray
 EnvState: TypeAlias = jnp.ndarray
 
 
-class CTP(MultiAgentEnv):
+class CTP_General(MultiAgentEnv):
     def __init__(
         self,
         num_agents: int,
@@ -31,7 +31,7 @@ class CTP(MultiAgentEnv):
         factor_expensive_edge=1.0,
         handcrafted_graph=None,
         expensive_edge=True,
-        patience=1,
+        patience=5,
     ):
         """
         List of attributes:
@@ -42,6 +42,13 @@ class CTP(MultiAgentEnv):
         action_spaces
         graph_realisation: CTPGraph_Realisation
         patience: int # How many times we try to find a solvable blocking status before giving up
+
+        num_goals: int
+        prop_stoch: float
+        k_edges: int
+        grid_size: int
+        expensive_edge: bool
+        factor_expensive_edge: float
         """
         super().__init__(num_agents=num_agents)
         self.num_agents = num_agents
@@ -49,22 +56,18 @@ class CTP(MultiAgentEnv):
         self.reward_for_goal = jnp.float16(reward_for_goal)
         self.num_nodes = num_nodes
         self.patience = patience
-        # Instantiate a CTPGraph_Realisation object
+
         if handcrafted_graph is not None:
-            self.graph_realisation = CTP_generator.CTPGraph_Realisation(
-                key, self.num_nodes, handcrafted_graph=handcrafted_graph
-            )
-        else:
-            self.graph_realisation = CTP_generator.CTPGraph_Realisation(
-                key,
-                self.num_nodes,
-                grid_size=grid_size,
-                prop_stoch=prop_stoch,
-                k_edges=k_edges,
-                num_goals=num_goals,
-                factor_expensive_edge=factor_expensive_edge,
-                expensive_edge=expensive_edge,
-            )
+            raise ValueError("Generalizing. Cannot use handcrafted graph.")
+
+        # Arguments for generating graphs. Maybe put into more compact representation, like a dictionary
+        self.num_goals = num_goals
+        self.prop_stoch = prop_stoch
+        self.k_edges = k_edges
+        self.grid_size = grid_size
+        self.expensive_edge = expensive_edge
+        self.factor_expensive_edge = factor_expensive_edge
+
         actions = [num_nodes for _ in range(num_agents)]
         self.action_spaces = spaces.MultiDiscrete(actions)
 
@@ -72,20 +75,11 @@ class CTP(MultiAgentEnv):
     def reset(self, key: chex.PRNGKey) -> tuple[EnvState, Belief_State]:
         key, subkey = jax.random.split(key)
 
-        # This still works for when we add an expensive edge - the first blocking status that is sampled will be used.
+        # Pure callback function to return the env state
         result_shape = jax.ShapeDtypeStruct(
-            (self.num_nodes, self.num_nodes), jnp.float16
+            (4, (self.num_nodes + self.num_agents), self.num_nodes), jnp.float16
         )
-        new_blocking_status = jax.pure_callback(
-            self.get_solvable_realisation, result_shape, subkey
-        )
-
-        # update agents' positions to origin
-        agents_pos = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.float16)
-        agents_pos = agents_pos.at[0, self.graph_realisation.graph.origin[0]].set(1)
-        env_state = self.__convert_graph_realisation_to_matrix(
-            self.graph_realisation, new_blocking_status, agents_pos
-        )
+        env_state = jax.pure_callback(self.get_initial_env_state, result_shape, subkey)
 
         # return the initial belief state
         original_observation = self.get_obs(env_state)
@@ -178,7 +172,7 @@ class CTP(MultiAgentEnv):
             _is_invalid_action(actions, current_env_state),
             _step_invalid_action,
             lambda args: jax.lax.cond(
-                actions[0] == self.graph_realisation.graph.goal[0],
+                current_env_state[3, 1:, :][actions[0], actions[0]] > 0,
                 _at_goal,
                 _move_to_new_node,
                 args,
@@ -246,19 +240,45 @@ class CTP(MultiAgentEnv):
 
         return new_belief_state
 
-    def __convert_graph_realisation_to_matrix(
-        self,
-        graph_realisation: CTP_generator.CTPGraph_Realisation,
-        blocking_status: jnp.ndarray,
-        agents_pos: jnp.ndarray,
-    ) -> EnvState:
-        # Convert graph realisation to matrix
+    def get_initial_env_state(self, key: jax.random.PRNGKey):
+        graph_realisation = CTP_generator.CTPGraph_Realisation(
+            key,
+            self.num_nodes,
+            grid_size=self.grid_size,
+            prop_stoch=self.prop_stoch,
+            k_edges=self.k_edges,
+            num_goals=self.num_goals,
+            factor_expensive_edge=self.factor_expensive_edge,
+            expensive_edge=self.expensive_edge,
+        )
+        _, subkey = jax.random.split(key)
+
+        # Get solvable realisation
+        patience_counter = 0
+        is_solvable = jnp.bool_(False)
+        # switch to using jax.lax.while_loop
+        while is_solvable == jnp.bool_(False) and patience_counter < self.patience:
+            key, subkey = jax.random.split(subkey)
+            new_blocking_status = graph_realisation.sample_blocking_status(subkey)
+            is_solvable = graph_realisation.is_solvable(new_blocking_status)
+            patience_counter += 1
+        # error if is_solvable is False
+        if is_solvable == jnp.bool_(False):
+            raise ValueError(
+                "Could not find enough solvable blocking status. Please decrease the prop_stoch."
+            )
+
+        # Put into env state
         empty = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.float16)
         edge_weights = jnp.concatenate((empty, graph_realisation.graph.weights), axis=0)
         edge_probs = jnp.concatenate(
             (empty, graph_realisation.graph.blocking_prob), axis=0
         )
-        pos_and_blocking_status = jnp.concatenate((agents_pos, blocking_status), axis=0)
+        agents_pos = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.float16)
+        agents_pos = agents_pos.at[0, graph_realisation.graph.origin[0]].set(1)
+        pos_and_blocking_status = jnp.concatenate(
+            (agents_pos, new_blocking_status), axis=0
+        )
 
         # Top part is each agent's service history. Bottom part is number of times each goal needs to
         # be serviced
@@ -273,19 +293,3 @@ class CTP(MultiAgentEnv):
             axis=0,
             dtype=jnp.float16,
         )
-
-    def get_solvable_realisation(self, subkey: jax.random.PRNGKey):
-        patience_counter = 0
-        is_solvable = jnp.bool_(False)
-        # switch to using jax.lax.while_loop
-        while is_solvable == jnp.bool_(False) and patience_counter < self.patience:
-            _, subkey = jax.random.split(subkey)
-            new_blocking_status = self.graph_realisation.sample_blocking_status(subkey)
-            is_solvable = self.graph_realisation.is_solvable(new_blocking_status)
-            patience_counter += 1
-        # error if is_solvable is False
-        if is_solvable == jnp.bool_(False):
-            raise ValueError(
-                "Could not find enough solvable blocking status. Please decrease the prop_stoch."
-            )
-        return new_blocking_status

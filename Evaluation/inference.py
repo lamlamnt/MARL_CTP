@@ -7,10 +7,11 @@ import jax.numpy as jnp
 
 sys.path.append("..")
 from Evaluation import plotting
-from Environment import CTP_environment
+from Environment import CTP_environment, CTP_environment_generalize
 from Evaluation.optimal_path_length import dijkstra_shortest_path
 from Evaluation import visualize_policy
 from Utils.get_params import extract_params
+from Utils.util_generalize import get_origin_expensive_edge
 from datetime import datetime
 import json
 import matplotlib.pyplot as plt
@@ -25,7 +26,7 @@ def plotting_inference(
     start_time,
     model_params,
     out,
-    environment: CTP_environment.CTP,
+    environment: CTP_environment_generalize.CTP_General,
     agent,
     args,
     n_node,
@@ -67,7 +68,20 @@ def plotting_inference(
     )
     env_state, belief_state = environment.reset(init_key)
 
-    def _fori_inference(i: int, val: tuple):
+    # def _fori_inference(i: int, val: tuple):
+    val = (
+        action_key,
+        env_key,
+        env_state,
+        belief_state,
+        test_all_actions,
+        test_all_positions,
+        test_all_rewards,
+        test_all_done,
+        test_all_optimal_path_lengths,
+        0,
+    )
+    for i in range(5000):
         (
             action_key,
             env_key,
@@ -117,12 +131,17 @@ def plotting_inference(
             operand=None,
         )
 
+        goal = jnp.unravel_index(
+            jnp.argmax(current_env_state[3, 1:, :]),
+            (environment.num_nodes, environment.num_nodes),
+        )[0]
+        origin = get_origin_expensive_edge(current_belief_state)
         shortest_path = jax.lax.cond(
             done,
             lambda _: dijkstra_shortest_path(
                 current_env_state,
-                environment.graph_realisation.graph.origin,
-                environment.graph_realisation.graph.goal,
+                jnp.array([origin]),
+                jnp.array([goal]),
             ),
             lambda _: 0.0,
             operand=None,
@@ -148,6 +167,7 @@ def plotting_inference(
             test_all_optimal_path_lengths,
             timestep_in_episode,
         )
+    """
         return val
 
     testing_val_init = (
@@ -178,6 +198,7 @@ def plotting_inference(
         test_all_optimal_path_lengths,
         timestep_in_episode,
     ) = vals
+    """
 
     testing_result_dict = plotting.save_data_and_plotting(
         test_all_done,
@@ -236,7 +257,10 @@ def plotting_inference(
         loss = {"Last average loss": last_average_loss}
 
     # Visualize the policy
-    policy = visualize_policy.get_policy(n_node, test_all_actions, test_all_positions)
+    if args.generalize is False:
+        policy = visualize_policy.get_policy(
+            n_node, test_all_actions, test_all_positions
+        )
 
     # Record hyperparameters and results in JSON file
     current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -258,15 +282,19 @@ def plotting_inference(
         fh.write("Testing results: \n")
         json.dump(testing_result_dict, fh, indent=4)
         fh.write("\n")
-        fh.write("Policy: \n")
-        json_str = (
-            "[\n" + ",\n".join(json.dumps(row) for row in policy.tolist()) + "\n]"
-        )
-        fh.write(json_str)
+        if args.generalize is False:
+            fh.write("Policy: \n")
+            json_str = (
+                "[\n" + ",\n".join(json.dumps(row) for row in policy.tolist()) + "\n]"
+            )
+            fh.write(json_str)
         # Log the network architecture
         fh.write("\nNetwork architecture: \n")
         for layer_name, weights in extract_params(model_params):
             fh.write(f"{layer_name}: {weights.shape}\n")
+        total_num_params = sum(p.size for p in jax.tree_util.tree_leaves(model_params))
+        fh.write("Total number of parameters in the network: " + str(total_num_params))
+        """
         fh.write("\nGraph Weights: \n")
         fh.write(
             "[\n"
@@ -285,4 +313,5 @@ def plotting_inference(
             )
             + "\n]"
         )
+        """
     print("All done!")

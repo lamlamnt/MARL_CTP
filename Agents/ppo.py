@@ -7,10 +7,11 @@ from flax.training.train_state import TrainState
 
 sys.path.append("..")
 from edited_jym.agents.base_agents import BaseDeepRLAgent
-from Environment import CTP_environment, CTP_generator
+from Environment import CTP_environment, CTP_generator, CTP_environment_generalize
 from Evaluation.optimal_path_length import dijkstra_shortest_path
 import flax.linen as nn
 from typing import Sequence, NamedTuple, Any
+from Utils.util_generalize import get_origin_expensive_edge
 
 
 class Transition(NamedTuple):
@@ -27,7 +28,7 @@ class PPO:
     def __init__(
         self,
         model: nn.Module,
-        environment: CTP_environment.CTP,
+        environment: CTP_environment_generalize.CTP_General,
         discount_factor: float,
         gae_lambda: float,
         clip_eps: float,
@@ -129,12 +130,17 @@ class PPO:
             )
         )
 
+        goal = jnp.unravel_index(
+            jnp.argmax(current_env_state[3, 1:, :]),
+            (self.environment.num_nodes, self.environment.num_nodes),
+        )[0]
+        origin = get_origin_expensive_edge(current_belief_state)
         shortest_path = jax.lax.cond(
             done,
             lambda _: dijkstra_shortest_path(
                 current_env_state,
-                self.environment.graph_realisation.graph.origin,
-                self.environment.graph_realisation.graph.goal,
+                jnp.array([origin]),
+                jnp.array([goal]),
             ),
             lambda _: 0.0,
             operand=None,

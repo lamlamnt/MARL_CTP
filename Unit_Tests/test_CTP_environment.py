@@ -278,3 +278,16 @@ def test_goal_matrix(environment: CTP_environment.CTP):
     assert jnp.array_equal(initial_env_state[3, :, :], env_state_1[3, :, :])
     assert jnp.array_equal(env_state_1[3, :, :], initial_belief_state[3, :, :])
     assert jnp.array_equal(initial_belief_state[3, :, :], belief_state_1[3, :, :])
+
+
+# Test that that the graph generated is solvable
+def test_solvable_no_expensive_edge():
+    key = jax.random.PRNGKey(40)
+    key, subkey = jax.random.split(key)
+    environment = CTP_environment.CTP(
+        1, 1, 5, key, prop_stoch=0.9, expensive_edge=False
+    )
+    env_state, _ = environment.reset(subkey)
+    assert environment.graph_realisation.is_solvable(env_state[0, 1:, :]) == jnp.bool_(
+        True
+    )
