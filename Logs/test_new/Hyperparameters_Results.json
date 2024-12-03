@@ -1,8 +1,8 @@
 {"n_node": 5, "n_agent": 1, "time_steps": 1000, "reward_for_invalid_action": -200.0, "reward_for_goal": 0, "reward_exceed_horizon": -1.1, "horizon_length_factor": 5, "factor_expensive_edge": 1.0, "prop_stoch": 0.4, "k_edges": null, "grid_size": null, "random_seed_for_training": 33, "random_seed_for_inference": 40, "discount_factor": 1.0, "anneal_lr": false, "learning_rate": 0.001, "num_update_epochs": 4, "log_directory": "test_new", "hand_crafted_graph": "None", "wandb_mode": "disabled", "wandb_project_name": "no_name", "expensive_edge": true, "generalize": true, "num_steps_before_update": 600, "gae_lambda": 0.95, "clip_eps": 0.2, "vf_coeff": 0.05, "ent_coeff": 0.05, "anneal_ent_coeff": true, "num_minibatches": 4, "deterministic_inference_policy": false, "patience": 5}
 {
-    "current_datetime": "2024-12-02 23:16:02"
+    "current_datetime": "2024-12-03 14:14:57"
 }
-{"Total training time in seconds": 34.38707733154297}
+{"Total training time in seconds": 178.82183456420898}
 {"Total Loss": -0.025424866005778313, "Weighted Value Loss": 0.032318615913391115, "Actor Loss": -0.00602750014513731, "Weighted Entropy Loss": 0.051715981960296635}
 Training results: 
 {
@@ -13,11 +13,11 @@ Training results:
 }
 Testing results: 
 {
-    "average_regret": 0.686718225479126,
-    "average_competitive_ratio": 2.994685411453247,
-    "median_competitive_ratio": 2.653846263885498,
-    "max_competitive_ratio": 15.740739822387695,
-    "average_reward": -1.0889960527420044
+    "average_regret": 0.8672339916229248,
+    "average_competitive_ratio": 3.4973790645599365,
+    "median_competitive_ratio": 3.175403118133545,
+    "max_competitive_ratio": 15.054054260253906,
+    "average_reward": -1.2371277809143066
 }
 
 Network architecture: 

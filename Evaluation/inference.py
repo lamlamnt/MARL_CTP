@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import wandb
 
-FACTOR_TO_MULTIPLY_INFERENCE_TIMESTEPS = 1000
+FACTOR_TO_MULTIPLY_INFERENCE_TIMESTEPS = 100
 
 
 def plotting_inference(
@@ -66,22 +66,97 @@ def plotting_inference(
     init_key, action_key, env_key = jax.vmap(jax.random.PRNGKey)(
         jnp.arange(3) + args.random_seed_for_inference
     )
-    env_state, belief_state = environment.reset(init_key)
+    new_env_state, new_belief_state = environment.reset(init_key)
 
-    # def _fori_inference(i: int, val: tuple):
-    val = (
-        action_key,
+    def _one_step_inference(runner_state, unused):
+        (
+            new_env_state,
+            current_belief_state,
+            key,
+            timestep_in_episode,
+        ) = runner_state
+        action_key, env_key = jax.random.split(key, 2)
+        current_env_state = new_env_state
+        # Agent acts
+        action, action_key = agent.act(
+            action_key, model_params, current_belief_state, 0
+        )
+        action = jnp.array([action])
+        new_env_state, new_belief_state, reward, done, env_key = environment.step(
+            env_key, new_env_state, current_belief_state, action
+        )
+        action = action[0]
+
+        # Stop the episode and reset if exceed horizon length
+        env_key, reset_key = jax.random.split(env_key)
+        # Reset timestep if finish episode
+        timestep_in_episode = jax.lax.cond(
+            done, lambda _: 0, lambda _: timestep_in_episode, operand=None
+        )
+        # Reset if exceed horizon length. Otherwise, increment
+        new_env_state, new_belief_state, reward, timestep_in_episode, done = (
+            jax.lax.cond(
+                timestep_in_episode >= args.horizon_length_factor * args.n_node,
+                lambda _: (
+                    *environment.reset(reset_key),
+                    jnp.float16(args.reward_exceed_horizon),
+                    0,
+                    True,
+                ),
+                lambda _: (
+                    new_env_state,
+                    new_belief_state,
+                    reward,
+                    timestep_in_episode + 1,
+                    done,
+                ),
+                operand=None,
+            )
+        )
+
+        goal = jnp.unravel_index(
+            jnp.argmax(current_env_state[3, 1:, :]),
+            (environment.num_nodes, environment.num_nodes),
+        )[0]
+        origin = get_origin_expensive_edge(current_belief_state)
+        shortest_path = jax.lax.cond(
+            done,
+            lambda _: dijkstra_shortest_path(
+                current_env_state,
+                jnp.array([origin]),
+                jnp.array([goal]),
+            ),
+            lambda _: 0.0,
+            operand=None,
+        )
+        position = jnp.argmax(current_env_state[0, : args.n_agent]).astype(jnp.int8)
+
+        runner_state = (
+            new_env_state,
+            new_belief_state,
+            env_key,
+            timestep_in_episode,
+        )
+        transition = (done, action, reward, shortest_path, position)
+        return runner_state, transition
+
+    runner_state = (
+        new_env_state,
+        new_belief_state,
         env_key,
-        env_state,
-        belief_state,
-        test_all_actions,
-        test_all_positions,
-        test_all_rewards,
-        test_all_done,
-        test_all_optimal_path_lengths,
-        0,
+        jnp.int32(0),
     )
-    for i in range(5000):
+    runner_state, inference_traj_batch = jax.lax.scan(
+        _one_step_inference, runner_state, None, num_steps_for_inference
+    )
+    test_all_done = inference_traj_batch[0]
+    test_all_actions = inference_traj_batch[1]
+    test_all_rewards = inference_traj_batch[2]
+    test_all_optimal_path_lengths = inference_traj_batch[3]
+    test_all_positions = inference_traj_batch[4]
+
+    """
+    def _fori_inference(i: int, val: tuple):
         (
             action_key,
             env_key,
@@ -167,7 +242,6 @@ def plotting_inference(
             test_all_optimal_path_lengths,
             timestep_in_episode,
         )
-    """
         return val
 
     testing_val_init = (

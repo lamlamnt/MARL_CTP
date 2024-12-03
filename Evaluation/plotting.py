@@ -60,7 +60,7 @@ def save_data_and_plotting(
         df.groupby("episode")
         .agg("sum")
         .astype(np.float32)
-        .round({"reward": 2, "optimal_path_length": 2})
+        .round({"reward": 3, "optimal_path_length": 3})
     )
     episodes_df = episodes_df.iloc[:-1]
     episodes_df["regret"] = (

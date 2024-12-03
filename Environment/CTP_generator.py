@@ -114,8 +114,7 @@ class CTPGraph:
 
         def __on_same_line(grid_nodes):
             # Extract x and y coordinates
-            x_coords = grid_nodes[:, 0]
-            y_coords = grid_nodes[:, 1]
+            x_coords, y_coords = grid_nodes
             # Check if all x-coordinates or all y-coordinates are the same
             all_same_x = jnp.all(x_coords == x_coords[0])
             all_same_y = jnp.all(y_coords == y_coords[0])
@@ -156,14 +155,12 @@ class CTPGraph:
         node_pos = jax.random.choice(key, xmax * ymax, (self.n_nodes,), replace=False)
         grid_nodes = jax.vmap(__convert_to_grid, in_axes=(0, None))(node_pos, ymax)
         # Check that not all points are on the same line (have the same x or y coordinate)
-        """
         grid_nodes = jax.lax.cond(
             __on_same_line(grid_nodes),
             lambda key: __resample(key),
             lambda _: grid_nodes,
             key,
         )
-        """
 
         grid_nodes_jax = jnp.array(grid_nodes, dtype=jnp.float16).T
 
