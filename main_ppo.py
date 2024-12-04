@@ -41,8 +41,8 @@ def decide_hand_crafted_graph(args):
 def main(args):
     # Initialize and setting things up
     print("Setting up the environment ...")
-    print("Add expensive edge: ", args.expensive_edge)
-    if args.expensive_edge is False:
+    print("Add expensive edge: ", args.deal_with_unsolvability)
+    if args.deal_with_unsolvability == "resample":
         print("Patience: ", args.patience)
     # Determine belief state shape
     state_shape = (
@@ -67,7 +67,7 @@ def main(args):
             reward_for_invalid_action=args.reward_for_invalid_action,
             reward_for_goal=args.reward_for_goal,
             factor_expensive_edge=args.factor_expensive_edge,
-            expensive_edge=args.expensive_edge,
+            deal_with_unsolvability=args.deal_with_unsolvability,
             patience=args.patience,
         )
     else:
@@ -95,7 +95,7 @@ def main(args):
                 reward_for_invalid_action=args.reward_for_invalid_action,
                 reward_for_goal=args.reward_for_goal,
                 factor_expensive_edge=args.factor_expensive_edge,
-                expensive_edge=args.expensive_edge,
+                deal_with_unsolvability=args.deal_with_unsolvability,
                 patience=args.patience,
             )
         environment.graph_realisation.graph.plot_nx_graph(
@@ -164,6 +164,7 @@ def main(args):
             key,
             timestep_in_episode,
             loop_count,
+            previous_episode_done,
         ) = runner_state
         _, last_critic_val = model.apply(train_state.params, current_belief_state)
         advantages, targets = agent.calculate_gae(traj_batch, last_critic_val)
@@ -188,6 +189,7 @@ def main(args):
             rng,
             timestep_in_episode,
             loop_count,
+            previous_episode_done,
         )
 
         # Collect metrics
@@ -211,6 +213,7 @@ def main(args):
         env_action_key,
         timestep_in_episode,
         loop_count,
+        jnp.bool_(True),
     )
     runner_state, metrics = jax.lax.scan(_update_step, runner_state, None, num_loops)
     train_state = runner_state[0]
@@ -352,11 +355,11 @@ if __name__ == "__main__":
         "--wandb_project_name", type=str, required=False, default="no_name"
     )
     parser.add_argument(
-        "--expensive_edge",
-        type=lambda x: bool(strtobool(x)),
+        "--deal_with_unsolvability",
+        type=str,
         default=True,
         required=False,
-        help="Whether to add an expensive edge (regardless of whether the realisation is already solvable or not), which would make all realisations solvable",
+        help="Options: always_expensive_edge, expensive_edge_if_unsolvable, resample",
     )
     parser.add_argument(
         "--generalize",
@@ -428,7 +431,7 @@ if __name__ == "__main__":
         type=int,
         required=False,
         default=5,
-        help="Number of times we try to resample a solvable realisation before giving up. If add expensive edge is True, then this is not applicable",
+        help="Number of times we try to resample a solvable realisation before giving up. If any other options besides resample is chosen for deal_with_unsolvable, then this is not applicable",
     )
 
     args = parser.parse_args()
@@ -454,12 +457,6 @@ if __name__ == "__main__":
         config=vars(args),
         mode=args.wandb_mode,
     )
-
-    # temporary
-    if args.expensive_edge == False and args.generalize == True:
-        raise ValueError(
-            "Currently cannot have expensive edge as False and generalize as True"
-        )
 
     main(args)
     wandb.finish()

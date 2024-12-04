@@ -12,7 +12,7 @@ import os
 def pure_function(key, prob):
     key, subkey = jax.random.split(key)
     environment = CTP_environment.CTP(
-        1, 1, 10, key, prob, expensive_edge=False, patience=30
+        1, 1, 10, key, prob, deal_with_unsolvability="resample", patience=30
     )
     current_directory = os.getcwd()
     parent_directory = os.path.dirname(current_directory)

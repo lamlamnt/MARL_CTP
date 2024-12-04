@@ -30,7 +30,7 @@ class CTP_General(MultiAgentEnv):
         reward_for_goal=0,
         factor_expensive_edge=1.0,
         handcrafted_graph=None,
-        expensive_edge=True,
+        deal_with_unsolvability="always_expensive_edge",
         patience=5,
     ):
         """
@@ -47,7 +47,7 @@ class CTP_General(MultiAgentEnv):
         prop_stoch: float
         k_edges: int
         grid_size: int
-        expensive_edge: bool
+        deal_with_unsolvability: str (one of 3 options)
         factor_expensive_edge: float
         """
         super().__init__(num_agents=num_agents)
@@ -65,7 +65,7 @@ class CTP_General(MultiAgentEnv):
         self.prop_stoch = prop_stoch
         self.k_edges = k_edges
         self.grid_size = grid_size
-        self.expensive_edge = expensive_edge
+        self.deal_with_unsolvability = deal_with_unsolvability
         self.factor_expensive_edge = factor_expensive_edge
 
         actions = [num_nodes for _ in range(num_agents)]
@@ -241,6 +241,10 @@ class CTP_General(MultiAgentEnv):
         return new_belief_state
 
     def get_initial_env_state(self, key: jax.random.PRNGKey):
+        if self.deal_with_unsolvability == "always_expensive_edge":
+            auto_expensive_edge = True
+        else:
+            auto_expensive_edge = False
         graph_realisation = CTP_generator.CTPGraph_Realisation(
             key,
             self.num_nodes,
@@ -249,24 +253,66 @@ class CTP_General(MultiAgentEnv):
             k_edges=self.k_edges,
             num_goals=self.num_goals,
             factor_expensive_edge=self.factor_expensive_edge,
-            expensive_edge=self.expensive_edge,
+            expensive_edge=auto_expensive_edge,
         )
         _, subkey = jax.random.split(key)
 
-        # Get solvable realisation
-        patience_counter = 0
-        is_solvable = jnp.bool_(False)
-        # switch to using jax.lax.while_loop
-        while is_solvable == jnp.bool_(False) and patience_counter < self.patience:
-            key, subkey = jax.random.split(subkey)
+        # Resample until we get a solvable realisation
+        if self.deal_with_unsolvability == "resample":
+            patience_counter = 0
+            is_solvable = jnp.bool_(False)
+            while is_solvable == jnp.bool_(False) and patience_counter < self.patience:
+                key, subkey = jax.random.split(subkey)
+                new_blocking_status = graph_realisation.sample_blocking_status(subkey)
+                is_solvable = graph_realisation.is_solvable(new_blocking_status)
+                patience_counter += 1
+            # error if is_solvable is False
+            if is_solvable == jnp.bool_(False):
+                raise ValueError(
+                    "Could not find enough solvable blocking status. Please decrease the prop_stoch."
+                )
+        elif self.deal_with_unsolvability == "always_expensive_edge":
+            new_blocking_status = graph_realisation.sample_blocking_status(subkey)
+        else:
             new_blocking_status = graph_realisation.sample_blocking_status(subkey)
             is_solvable = graph_realisation.is_solvable(new_blocking_status)
-            patience_counter += 1
-        # error if is_solvable is False
-        if is_solvable == jnp.bool_(False):
-            raise ValueError(
-                "Could not find enough solvable blocking status. Please decrease the prop_stoch."
-            )
+            # Add expensive edge if unsolvable
+            if is_solvable == jnp.bool_(False):
+                upper_bound = (
+                    (self.num_nodes - 1)
+                    * jnp.max(graph_realisation.graph.weights)
+                    * self.factor_expensive_edge
+                )
+                graph_realisation.graph.weights = graph_realisation.graph.weights.at[
+                    graph_realisation.graph.origin, graph_realisation.graph.goal
+                ].set(upper_bound)
+                graph_realisation.graph.weights = graph_realisation.graph.weights.at[
+                    graph_realisation.graph.goal, graph_realisation.graph.origin
+                ].set(upper_bound)
+                graph_realisation.graph.blocking_prob = (
+                    graph_realisation.graph.blocking_prob.at[
+                        graph_realisation.graph.origin, graph_realisation.graph.goal
+                    ].set(0)
+                )
+                graph_realisation.graph.blocking_prob = (
+                    graph_realisation.graph.blocking_prob.at[
+                        graph_realisation.graph.goal, graph_realisation.graph.origin
+                    ].set(0)
+                )
+                new_blocking_status = new_blocking_status.at[
+                    graph_realisation.graph.origin, graph_realisation.graph.goal
+                ].set(CTP_generator.UNBLOCKED)
+                new_blocking_status = new_blocking_status.at[
+                    graph_realisation.graph.goal, graph_realisation.graph.origin
+                ].set(CTP_generator.UNBLOCKED)
+
+                # renormalize the edge weights by the expensive edge
+                max_weight = jnp.max(graph_realisation.graph.weights)
+                graph_realisation.graph.weights = jnp.where(
+                    graph_realisation.graph.weights != CTP_generator.NOT_CONNECTED,
+                    graph_realisation.graph.weights / max_weight,
+                    CTP_generator.NOT_CONNECTED,
+                )
 
         # Put into env state
         empty = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.float16)

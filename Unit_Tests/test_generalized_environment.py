@@ -1,10 +1,11 @@
 import jax
 import jax.numpy as jnp
 import pytest
+import pytest_print as pp
 import sys
 
 sys.path.append("..")
-from Environment import CTP_environment_generalize
+from Environment import CTP_environment_generalize, CTP_environment
 import pytest_print as pp
 import os
 from Utils.util_generalize import get_origin_expensive_edge
@@ -14,16 +15,25 @@ from Utils.util_generalize import get_origin_expensive_edge
 def expensive_edge_environment():
     key = jax.random.PRNGKey(0)
     environment = CTP_environment_generalize.CTP_General(
-        1, 1, 5, key, prop_stoch=0.4, expensive_edge=True
+        1, 1, 5, key, prop_stoch=0.4, deal_with_unsolvability="always_expensive_edge"
     )
     return environment
 
 
 @pytest.fixture
-def non_expensive_edge_environment():
+def resample_environment():
     key = jax.random.PRNGKey(0)
     environment = CTP_environment_generalize.CTP_General(
-        1, 1, 5, key, prop_stoch=0.4, expensive_edge=False
+        1, 1, 5, key, prop_stoch=0.4, deal_with_unsolvability="resample"
+    )
+    return environment
+
+
+@pytest.fixture
+def expensive_if_unsolvable_environment():
+    key = jax.random.PRNGKey(0)
+    environment = CTP_environment_generalize.CTP_General(
+        1, 1, 5, key, prop_stoch=0.9, deal_with_unsolvability="expensive_if_unsolvable"
     )
     return environment
 
@@ -62,3 +72,24 @@ def test_get_origin(expensive_edge_environment: CTP_environment_generalize.CTP_G
     actual_origin = jnp.argmax(initial_belief_state[0, 0, :])
     guess_origin = get_origin_expensive_edge(initial_belief_state)
     assert actual_origin == guess_origin
+
+
+def test_deal_with_unsolvability(
+    expensive_edge_environment: CTP_environment_generalize.CTP_General,
+    resample_environment: CTP_environment_generalize.CTP_General,
+    expensive_if_unsolvable_environment: CTP_environment_generalize.CTP_General,
+):
+    # Test working
+    env_state, belief_state = expensive_edge_environment.reset(jax.random.PRNGKey(0))
+    env_state, belief_state = resample_environment.reset(jax.random.PRNGKey(0))
+
+    # Test that all edge weights are less than 1 except for 1 edge with 1.
+    env_state, belief_state = expensive_if_unsolvable_environment.reset(
+        jax.random.PRNGKey(0)
+    )
+    weight_matrix = env_state[1, 1:, :]
+    all_less_equal_one = jnp.all(weight_matrix <= 1)
+    assert all_less_equal_one.item() is True
+    num_ones = jnp.sum(weight_matrix == 1)
+    exactly_one_equal_one = num_ones == 2
+    assert exactly_one_equal_one.item() is True

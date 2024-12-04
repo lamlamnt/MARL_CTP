@@ -30,7 +30,7 @@ class CTP(MultiAgentEnv):
         reward_for_goal=0,
         factor_expensive_edge=1.0,
         handcrafted_graph=None,
-        expensive_edge=True,
+        deal_with_unsolvability="always_expensive_edge",
         patience=1,
     ):
         """
@@ -55,6 +55,12 @@ class CTP(MultiAgentEnv):
                 key, self.num_nodes, handcrafted_graph=handcrafted_graph
             )
         else:
+            if deal_with_unsolvability == "expensive_if_unsolvable":
+                raise ValueError("Not implemented yet for non-generalizing environment")
+            elif deal_with_unsolvability == "always_expensive_edge":
+                auto_expensive_edge = True
+            else:
+                auto_expensive_edge = False  # resample
             self.graph_realisation = CTP_generator.CTPGraph_Realisation(
                 key,
                 self.num_nodes,
@@ -63,7 +69,7 @@ class CTP(MultiAgentEnv):
                 k_edges=k_edges,
                 num_goals=num_goals,
                 factor_expensive_edge=factor_expensive_edge,
-                expensive_edge=expensive_edge,
+                expensive_edge=auto_expensive_edge,
             )
         actions = [num_nodes for _ in range(num_agents)]
         self.action_spaces = spaces.MultiDiscrete(actions)

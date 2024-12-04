@@ -285,7 +285,7 @@ def test_solvable_no_expensive_edge():
     key = jax.random.PRNGKey(40)
     key, subkey = jax.random.split(key)
     environment = CTP_environment.CTP(
-        1, 1, 5, key, prop_stoch=0.9, expensive_edge=False
+        1, 1, 5, key, prop_stoch=0.9, deal_with_unsolvability="resample"
     )
     env_state, _ = environment.reset(subkey)
     assert environment.graph_realisation.is_solvable(env_state[0, 1:, :]) == jnp.bool_(

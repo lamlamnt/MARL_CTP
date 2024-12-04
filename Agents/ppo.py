@@ -81,15 +81,14 @@ class PPO:
         # Collect trajectories
         (
             train_state,
-            new_env_state,
+            current_env_state,
             current_belief_state,
             key,
             timestep_in_episode,
             loop_count,
+            previous_episode_done,
         ) = runner_state
         action_key, env_key = jax.random.split(key, 2)
-
-        current_env_state = new_env_state
         # Agent acts
         pi, critic_value = self.model.apply(train_state.params, current_belief_state)
         action = pi.sample(seed=key)
@@ -98,7 +97,7 @@ class PPO:
 
         action = jnp.array([action])
         new_env_state, new_belief_state, reward, done, env_key = self.environment.step(
-            env_key, new_env_state, current_belief_state, action
+            env_key, current_env_state, current_belief_state, action
         )
 
         action = action[0]
@@ -130,13 +129,14 @@ class PPO:
             )
         )
 
+        # Calculate shortest path at the beginning of the episode
         goal = jnp.unravel_index(
-            jnp.argmax(current_env_state[3, 1:, :]),
+            jnp.argmax(current_belief_state[3, 1:, :]),
             (self.environment.num_nodes, self.environment.num_nodes),
         )[0]
-        origin = get_origin_expensive_edge(current_belief_state)
+        origin = jnp.argmax(current_belief_state[0, :1, :])
         shortest_path = jax.lax.cond(
-            done,
+            previous_episode_done,
             lambda _: dijkstra_shortest_path(
                 current_env_state,
                 jnp.array([origin]),
@@ -153,6 +153,7 @@ class PPO:
             env_key,
             timestep_in_episode,
             loop_count,
+            done,
         )
         transition = Transition(
             done,

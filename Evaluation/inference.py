@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import wandb
 
-FACTOR_TO_MULTIPLY_INFERENCE_TIMESTEPS = 100
+FACTOR_TO_MULTIPLY_INFERENCE_TIMESTEPS = 2000
 
 
 def plotting_inference(
@@ -56,13 +56,6 @@ def plotting_inference(
     # Test on the same graph
     print("Start evaluating ...")
     num_steps_for_inference = n_node * FACTOR_TO_MULTIPLY_INFERENCE_TIMESTEPS
-    test_all_rewards = jnp.zeros([num_steps_for_inference], dtype=jnp.float16)
-    test_all_actions = jnp.zeros([num_steps_for_inference], dtype=jnp.uint8)
-    test_all_positions = jnp.zeros([num_steps_for_inference], dtype=jnp.int8)
-    test_all_done = jnp.zeros([num_steps_for_inference], dtype=jnp.bool_)
-    test_all_optimal_path_lengths = jnp.zeros(
-        [num_steps_for_inference], dtype=jnp.float16
-    )
     init_key, action_key, env_key = jax.vmap(jax.random.PRNGKey)(
         jnp.arange(3) + args.random_seed_for_inference
     )
@@ -70,20 +63,20 @@ def plotting_inference(
 
     def _one_step_inference(runner_state, unused):
         (
-            new_env_state,
+            current_env_state,
             current_belief_state,
             key,
             timestep_in_episode,
+            previous_episode_done,
         ) = runner_state
         action_key, env_key = jax.random.split(key, 2)
-        current_env_state = new_env_state
         # Agent acts
         action, action_key = agent.act(
             action_key, model_params, current_belief_state, 0
         )
         action = jnp.array([action])
         new_env_state, new_belief_state, reward, done, env_key = environment.step(
-            env_key, new_env_state, current_belief_state, action
+            env_key, current_env_state, current_belief_state, action
         )
         action = action[0]
 
@@ -114,13 +107,14 @@ def plotting_inference(
             )
         )
 
+        # Calculate shortest path at the beginning of the episode
         goal = jnp.unravel_index(
-            jnp.argmax(current_env_state[3, 1:, :]),
+            jnp.argmax(current_belief_state[3, 1:, :]),
             (environment.num_nodes, environment.num_nodes),
         )[0]
-        origin = get_origin_expensive_edge(current_belief_state)
+        origin = jnp.argmax(current_belief_state[0, :1, :])
         shortest_path = jax.lax.cond(
-            done,
+            previous_episode_done,
             lambda _: dijkstra_shortest_path(
                 current_env_state,
                 jnp.array([origin]),
@@ -136,6 +130,7 @@ def plotting_inference(
             new_belief_state,
             env_key,
             timestep_in_episode,
+            done,
         )
         transition = (done, action, reward, shortest_path, position)
         return runner_state, transition
@@ -145,6 +140,7 @@ def plotting_inference(
         new_belief_state,
         env_key,
         jnp.int32(0),
+        jnp.bool_(True),
     )
     runner_state, inference_traj_batch = jax.lax.scan(
         _one_step_inference, runner_state, None, num_steps_for_inference
@@ -154,125 +150,6 @@ def plotting_inference(
     test_all_rewards = inference_traj_batch[2]
     test_all_optimal_path_lengths = inference_traj_batch[3]
     test_all_positions = inference_traj_batch[4]
-
-    """
-    def _fori_inference(i: int, val: tuple):
-        (
-            action_key,
-            env_key,
-            env_state,
-            belief_state,
-            test_all_actions,
-            test_all_positions,
-            test_all_rewards,
-            test_all_done,
-            test_all_optimal_path_lengths,
-            timestep_in_episode,
-        ) = val
-        current_belief_state = belief_state
-        current_env_state = env_state
-        action, action_key = agent.act(
-            action_key, model_params, current_belief_state, 0
-        )
-        # For multi-agent, we would concatenate all the agents' actions together here
-        action = jnp.array([action])
-        env_state, belief_state, reward, done, env_key = environment.step(
-            env_key, current_env_state, current_belief_state, action
-        )
-        action = action[0]
-
-        # Stop the episode and reset if exceed horizon length
-        env_key, reset_key = jax.random.split(env_key)
-        # Reset timestep if finish episode
-        timestep_in_episode = jax.lax.cond(
-            done, lambda _: 0, lambda _: timestep_in_episode, operand=None
-        )
-        # Reset if exceed horizon length. Otherwise, increment
-        env_state, belief_state, reward, timestep_in_episode, done = jax.lax.cond(
-            timestep_in_episode >= agent.horizon_length,
-            lambda _: (
-                *environment.reset(reset_key),
-                agent.reward_exceed_horizon,
-                0,
-                True,
-            ),
-            lambda _: (
-                env_state,
-                belief_state,
-                reward,
-                timestep_in_episode + 1,
-                done,
-            ),
-            operand=None,
-        )
-
-        goal = jnp.unravel_index(
-            jnp.argmax(current_env_state[3, 1:, :]),
-            (environment.num_nodes, environment.num_nodes),
-        )[0]
-        origin = get_origin_expensive_edge(current_belief_state)
-        shortest_path = jax.lax.cond(
-            done,
-            lambda _: dijkstra_shortest_path(
-                current_env_state,
-                jnp.array([origin]),
-                jnp.array([goal]),
-            ),
-            lambda _: 0.0,
-            operand=None,
-        )
-        test_all_rewards = test_all_rewards.at[i].set(reward)
-        test_all_done = test_all_done.at[i].set(done)
-        test_all_optimal_path_lengths = test_all_optimal_path_lengths.at[i].set(
-            shortest_path
-        )
-        test_all_actions = test_all_actions.at[i].set(action)
-        test_all_positions = test_all_positions.at[i].set(
-            jnp.argmax(current_env_state[0, : args.n_agent]).astype(jnp.int8)
-        )
-        val = (
-            action_key,
-            env_key,
-            env_state,
-            belief_state,
-            test_all_actions,
-            test_all_positions,
-            test_all_rewards,
-            test_all_done,
-            test_all_optimal_path_lengths,
-            timestep_in_episode,
-        )
-        return val
-
-    testing_val_init = (
-        action_key,
-        env_key,
-        env_state,
-        belief_state,
-        test_all_actions,
-        test_all_positions,
-        test_all_rewards,
-        test_all_done,
-        test_all_optimal_path_lengths,
-        0,
-    )
-    vals = jax.lax.fori_loop(
-        0, num_steps_for_inference, _fori_inference, testing_val_init
-    )
-
-    (
-        action_key,
-        env_key,
-        env_state,
-        belief_state,
-        test_all_actions,
-        test_all_positions,
-        test_all_rewards,
-        test_all_done,
-        test_all_optimal_path_lengths,
-        timestep_in_episode,
-    ) = vals
-    """
 
     testing_result_dict = plotting.save_data_and_plotting(
         test_all_done,
