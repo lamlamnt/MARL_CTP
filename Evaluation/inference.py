@@ -17,8 +17,7 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
-
-FACTOR_TO_MULTIPLY_INFERENCE_TIMESTEPS = 2000
+from jax_tqdm import scan_tqdm
 
 
 def plotting_inference(
@@ -55,12 +54,13 @@ def plotting_inference(
     # Evaluate the model
     # Test on the same graph
     print("Start evaluating ...")
-    num_steps_for_inference = n_node * FACTOR_TO_MULTIPLY_INFERENCE_TIMESTEPS
+    num_steps_for_inference = n_node * args.factor_inference_timesteps
     init_key, action_key, env_key = jax.vmap(jax.random.PRNGKey)(
         jnp.arange(3) + args.random_seed_for_inference
     )
     new_env_state, new_belief_state = environment.reset(init_key)
 
+    @scan_tqdm(num_steps_for_inference)
     def _one_step_inference(runner_state, unused):
         (
             current_env_state,
@@ -143,7 +143,7 @@ def plotting_inference(
         jnp.bool_(True),
     )
     runner_state, inference_traj_batch = jax.lax.scan(
-        _one_step_inference, runner_state, None, num_steps_for_inference
+        _one_step_inference, runner_state, jnp.arange(num_steps_for_inference)
     )
     test_all_done = inference_traj_batch[0]
     test_all_actions = inference_traj_batch[1]

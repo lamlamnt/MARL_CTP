@@ -13,7 +13,9 @@ import pytest_print as pp
 @pytest.fixture
 def graphRealisation():
     key = jax.random.PRNGKey(101)
-    graphRealisation = CTP_generator.CTPGraph_Realisation(key, 5, prop_stoch=0.4)
+    graphRealisation = CTP_generator.CTPGraph_Realisation(
+        key, 5, prop_stoch=0.4, expensive_edge=True
+    )
     return graphRealisation
 
 
@@ -88,7 +90,6 @@ def test_check_blocking_status(graphRealisation: CTP_generator.CTPGraph_Realisat
 
 # Check that always an edge between goal and origin
 # Check that this edge has the greatest weight
-"""
 def test_goal_origin_connected(graphRealisation: CTP_generator.CTPGraph_Realisation):
     assert (
         graphRealisation.graph.weights[
@@ -105,7 +106,6 @@ def test_goal_origin_connected(graphRealisation: CTP_generator.CTPGraph_Realisat
     assert graphRealisation.graph.weights[
         graphRealisation.graph.origin, graphRealisation.graph.goal
     ] == jnp.max(graphRealisation.graph.weights)
-"""
 
 
 def test_normalize(graphRealisation: CTP_generator.CTPGraph_Realisation):

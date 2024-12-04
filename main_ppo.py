@@ -19,6 +19,7 @@ from Evaluation.inference import plotting_inference
 import numpy as np
 import wandb
 from distutils.util import strtobool
+from jax_tqdm import scan_tqdm
 
 NUM_CHANNELS_IN_BELIEF_STATE = 4
 
@@ -150,6 +151,7 @@ def main(args):
 
     print("Start training ...")
 
+    @scan_tqdm(num_loops)
     def _update_step(runner_state, unused):
         # Collect trajectories
         runner_state, traj_batch = jax.lax.scan(
@@ -215,7 +217,9 @@ def main(args):
         loop_count,
         jnp.bool_(True),
     )
-    runner_state, metrics = jax.lax.scan(_update_step, runner_state, None, num_loops)
+    runner_state, metrics = jax.lax.scan(
+        _update_step, runner_state, jnp.arange(num_loops)
+    )
     train_state = runner_state[0]
     # Metrics will be stacked
     out = jax.tree_util.tree_map(lambda x: jnp.reshape(x, (-1,)), metrics)
@@ -357,7 +361,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--deal_with_unsolvability",
         type=str,
-        default=True,
+        default="expensive_edge_if_unsolvable",
         required=False,
         help="Options: always_expensive_edge, expensive_edge_if_unsolvable, resample",
     )
@@ -367,6 +371,13 @@ if __name__ == "__main__":
         default=True,
         required=False,
         help="Whether to train and perform inference with multiple different graphs",
+    )
+    parser.add_argument(
+        "--factor_inference_timesteps",
+        type=int,
+        required=False,
+        default=100,
+        help="Number to multiply with the number of nodes to get the total number of inference timesteps",
     )
 
     # Args specific to PPO:
