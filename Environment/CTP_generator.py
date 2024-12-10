@@ -383,42 +383,55 @@ class CTPGraph_Realisation:
         return blocking_status
 
     # for single agent only
-    # Return whether an unblocked path exists from origin to goal using networkx library
+    @partial(jax.jit, static_argnums=(0,))
     def is_solvable(self, blocking_status) -> bool:
-        # Remove the blocked edges from the graph before converting to networkx
-        # New senders and receivers that are unblocked edges
-        def __filter_unblocked_senders(sender, receiver, status):
-            return jax.lax.cond(
-                status[sender, receiver] == False,  # Check if the edge is not blocked
-                lambda _: sender,  # Include the sender if unblocked
-                lambda _: NOT_CONNECTED,  # Use -1 as a placeholder for blocked edges
-                operand=None,
+        # Modified version of dijkstra_shortest_path
+        graph = self.graph.weights
+        # Change the weights element where blocking_prob is 1 to -1
+        graph = jnp.where(
+            blocking_status == BLOCKED,
+            NOT_CONNECTED,
+            graph,
+        )
+        # Change all -1 elements to infinity
+        graph = jnp.where(graph == NOT_CONNECTED, jnp.inf, graph)
+
+        # Initialize distances with "infinity" and visited nodes
+        distances = jnp.inf * jnp.ones(self.graph.n_nodes)
+        distances = distances.at[self.graph.origin].set(0)
+        visited = jnp.zeros(self.graph.n_nodes, dtype=bool)
+
+        def body_fun(i, carry):
+            distances, visited = carry
+
+            # Find the node with the minimum distance that hasn't been visited yet
+            unvisited_distances = jnp.where(visited, jnp.inf, distances)
+            current_node = jnp.argmin(unvisited_distances)
+            current_distance = distances[current_node]
+
+            # Mark this node as visited
+            visited = visited.at[current_node].set(True)
+
+            # Update distances to neighboring nodes
+            neighbors = graph[current_node, :]
+            new_distances = jnp.where(
+                (neighbors < jnp.inf) & (~visited),
+                jnp.minimum(distances, current_distance + neighbors),
+                distances,
             )
+            return new_distances, visited
 
-        filtered_senders = jax.vmap(__filter_unblocked_senders, in_axes=(0, 0, None))(
-            self.graph.senders, self.graph.receivers, blocking_status
+        # Run the loop with `jax.lax.fori_loop`
+        distances, visited = jax.lax.fori_loop(
+            0, self.graph.n_nodes, body_fun, (distances, visited)
         )
-
-        # Remove placeholder values (-1) and return only valid sender values
-        unblocked_senders = self.graph.senders[filtered_senders != NOT_CONNECTED]
-        unblocked_receivers = self.graph.receivers[filtered_senders != NOT_CONNECTED]
-        graph_NX = nx.Graph()
-        for i in range(self.graph.n_nodes):
-            graph_NX.add_node(i, pos=tuple(self.graph.node_pos[i].tolist()))
-        if unblocked_senders.size > 0:
-            for i in range(self.graph.n_edges):
-                if (
-                    blocking_status[unblocked_senders[i], unblocked_receivers[i]]
-                    == UNBLOCKED
-                ):
-                    graph_NX.add_edge(
-                        unblocked_senders[i].item(), unblocked_receivers[i].item()
-                    )
-        solvable = nx.has_path(
-            graph_NX, self.graph.origin.item(), self.graph.goal.item()
+        solvable = jax.lax.cond(
+            distances[self.graph.goal][0] == jnp.inf,
+            lambda _: jnp.bool_(False),
+            lambda _: jnp.bool_(True),
+            operand=None,
         )
-        self.solvable = solvable
-        return jnp.bool_(solvable)
+        return solvable
 
     def plot_realised_graph(
         self, blocking_status: jnp.ndarray, directory, file_name="realised_graph.png"

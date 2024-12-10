@@ -77,7 +77,7 @@ class CTP(MultiAgentEnv):
     @partial(jax.jit, static_argnums=(0,))
     def reset(self, key: chex.PRNGKey) -> tuple[EnvState, Belief_State]:
         key, subkey = jax.random.split(key)
-
+        # Must still use pure_callback because we use tracer boolean in the condition of while loop
         # This still works for when we add an expensive edge - the first blocking status that is sampled will be used.
         result_shape = jax.ShapeDtypeStruct(
             (self.num_nodes, self.num_nodes), jnp.float16
@@ -280,10 +280,10 @@ class CTP(MultiAgentEnv):
             dtype=jnp.float16,
         )
 
-    def get_solvable_realisation(self, subkey: jax.random.PRNGKey):
+    def get_solvable_realisation(self, subkey: jax.random.PRNGKey) -> jnp.ndarray:
         patience_counter = 0
         is_solvable = jnp.bool_(False)
-        # switch to using jax.lax.while_loop
+        # cannot switch to jax.lax.while_loop because using a tracer boolean in the condition of while loop
         while is_solvable == jnp.bool_(False) and patience_counter < self.patience:
             _, subkey = jax.random.split(subkey)
             new_blocking_status = self.graph_realisation.sample_blocking_status(subkey)
