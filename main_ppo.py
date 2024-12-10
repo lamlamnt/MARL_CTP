@@ -362,9 +362,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--deal_with_unsolvability",
         type=str,
-        default="expensive_edge_if_unsolvable",
+        default="expensive_if_unsolvable",
         required=False,
-        help="Options: always_expensive_edge, expensive_edge_if_unsolvable, resample",
+        help="Options: always_expensive_edge, expensive_if_unsolvable, resample",
     )
     parser.add_argument(
         "--generalize",
