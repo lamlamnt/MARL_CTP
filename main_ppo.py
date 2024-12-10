@@ -230,6 +230,28 @@ def main(args):
     loss_actor = out["losses"][1][1]
     entropy_loss = out["losses"][1][2]
 
+    # Create a new environment to get unseen graphs for inference
+    if args.generalize:
+        inference_key = jax.random.PRNGKey(args.random_seed_for_inference)
+        print("Start generating graphs for inference ...")
+        environment = CTP_environment_generalize.CTP_General(
+            args.n_agent,
+            1,
+            n_node,
+            inference_key,
+            prop_stoch=args.prop_stoch,
+            k_edges=args.k_edges,
+            grid_size=args.grid_size,
+            reward_for_invalid_action=args.reward_for_invalid_action,
+            reward_for_goal=args.reward_for_goal,
+            factor_expensive_edge=args.factor_expensive_edge,
+            deal_with_unsolvability=args.deal_with_unsolvability,
+            patience=args.patience,
+            num_stored_graphs=args.factor_inference_timesteps // 2,
+        )
+        # Choose num_stored_graphs to be equal to the factor_inference_timesteps because I want the
+        # number of graphs generated to be roughly equal to the number of inference episodes/2
+
     plotting_inference(
         log_directory,
         start_time,
