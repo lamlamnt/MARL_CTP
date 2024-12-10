@@ -70,6 +70,7 @@ def main(args):
             factor_expensive_edge=args.factor_expensive_edge,
             deal_with_unsolvability=args.deal_with_unsolvability,
             patience=args.patience,
+            num_stored_graphs=args.num_stored_graphs,
         )
     else:
         if args.hand_crafted_graph != "None":
@@ -443,6 +444,13 @@ if __name__ == "__main__":
         required=False,
         default=5,
         help="Number of times we try to resample a solvable realisation before giving up. If any other options besides resample is chosen for deal_with_unsolvable, then this is not applicable",
+    )
+    parser.add_argument(
+        "--num_stored_graphs",
+        type=int,
+        required=False,
+        help="How many different graphs will be seen by the agent",
+        default=1000,
     )
 
     args = parser.parse_args()

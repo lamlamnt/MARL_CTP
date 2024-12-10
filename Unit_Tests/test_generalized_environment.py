@@ -42,13 +42,15 @@ def expensive_if_unsolvable_environment():
 # Test belief state
 # Test reach goal
 def test_different_graph(
-    expensive_edge_environment: CTP_environment_generalize.CTP_General,
+    expensive_if_unsolvable_environment: CTP_environment_generalize.CTP_General,
 ):
     key = jax.random.PRNGKey(1)
     subkey1, subkey2 = jax.random.split(key)
-    initial_env_state1, initial_belief_state1 = expensive_edge_environment.reset(key)
-    initial_env_state2, initial_belief_state2 = expensive_edge_environment.reset(
-        subkey1
+    initial_env_state1, initial_belief_state1 = (
+        expensive_if_unsolvable_environment.reset(key)
+    )
+    initial_env_state2, initial_belief_state2 = (
+        expensive_if_unsolvable_environment.reset(subkey1)
     )
     assert not jnp.array_equal(initial_env_state1, initial_env_state2)
     assert jnp.array_equal(
@@ -57,7 +59,7 @@ def test_different_graph(
     # Not the only way to get the goal node
     goal = jnp.unravel_index(jnp.argmax(initial_env_state2[3, 1:, :]), (5, 5))[0]
     env_state_next, belief_state_next, reward_next, terminate, subkey = (
-        expensive_edge_environment.step(
+        expensive_if_unsolvable_environment.step(
             subkey2, initial_env_state2, initial_belief_state2, jnp.array([goal])
         )
     )

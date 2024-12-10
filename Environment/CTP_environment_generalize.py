@@ -7,6 +7,10 @@ import chex
 from chex import dataclass
 from Environment import CTP_generator
 from typing import TypeAlias
+import sys
+
+sys.path.append("..")
+from Utils import graph_functions
 
 # Belief_state contains the agents' positions + current knowledge about blocked status, edge_weights, edge_probs, and goals in this order
 # 4D tensor where each channel is size (num_agents+num_nodes, num_agents+num_nodes)
@@ -32,6 +36,7 @@ class CTP_General(MultiAgentEnv):
         handcrafted_graph=None,
         deal_with_unsolvability="always_expensive_edge",
         patience=5,
+        num_stored_graphs=10,
     ):
         """
         List of attributes:
@@ -42,12 +47,7 @@ class CTP_General(MultiAgentEnv):
         action_spaces
         graph_realisation: CTPGraph_Realisation
         patience: int # How many times we try to find a solvable blocking status before giving up
-
-        num_goals: int
-        prop_stoch: float
-        k_edges: int
-        grid_size: int
-        deal_with_unsolvability: str (one of 3 options)
+        num_stored_graphs: int # Number of stored graphs to choose from
         factor_expensive_edge: float
         """
         super().__init__(num_agents=num_agents)
@@ -56,32 +56,99 @@ class CTP_General(MultiAgentEnv):
         self.reward_for_goal = jnp.float16(reward_for_goal)
         self.num_nodes = num_nodes
         self.patience = patience
+        self.num_stored_graphs = num_stored_graphs
+        self.factor_expensive_edge = factor_expensive_edge
 
         if handcrafted_graph is not None:
             raise ValueError("Generalizing. Cannot use handcrafted graph.")
-
-        # Arguments for generating graphs. Maybe put into more compact representation, like a dictionary
-        self.num_goals = num_goals
-        self.prop_stoch = prop_stoch
-        self.k_edges = k_edges
-        self.grid_size = grid_size
-        self.deal_with_unsolvability = deal_with_unsolvability
-        self.factor_expensive_edge = factor_expensive_edge
 
         actions = [num_nodes for _ in range(num_agents)]
         self.action_spaces = spaces.MultiDiscrete(actions)
 
         # Store pre-generated graphs
+        key, subkey = jax.random.split(key)
+        self.graph_list = []
+        if deal_with_unsolvability != "expensive_if_unsolvable":
+            raise ValueError("Not implemented yet.")
+        self.stored_graphs = jnp.zeros(
+            (num_stored_graphs, 3, num_nodes, num_nodes), dtype=jnp.float16
+        )
+        for i in range(num_stored_graphs):
+            key, subkey = jax.random.split(subkey)
+            graph_realisation = CTP_generator.CTPGraph_Realisation(
+                subkey,
+                self.num_nodes,
+                grid_size=grid_size,
+                prop_stoch=prop_stoch,
+                k_edges=k_edges,
+                num_goals=num_goals,
+                factor_expensive_edge=factor_expensive_edge,
+                expensive_edge=False,
+            )
+            # Store the matrix of weights, blocking probs, and origin/goal
+            self.stored_graphs = self.stored_graphs.at[i, 0, :, :].set(
+                graph_realisation.graph.weights
+            )
+            self.stored_graphs = self.stored_graphs.at[i, 1, :, :].set(
+                graph_realisation.graph.blocking_prob
+            )
+            self.stored_graphs = self.stored_graphs.at[i, 2, 0, 0].set(
+                graph_realisation.graph.origin[0]
+            )
+            self.stored_graphs = self.stored_graphs.at[i, 2, 0, 1].set(
+                graph_realisation.graph.goal[0]
+            )
 
     @partial(jax.jit, static_argnums=(0,))
     def reset(self, key: chex.PRNGKey) -> tuple[EnvState, Belief_State]:
         key, subkey = jax.random.split(key)
 
-        # Pure callback function to return the env state
-        result_shape = jax.ShapeDtypeStruct(
-            (4, (self.num_nodes + self.num_agents), self.num_nodes), jnp.float16
+        # Sample from list of stored graph realisations
+        index = jax.random.randint(
+            subkey, shape=(), minval=0, maxval=self.num_stored_graphs - 1
         )
-        env_state = jax.pure_callback(self.get_initial_env_state, result_shape, subkey)
+        current_graph_weights = self.stored_graphs[index, 0, :, :]
+        current_graph_blocking_prob = self.stored_graphs[index, 1, :, :]
+        current_graph_origin = self.stored_graphs[index, 2, 0, 0].astype(jnp.int16)
+        current_graph_goal = self.stored_graphs[index, 2, 0, 1].astype(jnp.int16)
+
+        # Get solvable realisation - add expensive edge if unsolvable
+        new_blocking_status = graph_functions.sample_blocking_status(
+            subkey, current_graph_blocking_prob
+        )
+        is_solvable = graph_functions.is_solvable(
+            current_graph_weights,
+            new_blocking_status,
+            current_graph_origin,
+            current_graph_goal,
+        )
+
+        new_blocking_status, current_graph_weights, current_graph_blocking_prob = (
+            jax.lax.cond(
+                is_solvable == jnp.bool_(False),
+                lambda _: self.__add_expensive_edge(
+                    new_blocking_status,
+                    current_graph_weights,
+                    current_graph_blocking_prob,
+                    current_graph_goal,
+                    current_graph_origin,
+                ),
+                lambda _: (
+                    new_blocking_status,
+                    current_graph_weights,
+                    current_graph_blocking_prob,
+                ),
+                operand=None,
+            )
+        )
+
+        env_state = self.__convert_graph_realisation_to_state(
+            current_graph_origin,
+            current_graph_goal,
+            new_blocking_status,
+            current_graph_weights,
+            current_graph_blocking_prob,
+        )
 
         # return the initial belief state
         original_observation = self.get_obs(env_state)
@@ -242,98 +309,27 @@ class CTP_General(MultiAgentEnv):
 
         return new_belief_state
 
-    def get_initial_env_state(self, key: jax.random.PRNGKey):
-        if self.deal_with_unsolvability == "always_expensive_edge":
-            auto_expensive_edge = True
-        else:
-            auto_expensive_edge = False
-        graph_realisation = CTP_generator.CTPGraph_Realisation(
-            key,
-            self.num_nodes,
-            grid_size=self.grid_size,
-            prop_stoch=self.prop_stoch,
-            k_edges=self.k_edges,
-            num_goals=self.num_goals,
-            factor_expensive_edge=self.factor_expensive_edge,
-            expensive_edge=auto_expensive_edge,
-        )
-        _, subkey = jax.random.split(key)
-
-        # Resample until we get a solvable realisation
-        if self.deal_with_unsolvability == "resample":
-            patience_counter = 0
-            is_solvable = jnp.bool_(False)
-            while is_solvable == jnp.bool_(False) and patience_counter < self.patience:
-                key, subkey = jax.random.split(subkey)
-                new_blocking_status = graph_realisation.sample_blocking_status(subkey)
-                is_solvable = graph_realisation.is_solvable(new_blocking_status)
-                patience_counter += 1
-            # error if is_solvable is False
-            if is_solvable == jnp.bool_(False):
-                raise ValueError(
-                    "Could not find enough solvable blocking status. Please decrease the prop_stoch."
-                )
-        elif self.deal_with_unsolvability == "always_expensive_edge":
-            new_blocking_status = graph_realisation.sample_blocking_status(subkey)
-        else:
-            new_blocking_status = graph_realisation.sample_blocking_status(subkey)
-            is_solvable = graph_realisation.is_solvable(new_blocking_status)
-            # Add expensive edge if unsolvable
-            if is_solvable == jnp.bool_(False):
-                upper_bound = (
-                    (self.num_nodes - 1)
-                    * jnp.max(graph_realisation.graph.weights)
-                    * self.factor_expensive_edge
-                )
-                graph_realisation.graph.weights = graph_realisation.graph.weights.at[
-                    graph_realisation.graph.origin, graph_realisation.graph.goal
-                ].set(upper_bound)
-                graph_realisation.graph.weights = graph_realisation.graph.weights.at[
-                    graph_realisation.graph.goal, graph_realisation.graph.origin
-                ].set(upper_bound)
-                graph_realisation.graph.blocking_prob = (
-                    graph_realisation.graph.blocking_prob.at[
-                        graph_realisation.graph.origin, graph_realisation.graph.goal
-                    ].set(0)
-                )
-                graph_realisation.graph.blocking_prob = (
-                    graph_realisation.graph.blocking_prob.at[
-                        graph_realisation.graph.goal, graph_realisation.graph.origin
-                    ].set(0)
-                )
-                new_blocking_status = new_blocking_status.at[
-                    graph_realisation.graph.origin, graph_realisation.graph.goal
-                ].set(CTP_generator.UNBLOCKED)
-                new_blocking_status = new_blocking_status.at[
-                    graph_realisation.graph.goal, graph_realisation.graph.origin
-                ].set(CTP_generator.UNBLOCKED)
-
-                # renormalize the edge weights by the expensive edge
-                max_weight = jnp.max(graph_realisation.graph.weights)
-                graph_realisation.graph.weights = jnp.where(
-                    graph_realisation.graph.weights != CTP_generator.NOT_CONNECTED,
-                    graph_realisation.graph.weights / max_weight,
-                    CTP_generator.NOT_CONNECTED,
-                )
-
-        # Put into env state
-        empty = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.float16)
-        edge_weights = jnp.concatenate((empty, graph_realisation.graph.weights), axis=0)
-        edge_probs = jnp.concatenate(
-            (empty, graph_realisation.graph.blocking_prob), axis=0
-        )
+    def __convert_graph_realisation_to_state(
+        self,
+        origin: int,
+        goal: int,
+        blocking_status: jnp.ndarray,
+        graph_weights: jnp.ndarray,
+        blocking_prob: jnp.ndarray,
+    ) -> EnvState:
         agents_pos = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.float16)
-        agents_pos = agents_pos.at[0, graph_realisation.graph.origin[0]].set(1)
-        pos_and_blocking_status = jnp.concatenate(
-            (agents_pos, new_blocking_status), axis=0
-        )
+        agents_pos = agents_pos.at[0, origin].set(1)
+        empty = jnp.zeros((self.num_agents, self.num_nodes), dtype=jnp.float16)
+        edge_weights = jnp.concatenate((empty, graph_weights), axis=0)
+        edge_probs = jnp.concatenate((empty, blocking_prob), axis=0)
+        pos_and_blocking_status = jnp.concatenate((agents_pos, blocking_status), axis=0)
 
         # Top part is each agent's service history. Bottom part is number of times each goal needs to
         # be serviced
         goal_matrix = jnp.zeros_like(pos_and_blocking_status)
         goal_matrix = goal_matrix.at[
-            self.num_agents + graph_realisation.graph.goal[0],
-            graph_realisation.graph.goal[0],
+            self.num_agents + goal,
+            goal,
         ].set(1)
 
         return jnp.stack(
@@ -341,3 +337,43 @@ class CTP_General(MultiAgentEnv):
             axis=0,
             dtype=jnp.float16,
         )
+
+    def __add_expensive_edge(
+        self, blocking_status, graph_weights, blocking_prob, goal, origin
+    ):
+        upper_bound = (
+            (self.num_nodes - 1) * jnp.max(graph_weights) * self.factor_expensive_edge
+        )
+        graph_weights = graph_weights.at[
+            origin,
+            goal,
+        ].set(upper_bound)
+        graph_weights = graph_weights.at[
+            goal,
+            origin,
+        ].set(upper_bound)
+        blocking_prob = blocking_prob.at[
+            origin,
+            goal,
+        ].set(0)
+        blocking_prob = blocking_prob.at[
+            goal,
+            origin,
+        ].set(0)
+        blocking_status = blocking_status.at[
+            origin,
+            goal,
+        ].set(CTP_generator.UNBLOCKED)
+        blocking_status = blocking_status.at[
+            goal,
+            origin,
+        ].set(CTP_generator.UNBLOCKED)
+
+        # renormalize the edge weights by the expensive edge
+        max_weight = jnp.max(graph_weights)
+        graph_weights = jnp.where(
+            graph_weights != CTP_generator.NOT_CONNECTED,
+            graph_weights / max_weight,
+            CTP_generator.NOT_CONNECTED,
+        )
+        return blocking_status, graph_weights, blocking_prob
