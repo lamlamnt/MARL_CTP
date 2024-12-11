@@ -57,6 +57,7 @@ def main(args):
     online_key, environment_key = subkeys
 
     if args.generalize:
+        start_time_environment_creation = time.time()
         environment = CTP_environment_generalize.CTP_General(
             args.n_agent,
             1,
@@ -71,6 +72,10 @@ def main(args):
             deal_with_unsolvability=args.deal_with_unsolvability,
             patience=args.patience,
             num_stored_graphs=args.num_stored_graphs,
+        )
+        end_time_environment_creation = time.time()
+        time_environment_creation = (
+            end_time_environment_creation - start_time_environment_creation
         )
     else:
         if args.hand_crafted_graph != "None":
@@ -205,7 +210,7 @@ def main(args):
 
         return runner_state, metrics
 
-    start_time = time.time()
+    start_training_time = time.time()
     new_env_state, new_belief_state = environment.reset(init_key)
     timestep_in_episode = jnp.int32(0)
     loop_count = jnp.int32(0)
@@ -252,9 +257,16 @@ def main(args):
         # Choose num_stored_graphs to be equal to the factor_inference_timesteps because I want the
         # number of graphs generated to be roughly equal to the number of inference episodes/2
 
+    # Put the different times in a dictionary
+    time_info = {
+        "start_training_time": start_training_time,
+        "environment_creation_time": time_environment_creation,
+        "start_time": start_time_environment_creation,
+    }
+
     plotting_inference(
         log_directory,
-        start_time,
+        time_info,
         train_state.params,
         out,
         environment,

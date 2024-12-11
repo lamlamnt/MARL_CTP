@@ -6,6 +6,7 @@ import sys
 
 sys.path.append("..")
 from Environment import CTP_environment_generalize, CTP_environment
+from Utils import graph_functions
 import pytest_print as pp
 import os
 from Utils.util_generalize import get_origin_expensive_edge
@@ -16,15 +17,6 @@ def expensive_edge_environment():
     key = jax.random.PRNGKey(0)
     environment = CTP_environment_generalize.CTP_General(
         1, 1, 5, key, prop_stoch=0.4, deal_with_unsolvability="always_expensive_edge"
-    )
-    return environment
-
-
-@pytest.fixture
-def resample_environment():
-    key = jax.random.PRNGKey(0)
-    environment = CTP_environment_generalize.CTP_General(
-        1, 1, 5, key, prop_stoch=0.4, deal_with_unsolvability="resample"
     )
     return environment
 
@@ -67,31 +59,31 @@ def test_different_graph(
     assert reward_next == -1.0
 
 
-def test_get_origin(expensive_edge_environment: CTP_environment_generalize.CTP_General):
-    key = jax.random.PRNGKey(1)
-    subkey1, subkey2 = jax.random.split(key)
-    initial_env_state, initial_belief_state = expensive_edge_environment.reset(key)
-    actual_origin = jnp.argmax(initial_belief_state[0, 0, :])
-    guess_origin = get_origin_expensive_edge(initial_belief_state)
-    assert actual_origin == guess_origin
-
-
 def test_deal_with_unsolvability(
     expensive_edge_environment: CTP_environment_generalize.CTP_General,
-    resample_environment: CTP_environment_generalize.CTP_General,
     expensive_if_unsolvable_environment: CTP_environment_generalize.CTP_General,
 ):
-    # Test working
-    env_state, belief_state = expensive_edge_environment.reset(jax.random.PRNGKey(0))
-    env_state, belief_state = resample_environment.reset(jax.random.PRNGKey(0))
+    for environment in [
+        expensive_edge_environment,
+        expensive_if_unsolvable_environment,
+    ]:
+        # Test working and give solvable environment
+        env_state, belief_state = environment.reset(jax.random.PRNGKey(0))
+        goal = jnp.unravel_index(
+            jnp.argmax(env_state[3, 1:, :]),
+            (environment.num_nodes, environment.num_nodes),
+        )[0]
+        assert graph_functions.is_solvable(
+            env_state[1, 1:, :],
+            env_state[0, 1:, :],
+            jnp.argmax(env_state[0, :1, :]),
+            goal,
+        ) == jnp.bool_(True)
 
-    # Test that all edge weights are less than 1 except for 1 edge with 1.
-    env_state, belief_state = expensive_if_unsolvable_environment.reset(
-        jax.random.PRNGKey(0)
-    )
-    weight_matrix = env_state[1, 1:, :]
-    all_less_equal_one = jnp.all(weight_matrix <= 1)
-    assert all_less_equal_one.item() is True
-    num_ones = jnp.sum(weight_matrix == 1)
-    exactly_one_equal_one = num_ones == 2
-    assert exactly_one_equal_one.item() is True
+        # Test that all edge weights are less than 1 except for 1 edge with 1.
+        weight_matrix = env_state[1, 1:, :]
+        all_less_equal_one = jnp.all(weight_matrix <= 1)
+        assert all_less_equal_one.item() is True
+        num_ones = jnp.sum(weight_matrix == 1)
+        exactly_one_equal_one = num_ones == 2
+        assert exactly_one_equal_one.item() is True

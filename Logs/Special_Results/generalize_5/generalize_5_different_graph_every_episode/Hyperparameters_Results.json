@@ -1,0 +1,48 @@
+{"n_node": 5, "n_agent": 1, "time_steps": 95000, "reward_for_invalid_action": -200.0, "reward_for_goal": 0, "reward_exceed_horizon": -1.1, "horizon_length_factor": 5, "factor_expensive_edge": 1.0, "prop_stoch": 0.4, "k_edges": null, "grid_size": null, "random_seed_for_training": 30, "random_seed_for_inference": 40, "discount_factor": 1.0, "anneal_lr": false, "learning_rate": 0.001, "num_update_epochs": 4, "log_directory": "generalize_5", "hand_crafted_graph": "None", "wandb_mode": "disabled", "wandb_project_name": "no_name", "deal_with_unsolvability": "expensive_if_unsolvable", "generalize": true, "factor_inference_timesteps": 100, "num_steps_before_update": 600, "gae_lambda": 0.95, "clip_eps": 0.2, "vf_coeff": 0.05, "ent_coeff": 0.05, "anneal_ent_coeff": true, "num_minibatches": 4, "deterministic_inference_policy": false, "patience": 5}
+{
+    "current_datetime": "2024-12-05 15:32:26"
+}
+{"Total training time in seconds": 11420.826501607895}
+{"Total Loss": 0.07251303642988205, "Weighted Value Loss": 0.0734395980834961, "Actor Loss": -0.0007773884572088718, "Weighted Entropy Loss": 0.023569549620151523}
+Training results: 
+{
+    "final_regret": 1.2400000095367432,
+    "final_competitive_ratio": 1.735032558441162,
+    "avg_reward_last_episode": -1.9578999996185302,
+    "max_reward": -0.824999988079071
+}
+Testing results: 
+{
+    "average_regret": 0.37795501947402954,
+    "average_competitive_ratio": 1.2648450136184692,
+    "median_competitive_ratio": 1.0,
+    "max_competitive_ratio": 5.9692206382751465,
+    "average_reward": -1.6587049961090088
+}
+
+Network architecture: 
+params/Block_CNN_10_0/conv_1/bias: (40,)
+params/Block_CNN_10_0/conv_1/kernel: (1, 1, 4, 40)
+params/Block_CNN_10_0/dense_1/bias: (256,)
+params/Block_CNN_10_0/dense_1/kernel: (160, 256)
+params/Block_CNN_10_0/dense_2/bias: (128,)
+params/Block_CNN_10_0/dense_2/kernel: (256, 128)
+params/Block_CNN_10_0/dense_3/bias: (64,)
+params/Block_CNN_10_0/dense_3/kernel: (128, 64)
+params/Block_CNN_10_0/dense_4/bias: (32,)
+params/Block_CNN_10_0/dense_4/kernel: (64, 32)
+params/Block_CNN_10_1/conv_1/bias: (40,)
+params/Block_CNN_10_1/conv_1/kernel: (1, 1, 4, 40)
+params/Block_CNN_10_1/dense_1/bias: (256,)
+params/Block_CNN_10_1/dense_1/kernel: (160, 256)
+params/Block_CNN_10_1/dense_2/bias: (128,)
+params/Block_CNN_10_1/dense_2/kernel: (256, 128)
+params/Block_CNN_10_1/dense_3/bias: (64,)
+params/Block_CNN_10_1/dense_3/kernel: (128, 64)
+params/Block_CNN_10_1/dense_4/bias: (32,)
+params/Block_CNN_10_1/dense_4/kernel: (64, 32)
+params/actor_dense_actions/bias: (5,)
+params/actor_dense_actions/kernel: (32, 5)
+params/critic_dense_actions/bias: (1,)
+params/critic_dense_actions/kernel: (32, 1)
+Total number of parameters in the network: 169494

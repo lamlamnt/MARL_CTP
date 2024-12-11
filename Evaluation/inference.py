@@ -22,7 +22,7 @@ from jax_tqdm import scan_tqdm
 
 def plotting_inference(
     log_directory,
-    start_time,
+    time_info,
     model_params,
     out,
     environment: CTP_environment_generalize.CTP_General,
@@ -41,7 +41,7 @@ def plotting_inference(
         f.write(flax.serialization.to_bytes(model_params))
     # Put here to ensure timing is correct (plotting time is negligible)
     end_time = time.time()
-    elapsed_time = end_time - start_time
+    elapsed_time = end_time - time_info["start_training_time"]
 
     training_result_dict = plotting.save_data_and_plotting(
         out["all_done"],
@@ -218,12 +218,25 @@ def plotting_inference(
     date_time = {"current_datetime": current_datetime}
     dict_args = vars(args)
     args_path = os.path.join(log_directory, "Hyperparameters_Results" + ".json")
+    end_time = time.time()
+    total_time = end_time - time_info["start_time"]
     with open(args_path, "w") as fh:
         json.dump(dict_args, fh)
         fh.write("\n")
         json.dump(date_time, fh, indent=4)
         fh.write("\n")
+        json.dump(
+            {
+                "Total environment creation time in seconds": time_info[
+                    "environment_creation_time"
+                ]
+            },
+            fh,
+        )
+        fh.write("\n")
         json.dump({"Total training time in seconds": elapsed_time}, fh)
+        fh.write("\n")
+        json.dump({"Total time in seconds": total_time}, fh)
         fh.write("\n")
         json.dump(loss, fh)
         fh.write("\n")

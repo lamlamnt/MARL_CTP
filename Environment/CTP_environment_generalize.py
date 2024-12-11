@@ -68,8 +68,12 @@ class CTP_General(MultiAgentEnv):
         # Store pre-generated graphs
         key, subkey = jax.random.split(key)
         self.graph_list = []
-        if deal_with_unsolvability != "expensive_if_unsolvable":
+        if deal_with_unsolvability == "resample":
             raise ValueError("Not implemented yet.")
+        elif deal_with_unsolvability == "always_expensive_edge":
+            auto_expensive_edge = True
+        else:
+            auto_expensive_edge = False
         self.stored_graphs = jnp.zeros(
             (num_stored_graphs, 3, num_nodes, num_nodes), dtype=jnp.float16
         )
@@ -83,7 +87,7 @@ class CTP_General(MultiAgentEnv):
                 k_edges=k_edges,
                 num_goals=num_goals,
                 factor_expensive_edge=factor_expensive_edge,
-                expensive_edge=False,
+                expensive_edge=auto_expensive_edge,
             )
             # Store the matrix of weights, blocking probs, and origin/goal
             self.stored_graphs = self.stored_graphs.at[i, 0, :, :].set(
@@ -341,9 +345,12 @@ class CTP_General(MultiAgentEnv):
     def __add_expensive_edge(
         self, blocking_status, graph_weights, blocking_prob, goal, origin
     ):
+        """
         upper_bound = (
             (self.num_nodes - 1) * jnp.max(graph_weights) * self.factor_expensive_edge
         )
+        """
+        upper_bound = jnp.max(graph_weights) * self.factor_expensive_edge
         graph_weights = graph_weights.at[
             origin,
             goal,
