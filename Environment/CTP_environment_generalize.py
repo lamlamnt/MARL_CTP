@@ -345,12 +345,10 @@ class CTP_General(MultiAgentEnv):
     def __add_expensive_edge(
         self, blocking_status, graph_weights, blocking_prob, goal, origin
     ):
-        """
         upper_bound = (
             (self.num_nodes - 1) * jnp.max(graph_weights) * self.factor_expensive_edge
         )
-        """
-        upper_bound = jnp.max(graph_weights) * self.factor_expensive_edge
+        # upper_bound = jnp.max(graph_weights) * self.factor_expensive_edge
         graph_weights = graph_weights.at[
             origin,
             goal,

@@ -153,6 +153,7 @@ def main(args):
         num_loops=num_loops,
         anneal_ent_coeff=args.anneal_ent_coeff,
         deterministic_inference_policy=args.deterministic_inference_policy,
+        ent_coeff_schedule=args.ent_coeff_schedule,
     )
 
     print("Start training ...")
@@ -457,6 +458,13 @@ if __name__ == "__main__":
         required=False,
         default=True,
         help="Whether to anneal the entropy (exploration) coefficient",
+    )
+    parser.add_argument(
+        "--ent_coeff_schedule",
+        type=str,
+        required=False,
+        help="Options: linear, sigmoid",
+        default="linear",
     )
     parser.add_argument(
         "--num_minibatches",

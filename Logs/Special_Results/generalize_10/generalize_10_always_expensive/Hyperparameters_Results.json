@@ -1,0 +1,50 @@
+{"n_node": 10, "n_agent": 1, "time_steps": 2000000, "reward_for_invalid_action": -200.0, "reward_for_goal": 0, "reward_exceed_horizon": -1.1, "horizon_length_factor": 5, "factor_expensive_edge": 1.0, "prop_stoch": 0.4, "k_edges": null, "grid_size": null, "random_seed_for_training": 30, "random_seed_for_inference": 40, "discount_factor": 1.0, "anneal_lr": false, "learning_rate": 0.001, "num_update_epochs": 4, "log_directory": "generalize_10_always_expensive", "hand_crafted_graph": "None", "wandb_mode": "disabled", "wandb_project_name": "no_name", "deal_with_unsolvability": "always_expensive_edge", "generalize": true, "factor_inference_timesteps": 500, "num_steps_before_update": 600, "gae_lambda": 0.95, "clip_eps": 0.2, "vf_coeff": 0.05, "ent_coeff": 0.05, "anneal_ent_coeff": true, "num_minibatches": 4, "deterministic_inference_policy": false, "patience": 5, "num_stored_graphs": 3000}
+{
+    "current_datetime": "2024-12-11 07:32:48"
+}
+{"Total environment creation time in seconds": 1632.433732509613}
+{"Total training time in seconds": 832.7042798995972}
+{"Total time in seconds": 2510.9763000011444}
+{"Total Loss": 0.004516806919127703, "Weighted Value Loss": 0.007360906153917313, "Actor Loss": -0.0028261917177587748, "Weighted Entropy Loss": 0.059682875871658325}
+Training results: 
+{
+    "final_regret": 0.8569999933242798,
+    "final_competitive_ratio": 6.993006706237793,
+    "avg_reward_last_episode": -1.2941999956965446,
+    "max_reward": -0.10199999809265137
+}
+Testing results: 
+{
+    "average_regret": 0.7541865110397339,
+    "average_competitive_ratio": 5.514449119567871,
+    "median_competitive_ratio": 5.347593307495117,
+    "max_competitive_ratio": 24.962499618530273,
+    "average_reward": -0.9404780864715576
+}
+
+Network architecture: 
+params/Block_CNN_10_0/conv_1/bias: (40,)
+params/Block_CNN_10_0/conv_1/kernel: (1, 1, 4, 40)
+params/Block_CNN_10_0/dense_1/bias: (256,)
+params/Block_CNN_10_0/dense_1/kernel: (800, 256)
+params/Block_CNN_10_0/dense_2/bias: (128,)
+params/Block_CNN_10_0/dense_2/kernel: (256, 128)
+params/Block_CNN_10_0/dense_3/bias: (64,)
+params/Block_CNN_10_0/dense_3/kernel: (128, 64)
+params/Block_CNN_10_0/dense_4/bias: (32,)
+params/Block_CNN_10_0/dense_4/kernel: (64, 32)
+params/Block_CNN_10_1/conv_1/bias: (40,)
+params/Block_CNN_10_1/conv_1/kernel: (1, 1, 4, 40)
+params/Block_CNN_10_1/dense_1/bias: (256,)
+params/Block_CNN_10_1/dense_1/kernel: (800, 256)
+params/Block_CNN_10_1/dense_2/bias: (128,)
+params/Block_CNN_10_1/dense_2/kernel: (256, 128)
+params/Block_CNN_10_1/dense_3/bias: (64,)
+params/Block_CNN_10_1/dense_3/kernel: (128, 64)
+params/Block_CNN_10_1/dense_4/bias: (32,)
+params/Block_CNN_10_1/dense_4/kernel: (64, 32)
+params/actor_dense_actions/bias: (10,)
+params/actor_dense_actions/kernel: (32, 10)
+params/critic_dense_actions/bias: (1,)
+params/critic_dense_actions/kernel: (32, 1)
+Total number of parameters in the network: 497339

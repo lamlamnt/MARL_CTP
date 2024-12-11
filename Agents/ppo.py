@@ -41,6 +41,7 @@ class PPO:
         num_loops: int,
         anneal_ent_coeff: bool,
         deterministic_inference_policy: bool,
+        ent_coeff_schedule: str,
     ) -> None:
         self.model = model
         self.environment = environment
@@ -56,9 +57,17 @@ class PPO:
         self.num_loops = num_loops
         self.anneal_ent_coeff = anneal_ent_coeff
         self.deterministic_inference_policy = deterministic_inference_policy
+        self.ent_coeff_schedule = ent_coeff_schedule
 
     def _ent_coeff_schedule(self, loop_count):
-        frac = 1.0 - loop_count / self.num_loops
+        # frac = 1.0 - loop_count / self.num_loops
+        # linear or sigmoid schedule
+        frac = jax.lax.cond(
+            self.ent_coeff_schedule == "linear",
+            lambda _: 1.0 - loop_count / self.num_loops,
+            lambda _: 1 / (1 + jnp.exp(10 * (loop_count / self.num_loops - 0.5))),
+            operand=None,
+        )
         return self.ent_coeff * frac
 
     # For inference only
