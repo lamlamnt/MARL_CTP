@@ -6,7 +6,7 @@ sys.path.append("..")
 from Environment import CTP_generator
 from Evaluation import optimal_path_length
 
-NUM_SAMPLES_FACTOR = 50
+NUM_SAMPLES_FACTOR = 20
 
 
 # Sample blocking status for several times, perform dijkstra and get the average path length
@@ -20,11 +20,26 @@ def get_expected_optimal_path_length(
     num_samples = NUM_SAMPLES_FACTOR * graphRealisation.graph.n_nodes
     key = jax.random.split(key, num=num_samples)
     empty = jnp.zeros((num_agents, graphRealisation.graph.n_nodes), dtype=jnp.float16)
+    path_lengths = jnp.zeros(num_samples, dtype=jnp.float16)
 
-    def scan_body(carry, i):
+    # def scan_body(carry, i):
+    for i in range(num_samples):
         blocking_status = graphRealisation.sample_blocking_status(key[i])
         is_solvable = graphRealisation.is_solvable(blocking_status)
 
+        if is_solvable == jnp.bool_(False):
+            blocking_status, graph_weights, graph_blocking_prob = add_expensive_edge(
+                blocking_status,
+                graphRealisation.graph.weights,
+                graphRealisation.graph.blocking_prob,
+                graphRealisation.graph.goal[0],
+                graphRealisation.graph.origin[0],
+                factor_expensive_edge=factor_expensive_edge,
+            )
+        else:
+            graph_weights = graphRealisation.graph.weights
+            graph_blocking_prob = graphRealisation.graph.blocking_prob
+        """
         # If not solvable, add expensive edge
         (
             blocking_status,
@@ -47,6 +62,7 @@ def get_expected_optimal_path_length(
             ),
             operand=None,
         )
+        """
 
         # Convert graphRealisation to env_state (not exactly the right format for env_state, just include the info that dijkstra needs)
         edge_weights = jnp.concatenate((empty, graph_weights), axis=0)
@@ -62,9 +78,11 @@ def get_expected_optimal_path_length(
             graphRealisation.graph.goal,
             graphRealisation.graph.origin,
         )
-        return None, path_length
+        path_lengths = path_lengths.at[i].set(path_length)
+        # return None, path_length
 
-    _, path_lengths = jax.lax.scan(scan_body, None, jnp.arange(num_samples))
+    # _, path_lengths = jax.lax.scan(scan_body, None, jnp.arange(num_samples))
+
     return jnp.mean(path_lengths)
 
 

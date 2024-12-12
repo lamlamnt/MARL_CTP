@@ -8,6 +8,7 @@ from chex import dataclass
 from Environment import CTP_generator
 from typing import TypeAlias
 import sys
+from tqdm import tqdm
 
 sys.path.append("..")
 from Utils import graph_functions, util_generalize
@@ -77,7 +78,8 @@ class CTP_General(MultiAgentEnv):
         self.stored_graphs = jnp.zeros(
             (num_stored_graphs, 3, num_nodes, num_nodes), dtype=jnp.float16
         )
-        for i in range(num_stored_graphs):
+        print("Generating stored graphs...")
+        for i in tqdm(range(num_stored_graphs)):
             key, subkey = jax.random.split(subkey)
             graph_realisation = CTP_generator.CTPGraph_Realisation(
                 subkey,

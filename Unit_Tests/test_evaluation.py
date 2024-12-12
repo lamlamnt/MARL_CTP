@@ -87,3 +87,7 @@ def test_grid_size_dijkstra(printer):
 
     printer(shortest_path_10)
     printer(shortest_path_20)
+
+
+def test_find_optimal_path():
+    pass
