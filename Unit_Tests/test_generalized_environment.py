@@ -9,7 +9,6 @@ from Environment import CTP_environment_generalize, CTP_environment
 from Utils import graph_functions
 import pytest_print as pp
 import os
-from Utils.util_generalize import get_origin_expensive_edge
 
 
 @pytest.fixture

@@ -10,7 +10,7 @@ from typing import TypeAlias
 import sys
 
 sys.path.append("..")
-from Utils import graph_functions
+from Utils import graph_functions, util_generalize
 
 # Belief_state contains the agents' positions + current knowledge about blocked status, edge_weights, edge_probs, and goals in this order
 # 4D tensor where each channel is size (num_agents+num_nodes, num_agents+num_nodes)
@@ -89,6 +89,19 @@ class CTP_General(MultiAgentEnv):
                 factor_expensive_edge=factor_expensive_edge,
                 expensive_edge=auto_expensive_edge,
             )
+
+            # Normalize the weights using expected optimal path length
+            expected_optimal_path_length = (
+                util_generalize.get_expected_optimal_path_length(
+                    graph_realisation, key, self.factor_expensive_edge
+                )
+            )
+            graph_realisation.graph.weights = jnp.where(
+                graph_realisation.graph.weights != CTP_generator.NOT_CONNECTED,
+                graph_realisation.graph.weights / expected_optimal_path_length,
+                CTP_generator.NOT_CONNECTED,
+            )
+
             # Store the matrix of weights, blocking probs, and origin/goal
             self.stored_graphs = self.stored_graphs.at[i, 0, :, :].set(
                 graph_realisation.graph.weights
@@ -130,12 +143,13 @@ class CTP_General(MultiAgentEnv):
         new_blocking_status, current_graph_weights, current_graph_blocking_prob = (
             jax.lax.cond(
                 is_solvable == jnp.bool_(False),
-                lambda _: self.__add_expensive_edge(
+                lambda _: util_generalize.add_expensive_edge(
                     new_blocking_status,
                     current_graph_weights,
                     current_graph_blocking_prob,
                     current_graph_goal,
                     current_graph_origin,
+                    self.factor_expensive_edge,
                 ),
                 lambda _: (
                     new_blocking_status,
@@ -341,44 +355,3 @@ class CTP_General(MultiAgentEnv):
             axis=0,
             dtype=jnp.float16,
         )
-
-    def __add_expensive_edge(
-        self, blocking_status, graph_weights, blocking_prob, goal, origin
-    ):
-        upper_bound = (
-            (self.num_nodes - 1) * jnp.max(graph_weights) * self.factor_expensive_edge
-        )
-        # upper_bound = jnp.max(graph_weights) * self.factor_expensive_edge
-        graph_weights = graph_weights.at[
-            origin,
-            goal,
-        ].set(upper_bound)
-        graph_weights = graph_weights.at[
-            goal,
-            origin,
-        ].set(upper_bound)
-        blocking_prob = blocking_prob.at[
-            origin,
-            goal,
-        ].set(0)
-        blocking_prob = blocking_prob.at[
-            goal,
-            origin,
-        ].set(0)
-        blocking_status = blocking_status.at[
-            origin,
-            goal,
-        ].set(CTP_generator.UNBLOCKED)
-        blocking_status = blocking_status.at[
-            goal,
-            origin,
-        ].set(CTP_generator.UNBLOCKED)
-
-        # renormalize the edge weights by the expensive edge
-        max_weight = jnp.max(graph_weights)
-        graph_weights = jnp.where(
-            graph_weights != CTP_generator.NOT_CONNECTED,
-            graph_weights / max_weight,
-            CTP_generator.NOT_CONNECTED,
-        )
-        return blocking_status, graph_weights, blocking_prob

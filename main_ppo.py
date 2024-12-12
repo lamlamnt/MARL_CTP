@@ -289,8 +289,7 @@ if __name__ == "__main__":
         "--n_node",
         type=int,
         help="Number of nodes in the graph",
-        required=False,
-        default=5,
+        required=True,
     )
     parser.add_argument(
         "--n_agent",
@@ -412,7 +411,7 @@ if __name__ == "__main__":
         "--factor_inference_timesteps",
         type=int,
         required=False,
-        default=100,
+        default=500,
         help="Number to multiply with the number of nodes to get the total number of inference timesteps",
     )
 
@@ -492,7 +491,7 @@ if __name__ == "__main__":
         type=int,
         required=False,
         help="How many different graphs will be seen by the agent",
-        default=1000,
+        default=2000,
     )
 
     args = parser.parse_args()
