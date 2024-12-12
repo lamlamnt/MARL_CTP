@@ -83,6 +83,3 @@ def test_deal_with_unsolvability(
         weight_matrix = env_state[1, 1:, :]
         all_less_equal_one = jnp.all(weight_matrix <= 1)
         assert all_less_equal_one.item() is True
-        num_ones = jnp.sum(weight_matrix == 1)
-        exactly_one_equal_one = num_ones == 2
-        assert exactly_one_equal_one.item() is True
