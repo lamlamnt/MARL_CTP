@@ -11,7 +11,6 @@ from Environment import CTP_environment, CTP_environment_generalize
 from Evaluation.optimal_path_length import dijkstra_shortest_path
 from Evaluation import visualize_policy
 from Utils.get_params import extract_params
-from Utils.util_generalize import get_origin_expensive_edge
 from datetime import datetime
 import json
 import matplotlib.pyplot as plt
@@ -120,7 +119,7 @@ def plotting_inference(
                 jnp.array([origin]),
                 jnp.array([goal]),
             ),
-            lambda _: 0.0,
+            lambda _: jnp.array(0.0, dtype=jnp.float16),
             operand=None,
         )
         position = jnp.argmax(current_env_state[0, : args.n_agent]).astype(jnp.int8)

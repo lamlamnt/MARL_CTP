@@ -26,7 +26,7 @@ def dijkstra_shortest_path(
     graph = jnp.where(graph == CTP_generator.NOT_CONNECTED, jnp.inf, graph)
 
     # Initialize distances with "infinity" and visited nodes
-    distances = jnp.inf * jnp.ones(num_nodes)
+    distances = jnp.inf * jnp.ones(num_nodes, dtype=jnp.float16)
     distances = distances.at[origin].set(0)
     visited = jnp.zeros(num_nodes, dtype=bool)
 
@@ -55,3 +55,7 @@ def dijkstra_shortest_path(
     distances, visited = jax.lax.fori_loop(0, num_nodes, body_fun, (distances, visited))
 
     return distances[goal][0]
+
+
+def dijkstra_with_path(env_state: jnp.ndarray) -> tuple[int, jnp.array]:
+    pass

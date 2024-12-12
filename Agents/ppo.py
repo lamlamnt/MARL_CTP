@@ -11,7 +11,6 @@ from Environment import CTP_environment, CTP_generator, CTP_environment_generali
 from Evaluation.optimal_path_length import dijkstra_shortest_path
 import flax.linen as nn
 from typing import Sequence, NamedTuple, Any
-from Utils.util_generalize import get_origin_expensive_edge
 
 
 class Transition(NamedTuple):
@@ -151,7 +150,7 @@ class PPO:
                 jnp.array([origin]),
                 jnp.array([goal]),
             ),
-            lambda _: 0.0,
+            lambda _: jnp.array(0.0, dtype=jnp.float16),
             operand=None,
         )
 
