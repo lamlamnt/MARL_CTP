@@ -9,6 +9,7 @@ sys.path.append("..")
 from edited_jym.agents.base_agents import BaseDeepRLAgent
 from Environment import CTP_environment, CTP_generator, CTP_environment_generalize
 from Evaluation.optimal_path_length import dijkstra_shortest_path
+from Utils import coeff_schedule
 import flax.linen as nn
 from typing import Sequence, NamedTuple, Any
 
@@ -59,12 +60,18 @@ class PPO:
         self.ent_coeff_schedule = ent_coeff_schedule
 
     def _ent_coeff_schedule(self, loop_count):
-        # frac = 1.0 - loop_count / self.num_loops
-        # linear or sigmoid schedule
+        # linear or sigmoid or plateau schedule
         frac = jax.lax.cond(
             self.ent_coeff_schedule == "linear",
             lambda _: 1.0 - loop_count / self.num_loops,
-            lambda _: 1 / (1 + jnp.exp(10 * (loop_count / self.num_loops - 0.5))),
+            lambda _: jax.lax.cond(
+                self.ent_coeff_schedule == "sigmoid",
+                lambda _: 1 / (1 + jnp.exp(10 * (loop_count / self.num_loops - 0.5))),
+                lambda _: coeff_schedule.ent_coeff_plateau_decay(
+                    loop_count, self.num_loops, division=5
+                ),
+                operand=None,
+            ),
             operand=None,
         )
         return self.ent_coeff * frac

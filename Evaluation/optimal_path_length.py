@@ -94,7 +94,9 @@ def dijkstra_with_path(env_state: jnp.ndarray) -> tuple[int, jnp.array]:
         # Update distances and predecessors for neighboring nodes
         neighbors = graph[current_node, :]
         updates = (neighbors < jnp.inf) & (~visited)  # Unvisited neighbors
-        new_distances = jnp.where(updates, current_distance + neighbors, distances)
+        new_distances = jnp.where(
+            updates, jnp.minimum(distances, current_distance + neighbors), distances
+        )
         predecessors = jnp.where(
             updates & (new_distances < distances),
             current_node,

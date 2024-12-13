@@ -73,3 +73,7 @@ def test_actor_critic_network(printer):
     # action_values.probs is the probabilities after applying softmax. action_values.logits is the raw output before softmax
     action = action_values.sample(seed=key)
     log_prob = action_values.log_prob(action)
+
+
+def test_densenet(printer):
+    pass

@@ -93,14 +93,18 @@ class CTP_General(MultiAgentEnv):
             )
 
             # Normalize the weights using expected optimal path length
+            """
             expected_optimal_path_length = (
                 util_generalize.get_expected_optimal_path_length(
                     graph_realisation, key, self.factor_expensive_edge
                 )
             )
+            """
+            normalizing_factor = 0.5 * self.num_nodes / 2
+
             graph_realisation.graph.weights = jnp.where(
                 graph_realisation.graph.weights != CTP_generator.NOT_CONNECTED,
-                graph_realisation.graph.weights / expected_optimal_path_length,
+                graph_realisation.graph.weights / normalizing_factor,
                 CTP_generator.NOT_CONNECTED,
             )
 

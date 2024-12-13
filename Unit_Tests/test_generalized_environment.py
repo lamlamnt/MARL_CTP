@@ -55,10 +55,10 @@ def test_different_graph(
         )
     )
     assert terminate == True
-    assert reward_next == -1.0
 
 
 def test_deal_with_unsolvability(
+    printer,
     expensive_edge_environment: CTP_environment_generalize.CTP_General,
     expensive_if_unsolvable_environment: CTP_environment_generalize.CTP_General,
 ):
@@ -81,5 +81,6 @@ def test_deal_with_unsolvability(
 
         # Test that all edge weights are less than 1 except for 1 edge with 1.
         weight_matrix = env_state[1, 1:, :]
+        printer(weight_matrix)
         all_less_equal_one = jnp.all(weight_matrix <= 1)
         assert all_less_equal_one.item() is True

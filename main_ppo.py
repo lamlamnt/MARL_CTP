@@ -470,7 +470,7 @@ if __name__ == "__main__":
         "--ent_coeff_schedule",
         type=str,
         required=False,
-        help="Options: linear, sigmoid",
+        help="Options: linear, sigmoid, plateau",
         default="linear",
     )
     parser.add_argument(

@@ -6,7 +6,7 @@ import sys
 sys.path.append("..")
 from Networks import MLP
 from Environment import CTP_environment, CTP_generator
-from Evaluation.optimal_path_length import dijkstra_shortest_path
+from Evaluation.optimal_path_length import dijkstra_shortest_path, dijkstra_with_path
 import os
 import pytest
 import pytest_print as pp
@@ -89,5 +89,21 @@ def test_grid_size_dijkstra(printer):
     printer(shortest_path_20)
 
 
-def test_find_optimal_path():
-    pass
+def test_find_optimal_path(printer):
+    key = jax.random.PRNGKey(30)
+    key, subkey = jax.random.split(key)
+    current_directory = os.getcwd()
+    parent_dir = os.path.dirname(current_directory)
+    log_directory = os.path.join(parent_dir, "Logs/Unit_Tests")
+    environment = CTP_environment.CTP(1, 1, 5, key, prop_stoch=0.4, grid_size=10)
+    env_state, _ = environment.reset(key)
+    goal = environment.graph_realisation.graph.goal
+    origin = environment.graph_realisation.graph.origin
+    path_length, path = dijkstra_with_path(env_state)
+    true_path_length = dijkstra_shortest_path(env_state, origin, goal)
+    environment.graph_realisation.plot_realised_graph(
+        env_state[0, 1:, :], log_directory, "dijkstra_path.png"
+    )
+    assert path_length == true_path_length
+    assert path[0] == origin
+    assert path[-1] == goal
