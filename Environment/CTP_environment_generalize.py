@@ -38,6 +38,7 @@ class CTP_General(MultiAgentEnv):
         deal_with_unsolvability="always_expensive_edge",
         patience=5,
         num_stored_graphs=10,
+        loaded_graphs=None,
     ):
         """
         List of attributes:
@@ -66,61 +67,62 @@ class CTP_General(MultiAgentEnv):
         actions = [num_nodes for _ in range(num_agents)]
         self.action_spaces = spaces.MultiDiscrete(actions)
 
-        # Store pre-generated graphs
-        key, subkey = jax.random.split(key)
-        self.graph_list = []
         if deal_with_unsolvability == "resample":
             raise ValueError("Not implemented yet.")
         elif deal_with_unsolvability == "always_expensive_edge":
             auto_expensive_edge = True
         else:
             auto_expensive_edge = False
-        self.stored_graphs = jnp.zeros(
-            (num_stored_graphs, 3, num_nodes, num_nodes), dtype=jnp.float16
-        )
-        print("Generating stored graphs...")
-        for i in tqdm(range(num_stored_graphs)):
-            key, subkey = jax.random.split(subkey)
-            graph_realisation = CTP_generator.CTPGraph_Realisation(
-                subkey,
-                self.num_nodes,
-                grid_size=grid_size,
-                prop_stoch=prop_stoch,
-                k_edges=k_edges,
-                num_goals=num_goals,
-                factor_expensive_edge=factor_expensive_edge,
-                expensive_edge=auto_expensive_edge,
-            )
 
-            # Normalize the weights using expected optimal path length
-            """
-            expected_optimal_path_length = (
-                util_generalize.get_expected_optimal_path_length(
-                    graph_realisation, key, self.factor_expensive_edge
+        # Generate graphs
+        if loaded_graphs is not None:
+            self.stored_graphs = loaded_graphs
+        else:
+            key, subkey = jax.random.split(key)
+            self.stored_graphs = jnp.zeros(
+                (num_stored_graphs, 3, num_nodes, num_nodes), dtype=jnp.float16
+            )
+            print("Generating graphs...")
+            for i in tqdm(range(num_stored_graphs)):
+                key, subkey = jax.random.split(subkey)
+                graph_realisation = CTP_generator.CTPGraph_Realisation(
+                    subkey,
+                    self.num_nodes,
+                    grid_size=grid_size,
+                    prop_stoch=prop_stoch,
+                    k_edges=k_edges,
+                    num_goals=num_goals,
+                    factor_expensive_edge=factor_expensive_edge,
+                    expensive_edge=auto_expensive_edge,
                 )
-            )
-            """
-            normalizing_factor = 0.5 * self.num_nodes / 2
 
-            graph_realisation.graph.weights = jnp.where(
-                graph_realisation.graph.weights != CTP_generator.NOT_CONNECTED,
-                graph_realisation.graph.weights / normalizing_factor,
-                CTP_generator.NOT_CONNECTED,
-            )
+                # Normalize the weights using expected optimal path length
+                expected_optimal_path_length = (
+                    util_generalize.get_expected_optimal_path_length(
+                        graph_realisation, key, self.factor_expensive_edge
+                    )
+                )
+                # normalizing_factor = 0.5 * self.num_nodes / 2
 
-            # Store the matrix of weights, blocking probs, and origin/goal
-            self.stored_graphs = self.stored_graphs.at[i, 0, :, :].set(
-                graph_realisation.graph.weights
-            )
-            self.stored_graphs = self.stored_graphs.at[i, 1, :, :].set(
-                graph_realisation.graph.blocking_prob
-            )
-            self.stored_graphs = self.stored_graphs.at[i, 2, 0, 0].set(
-                graph_realisation.graph.origin[0]
-            )
-            self.stored_graphs = self.stored_graphs.at[i, 2, 0, 1].set(
-                graph_realisation.graph.goal[0]
-            )
+                graph_realisation.graph.weights = jnp.where(
+                    graph_realisation.graph.weights != CTP_generator.NOT_CONNECTED,
+                    graph_realisation.graph.weights / expected_optimal_path_length,
+                    CTP_generator.NOT_CONNECTED,
+                )
+
+                # Store the matrix of weights, blocking probs, and origin/goal
+                self.stored_graphs = self.stored_graphs.at[i, 0, :, :].set(
+                    graph_realisation.graph.weights
+                )
+                self.stored_graphs = self.stored_graphs.at[i, 1, :, :].set(
+                    graph_realisation.graph.blocking_prob
+                )
+                self.stored_graphs = self.stored_graphs.at[i, 2, 0, 0].set(
+                    graph_realisation.graph.origin[0]
+                )
+                self.stored_graphs = self.stored_graphs.at[i, 2, 0, 1].set(
+                    graph_realisation.graph.goal[0]
+                )
 
     @partial(jax.jit, static_argnums=(0,))
     def reset(self, key: chex.PRNGKey) -> tuple[EnvState, Belief_State]:

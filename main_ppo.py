@@ -14,7 +14,7 @@ import time
 from datetime import datetime
 import json
 from Utils.get_params import extract_params
-from Utils import hand_crafted_graphs
+from Utils import hand_crafted_graphs, generate_graphs
 from Evaluation.inference import plotting_inference
 import numpy as np
 import wandb
@@ -80,6 +80,7 @@ def main(args):
             deal_with_unsolvability=args.deal_with_unsolvability,
             patience=args.patience,
             num_stored_graphs=args.num_stored_graphs,
+            loaded_graphs=training_graphs,
         )
         end_time_environment_creation = time.time()
         time_environment_creation = (
@@ -263,6 +264,7 @@ def main(args):
             deal_with_unsolvability=args.deal_with_unsolvability,
             patience=args.patience,
             num_stored_graphs=args.factor_inference_timesteps // 2,
+            loaded_graphs=inference_graphs,
         )
         # Choose num_stored_graphs to be equal to the factor_inference_timesteps because I want the
         # number of graphs generated to be roughly equal to the number of inference episodes/2
@@ -423,6 +425,19 @@ if __name__ == "__main__":
         default=500,
         help="Number to multiply with the number of nodes to get the total number of inference timesteps",
     )
+    parser.add_argument(
+        "--graph_mode",
+        type=str,
+        default="generate",
+        required=False,
+        help="Options: generate,store,load",
+    )
+    parser.add_argument(
+        "--graph_identifier",
+        type=str,
+        required=False,
+        default="2000_expensive_if_solvable",
+    )
 
     # Args specific to PPO:
     parser.add_argument(
@@ -534,5 +549,17 @@ if __name__ == "__main__":
         mode=args.wandb_mode,
     )
 
-    main(args)
+    if args.graph_mode == "load":
+        print("Checking validity and loading graphs ...")
+        # Check args match and load graphs
+        training_graphs, inference_graphs = generate_graphs.load_graphs(args)
+        main(args)
+    elif args.graph_mode == "store":
+        print("Generating graphs for storage ...")
+        generate_graphs.store_graphs(args)
+    else:
+        # Pre-generate on the fly and use
+        training_graphs = None
+        inference_graphs = None
+        main(args)
     wandb.finish()

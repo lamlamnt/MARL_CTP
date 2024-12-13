@@ -6,7 +6,7 @@ sys.path.append("..")
 from Environment import CTP_generator
 from Evaluation import optimal_path_length
 
-NUM_SAMPLES_FACTOR = 5
+NUM_SAMPLES_FACTOR = 10
 
 
 # Sample blocking status for several times, perform dijkstra and get the average path length
