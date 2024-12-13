@@ -42,6 +42,7 @@ class PPO:
         anneal_ent_coeff: bool,
         deterministic_inference_policy: bool,
         ent_coeff_schedule: str,
+        division_plateau: int,
     ) -> None:
         self.model = model
         self.environment = environment
@@ -58,6 +59,7 @@ class PPO:
         self.anneal_ent_coeff = anneal_ent_coeff
         self.deterministic_inference_policy = deterministic_inference_policy
         self.ent_coeff_schedule = ent_coeff_schedule
+        self.division_plateau = division_plateau
 
     def _ent_coeff_schedule(self, loop_count):
         # linear or sigmoid or plateau schedule
@@ -68,7 +70,7 @@ class PPO:
                 self.ent_coeff_schedule == "sigmoid",
                 lambda _: 1 / (1 + jnp.exp(10 * (loop_count / self.num_loops - 0.5))),
                 lambda _: coeff_schedule.ent_coeff_plateau_decay(
-                    loop_count, self.num_loops, division=5
+                    loop_count, self.num_loops, division=self.division_plateau
                 ),
                 operand=None,
             ),

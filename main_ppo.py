@@ -162,6 +162,7 @@ def main(args):
         anneal_ent_coeff=args.anneal_ent_coeff,
         deterministic_inference_policy=args.deterministic_inference_policy,
         ent_coeff_schedule=args.ent_coeff_schedule,
+        division_plateau=args.division_plateau,
     )
 
     print("Start training ...")
@@ -472,6 +473,13 @@ if __name__ == "__main__":
         required=False,
         help="Options: linear, sigmoid, plateau",
         default="linear",
+    )
+    parser.add_argument(
+        "--division_plateau",
+        type=int,
+        required=False,
+        help="What portion of the training timesteps has max ent_coeff for a period of time at the beginning and 0 ent_coeff at the end of training",
+        default=5,
     )
     parser.add_argument(
         "--num_minibatches",
