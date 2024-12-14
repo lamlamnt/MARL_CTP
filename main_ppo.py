@@ -2,6 +2,7 @@ import os
 import jax
 import jax.numpy as jnp
 from Networks.actor_critic_network import ActorCritic_CNN_10, ActorCritic_CNN_30
+from Networks.densenet import DenseNet_ActorCritic
 from Environment import CTP_environment, CTP_generator, CTP_environment_generalize
 from Agents.ppo import PPO
 from Evaluation import plotting
@@ -118,10 +119,16 @@ def main(args):
             directory=log_directory, file_name="training_graph.png"
         )
 
-    if n_node <= 10:
-        model = ActorCritic_CNN_10(n_node)
+    if args.network_type == "CNN":
+        if n_node <= 10:
+            model = ActorCritic_CNN_10(n_node)
+        else:
+            model = ActorCritic_CNN_30(n_node)
+    elif args.network_type == "Densenet":
+        model = DenseNet_ActorCritic(n_node)
     else:
-        model = ActorCritic_CNN_30(n_node)
+        # Resnet
+        raise ValueError("Have not implemented Resnet yet")
 
     init_params = model.init(
         jax.random.PRNGKey(0), jax.random.normal(online_key, state_shape)
@@ -382,6 +389,13 @@ if __name__ == "__main__":
         required=False,
         default=4,
     )
+    parser.add_argument(
+        "--network_type",
+        type=str,
+        required=False,
+        help="Options: CNN,Densenet,Resnet",
+        default="CNN",
+    )
 
     # Args related to running/managing experiments
     parser.add_argument(
@@ -436,7 +450,7 @@ if __name__ == "__main__":
         "--graph_identifier",
         type=str,
         required=False,
-        default="2000_expensive_if_solvable",
+        default="2000_proper_normalization",
     )
 
     # Args specific to PPO:

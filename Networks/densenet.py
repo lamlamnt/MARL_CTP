@@ -3,9 +3,14 @@ import jax.numpy as jnp
 import flax
 import flax.linen as nn
 from flax.linen.initializers import constant, orthogonal
+import distrax
+import sys
+
+sys.path.append("..")
+from Utils.invalid_action_masking import decide_validity_of_action_space
 
 # Highly modified version of the original DenseNet implementation
-densenet_kernel_init = nn.initializers.kaiming_normal()
+densenet_kernel_init = nn.initializers.orthogonal(jnp.sqrt(2))
 
 
 class DenseLayer(nn.Module):
@@ -15,7 +20,7 @@ class DenseLayer(nn.Module):
 
     @nn.compact
     def __call__(self, x):
-        z = self.act_fn(z)
+        z = self.act_fn(x)
         z = nn.Conv(
             self.bn_size * self.growth_rate,
             kernel_size=(1, 1),
@@ -67,18 +72,18 @@ class TransitionLayer(nn.Module):
 
 class DenseNet(nn.Module):
     num_classes: int
-    act_fn: callable = nn.relu
-    num_layers: tuple = (6, 12, 24, 16)
+    act_fn: callable = nn.tanh
+    num_layers: tuple = (4, 4, 4)
     bn_size: int = 4
     growth_rate: int = 32
 
     @nn.compact
     def __call__(self, x: jnp.ndarray):
+        x = jnp.transpose(x, (1, 2, 0))
+
         c_hidden = (
             self.growth_rate * self.bn_size
         )  # The start number of hidden channels
-
-        x = nn.Conv(c_hidden, kernel_size=(3, 3), kernel_init=densenet_kernel_init)(x)
 
         for block_idx, num_layers in enumerate(self.num_layers):
             x = DenseBlock(
@@ -94,6 +99,37 @@ class DenseNet(nn.Module):
                 x = TransitionLayer(c_out=c_hidden // 2, act_fn=self.act_fn)(x)
                 c_hidden //= 2
         x = self.act_fn(x)
-        x = x.mean(axis=(1, 2))
+        x = x.mean(axis=(0, 1))  # global average pooling
         x = nn.Dense(self.num_classes)(x)
         return x
+
+
+class DenseNet_ActorCritic(nn.Module):
+    num_classes: int
+    act_fn: callable = nn.tanh
+    num_layers: tuple = (4, 4, 4)
+    bn_size: int = 4
+    growth_rate: int = 32
+
+    @nn.compact
+    def __call__(self, x: jnp.ndarray) -> tuple[distrax.Categorical, float]:
+        action_mask = decide_validity_of_action_space(x)
+        actor_mean = DenseNet(
+            num_classes=self.num_classes,
+            act_fn=self.act_fn,
+            num_layers=self.num_layers,
+            bn_size=self.bn_size,
+            growth_rate=self.growth_rate,
+        )(x)
+        actor_mean = jnp.where(action_mask == -jnp.inf, -jnp.inf, actor_mean)
+        pi = distrax.Categorical(logits=actor_mean)
+
+        critic = DenseNet(
+            num_classes=1,
+            act_fn=self.act_fn,
+            num_layers=self.num_layers,
+            bn_size=self.bn_size,
+            growth_rate=self.growth_rate,
+        )(x)
+
+        return pi, jnp.squeeze(critic, axis=-1)
