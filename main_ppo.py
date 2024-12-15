@@ -3,6 +3,7 @@ import jax
 import jax.numpy as jnp
 from Networks.actor_critic_network import ActorCritic_CNN_10, ActorCritic_CNN_30
 from Networks.densenet import DenseNet_ActorCritic
+from Networks.resnet import ResNet_ActorCritic
 from Environment import CTP_environment, CTP_generator, CTP_environment_generalize
 from Agents.ppo import PPO
 from Evaluation import plotting
@@ -127,8 +128,7 @@ def main(args):
     elif args.network_type == "Densenet":
         model = DenseNet_ActorCritic(n_node)
     else:
-        # Resnet
-        raise ValueError("Have not implemented Resnet yet")
+        model = ResNet_ActorCritic(n_node)
 
     init_params = model.init(
         jax.random.PRNGKey(0), jax.random.normal(online_key, state_shape)
@@ -139,6 +139,11 @@ def main(args):
         optimizer = optax.chain(
             optax.clip_by_global_norm(0.5),
             optax.adam(learning_rate=linear_schedule, eps=1e-5),
+        )
+    elif args.network_type == "Resnet":
+        optimizer = optax.chain(
+            optax.clip_by_global_norm(0.5),
+            optax.sgd(learning_rate=args.learning_rate, momentum=0.9),
         )
     else:
         optimizer = optax.chain(
@@ -450,7 +455,7 @@ if __name__ == "__main__":
         "--graph_identifier",
         type=str,
         required=False,
-        default="2000_proper_normalization",
+        default="2000_prop_stoch_0.4",
     )
 
     # Args specific to PPO:

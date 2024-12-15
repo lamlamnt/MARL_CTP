@@ -66,12 +66,11 @@ class TransitionLayer(nn.Module):
             kernel_init=densenet_kernel_init,
             bias_init=constant(0.0),
         )(x)
-        x = nn.avg_pool(x, (2, 2), strides=(2, 2))
+        x = nn.max_pool(x, (2, 2), strides=(2, 2))
         return x
 
 
 class DenseNet(nn.Module):
-    num_classes: int
     act_fn: callable = nn.tanh
     num_layers: tuple = (4, 4, 4)
     bn_size: int = 4
@@ -100,7 +99,6 @@ class DenseNet(nn.Module):
                 c_hidden //= 2
         x = self.act_fn(x)
         x = x.mean(axis=(0, 1))  # global average pooling
-        x = nn.Dense(self.num_classes)(x)
         return x
 
 
@@ -115,21 +113,25 @@ class DenseNet_ActorCritic(nn.Module):
     def __call__(self, x: jnp.ndarray) -> tuple[distrax.Categorical, float]:
         action_mask = decide_validity_of_action_space(x)
         actor_mean = DenseNet(
-            num_classes=self.num_classes,
             act_fn=self.act_fn,
             num_layers=self.num_layers,
             bn_size=self.bn_size,
             growth_rate=self.growth_rate,
         )(x)
+        actor_mean = nn.Dense(
+            self.num_classes, kernel_init=orthogonal(0.01), bias_init=constant(0.0)
+        )(actor_mean)
         actor_mean = jnp.where(action_mask == -jnp.inf, -jnp.inf, actor_mean)
         pi = distrax.Categorical(logits=actor_mean)
 
         critic = DenseNet(
-            num_classes=1,
             act_fn=self.act_fn,
             num_layers=self.num_layers,
             bn_size=self.bn_size,
             growth_rate=self.growth_rate,
         )(x)
+        critic = nn.Dense(1, kernel_init=orthogonal(1.0), bias_init=constant(0.0))(
+            critic
+        )
 
         return pi, jnp.squeeze(critic, axis=-1)

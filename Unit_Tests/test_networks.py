@@ -6,7 +6,7 @@ import haiku as hk
 import sys
 
 sys.path.append("..")
-from Networks import MLP, CNN, actor_critic_network, densenet
+from Networks import MLP, CNN, actor_critic_network, densenet, resnet
 
 
 # Test that the forward pass does not error
@@ -85,4 +85,9 @@ def test_densenet(printer):
 
 
 def test_resnet():
-    pass
+    model = resnet.ResNet_ActorCritic(10)
+    key = jax.random.PRNGKey(100)
+    params = model.init(key, jnp.ones((4, 11, 10)))
+    action_values, critic = model.apply(params, jnp.ones((4, 11, 10)))
+    assert action_values.probs.shape == (10,)
+    assert critic.shape == ()
