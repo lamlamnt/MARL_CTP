@@ -5,6 +5,7 @@ import sys
 sys.path.append("..")
 from Environment import CTP_generator, CTP_environment
 import os
+from functools import partial
 
 
 @jax.jit
@@ -110,6 +111,7 @@ def dijkstra_with_path(env_state: jnp.ndarray) -> tuple[int, jnp.array]:
     )
 
     # Reconstruct the path from the goal to the origin
+    @partial(jax.jit, static_argnums=(0))
     def reconstruct_path(goal_node, preds):
         path = []
         current = goal_node
