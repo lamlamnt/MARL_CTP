@@ -55,9 +55,11 @@ def dijkstra_shortest_path(
     # Run the loop with `jax.lax.fori_loop`
     distances, visited = jax.lax.fori_loop(0, num_nodes, body_fun, (distances, visited))
 
-    return distances[goal][0]
+    return distances[goal]
+    # return distances[goal][0]
 
 
+@jax.jit
 def dijkstra_with_path(env_state: jnp.ndarray) -> tuple[int, jnp.array]:
     num_nodes = env_state.shape[2]
     num_agents = env_state.shape[1] - num_nodes
@@ -110,15 +112,28 @@ def dijkstra_with_path(env_state: jnp.ndarray) -> tuple[int, jnp.array]:
         0, num_nodes, body_fun, (distances, visited, predecessors)
     )
 
-    # Reconstruct the path from the goal to the origin
-    @partial(jax.jit, static_argnums=(0))
-    def reconstruct_path(goal_node, preds):
-        path = []
-        current = goal_node
-        while current != -1:
-            path.append(current)
-            current = preds[current]
-        return jnp.array(path[::-1])  # Reverse to get path from origin to goal
+    # Reconstruct the path from the goal to the origin and get the next node
+    def get_next_node(goal_node, preds):
+        def body_fn(carry):
+            path, current, index = carry
+            path = path.at[index].set(current)  # Set current node in the path
+            current = preds[current]  # Move to the predecessor
+            return path, current, index + 1
 
-    optimal_path = reconstruct_path(goal, predecessors)
-    return distances[goal], optimal_path
+        def cond_fn(carry):
+            _, current, index = carry
+            return current != -1  # Continue while the current node is not -1
+
+        # Initialize the path and fill with a sentinel value (-1)
+        path = jnp.full(preds.shape[0], -1, dtype=preds.dtype)
+        path, current_node, index = jax.lax.while_loop(
+            cond_fn, body_fn, (path, goal_node, 0)
+        )
+
+        # If want to get the full path,
+        # path = jax.lax.slice(path,(0,),(index,))
+        # return path[::-1]
+        return path[index - 2]
+
+    next_node = get_next_node(goal, predecessors)
+    return distances[goal], next_node

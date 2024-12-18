@@ -72,13 +72,8 @@ class CTPGraph:
                 k_edges=k_edges,
             )
 
-            # Get goal and origin
-            if num_goals == 1:
-                self.goal, self.origin = self.__find_single_goal_and_origin(
-                    self.node_pos
-                )
-                self.goal = jnp.array([self.goal])
-                self.origin = jnp.array([self.origin])
+            self.goal = jnp.array([self.goal])
+            self.origin = jnp.array([self.origin])
 
             # Always add expensive edge. If there's already an edge between goal and origin,
             # we replace it with an expensive edge
@@ -161,8 +156,15 @@ class CTPGraph:
             lambda _: grid_nodes,
             key,
         )
-
         grid_nodes_jax = jnp.array(grid_nodes, dtype=jnp.float16).T
+
+        # Only for 1 goal
+        goal, origin = self.__find_single_goal_and_origin(grid_nodes_jax)
+
+        # Sort nodes (including the origin and goal) by euclidean distance
+        grid_nodes_jax = self.__sort_nodes_by_euclidean_distance(
+            grid_nodes_jax, origin, goal
+        )
 
         # Apply Delauney triangulation to get edges
         delaunay = Delaunay(grid_nodes_jax)
@@ -313,7 +315,6 @@ class CTPGraph:
 
     @partial(jax.jit, static_argnums=(0,))
     def __find_single_goal_and_origin(self, grid_nodes) -> tuple[int, int]:
-        # Extract grid_nodes from the jraph
         def __distance(a, b):
             return jnp.sqrt(jnp.sum((a - b) ** 2))
 
@@ -326,6 +327,32 @@ class CTPGraph:
         )
         origin = jnp.argmax(distances_from_goal)
         return goal, origin
+
+    # if jax.jit then need to make all arguments except grid_nodes static. Simple computation so
+    # not much to be gained by making it jax-jittable
+    def __sort_nodes_by_euclidean_distance(
+        self, grid_nodes, origin, goal
+    ) -> jnp.ndarray:
+        def __distance(a, b):
+            return jnp.sqrt(jnp.sum((a - b) ** 2))
+
+        # Origin is the first node and goal is the last node
+        origin_pos = grid_nodes[origin]
+        goal_pos = grid_nodes[goal]
+        grid_nodes_not_origin_goal = jnp.delete(
+            grid_nodes, np.array([origin, goal]), axis=0
+        )
+
+        distances_from_goal = jax.vmap(lambda x: __distance(grid_nodes[goal], x))(
+            grid_nodes_not_origin_goal
+        )
+        sorted_indices = jnp.argsort(-distances_from_goal)
+        grid_nodes = jnp.vstack(
+            [origin_pos, grid_nodes_not_origin_goal[sorted_indices], goal_pos]
+        )
+        self.origin = 0
+        self.goal = self.n_nodes - 1
+        return grid_nodes
 
 
 # can probably put this into utils instead of it being a separate class

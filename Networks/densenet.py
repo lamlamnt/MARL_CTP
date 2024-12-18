@@ -10,7 +10,8 @@ sys.path.append("..")
 from Utils.invalid_action_masking import decide_validity_of_action_space
 
 # Highly modified version of the original DenseNet implementation
-densenet_kernel_init = nn.initializers.orthogonal(jnp.sqrt(2))
+# densenet_kernel_init = nn.initializers.orthogonal(jnp.sqrt(2))
+densenet_kernel_init = nn.initializers.kaiming_normal()
 
 
 class DenseLayer(nn.Module):
@@ -71,10 +72,10 @@ class TransitionLayer(nn.Module):
 
 
 class DenseNet(nn.Module):
-    act_fn: callable = nn.tanh
-    num_layers: tuple = (4, 4, 4)
-    bn_size: int = 4
-    growth_rate: int = 32
+    act_fn: callable
+    num_layers: tuple
+    bn_size: int
+    growth_rate: int
 
     @nn.compact
     def __call__(self, x: jnp.ndarray):
@@ -104,7 +105,7 @@ class DenseNet(nn.Module):
 
 class DenseNet_ActorCritic(nn.Module):
     num_classes: int
-    act_fn: callable = nn.tanh
+    act_fn: callable = nn.leaky_relu
     num_layers: tuple = (4, 4, 4)
     bn_size: int = 4
     growth_rate: int = 32

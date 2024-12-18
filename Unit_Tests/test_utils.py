@@ -25,7 +25,7 @@ def test_invalid_action_masking(printer):
         "test_invalid_action_graph.png",
     )
     valid = invalid_action_masking.decide_validity_of_action_space(initial_belief_state)
-    true_valid = jnp.array([-jnp.inf, 1.0, 1.0, 1.0, -jnp.inf])
+    true_valid = jnp.array([-jnp.inf, 1.0, 1.0, -jnp.inf, 1.0])
     assert jnp.array_equal(valid, true_valid)
 
 

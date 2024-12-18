@@ -41,7 +41,7 @@ def test_symmetric(environment: CTP_environment.CTP):
 # Two consecutive resamples are different
 def test_resample(printer, environment: CTP_environment.CTP):
     key = jax.random.PRNGKey(99)
-    highly_stochastic_environment = CTP_environment.CTP(1, 1, 5, key, prop_stoch=0.9)
+    highly_stochastic_environment = CTP_environment.CTP(1, 1, 10, key, prop_stoch=0.9)
     key, subkey = jax.random.split(key)
     initial_env_state, initial_belief_state = highly_stochastic_environment.reset(key)
     next_env_state, next_initial_belief_state = highly_stochastic_environment.reset(
@@ -94,13 +94,13 @@ def test_belief_state(printer, environment: CTP_environment.CTP):
         initial_env_state[0, 1:, :], log_directory, "test_graph.png"
     )
     env_state_1, belief_state_1, reward_1, terminate, subkey = environment.step(
-        subkey, initial_env_state, initial_belief_state, jnp.array([0])
+        subkey, initial_env_state, initial_belief_state, jnp.array([2])
     )
     env_state_2, belief_state_2, reward_2, terminate, subkey = environment.step(
-        subkey, env_state_1, belief_state_1, jnp.array([1])
+        subkey, env_state_1, belief_state_1, jnp.array([3])
     )
     env_state_3, belief_state_3, reward_3, terminate, subkey = environment.step(
-        subkey, env_state_2, belief_state_2, jnp.array([3])
+        subkey, env_state_2, belief_state_2, jnp.array([4])
     )
     # Check that agents position is updated
     assert not jnp.array_equal(initial_belief_state[0, :1, :], belief_state_1[0, :1, :])
@@ -205,7 +205,7 @@ def test_invalid_action(environment: CTP_environment.CTP):
         initial_env_state[0, 1:, :], log_directory, "invalid_action.png"
     )
     env_state_1, belief_state_1, reward_1, terminate, subkey = environment.step(
-        subkey, initial_env_state, initial_belief_state, jnp.array([4])
+        subkey, initial_env_state, initial_belief_state, jnp.array([0])
     )
     assert reward_1 < -100
 
@@ -285,7 +285,7 @@ def test_solvable_no_expensive_edge():
     key = jax.random.PRNGKey(40)
     key, subkey = jax.random.split(key)
     environment = CTP_environment.CTP(
-        1, 1, 5, key, prop_stoch=0.9, deal_with_unsolvability="resample"
+        1, 1, 5, key, prop_stoch=0.2, deal_with_unsolvability="resample"
     )
     env_state, _ = environment.reset(subkey)
     assert environment.graph_realisation.is_solvable(env_state[0, 1:, :]) == jnp.bool_(

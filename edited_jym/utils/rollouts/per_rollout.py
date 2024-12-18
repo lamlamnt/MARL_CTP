@@ -97,8 +97,8 @@ def per_rollout(
             done,
             lambda _: dijkstra_shortest_path(
                 current_env_state,
-                env.graph_realisation.graph.origin,
-                env.graph_realisation.graph.goal,
+                env.graph_realisation.graph.origin.item(),
+                env.graph_realisation.graph.goal.item(),
             ),
             lambda _: 0.0,
             operand=None,

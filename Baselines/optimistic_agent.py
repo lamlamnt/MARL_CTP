@@ -29,5 +29,5 @@ class Optimistic_Agent:
                 belief_state[1, 1:, :],
             )
         )
-        path_length, path = optimal_path_length.dijkstra_with_path(belief_state)
-        return path[1]
+        path_length, next_node = optimal_path_length.dijkstra_with_path(belief_state)
+        return next_node

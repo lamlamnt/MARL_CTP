@@ -51,8 +51,8 @@ def test_optimal_path_length(printer):
     environment.graph_realisation.plot_realised_graph(
         env_state[0, 1:, :], log_directory, "check_dijsktra.png"
     )
-    goal = environment.graph_realisation.graph.goal
-    origin = environment.graph_realisation.graph.origin
+    goal = environment.graph_realisation.graph.goal.item()
+    origin = environment.graph_realisation.graph.origin.item()
     shortest_path = dijkstra_shortest_path(env_state, origin, goal)
     assert jnp.isclose(shortest_path, 0.306, atol=1e-3)
 
@@ -65,8 +65,8 @@ def test_grid_size_dijkstra(printer):
     log_directory = os.path.join(parent_dir, "Logs/Unit_Tests")
     environment = CTP_environment.CTP(1, 1, 10, key, prop_stoch=0.4, grid_size=10)
     env_state, _ = environment.reset(key)
-    goal = environment.graph_realisation.graph.goal
-    origin = environment.graph_realisation.graph.origin
+    goal = environment.graph_realisation.graph.goal.item()
+    origin = environment.graph_realisation.graph.origin.item()
     shortest_path_10 = dijkstra_shortest_path(env_state, origin, goal)
     environment.graph_realisation.plot_realised_graph(
         env_state[0, 1:, :], log_directory, "grid_size_10.png"
@@ -76,8 +76,8 @@ def test_grid_size_dijkstra(printer):
         1, 1, 10, subkey, prop_stoch=0.4, grid_size=20
     )
     different_env_state, _ = different_environment.reset(subkey)
-    different_goal = different_environment.graph_realisation.graph.goal
-    different_origin = different_environment.graph_realisation.graph.origin
+    different_goal = different_environment.graph_realisation.graph.goal.item()
+    different_origin = different_environment.graph_realisation.graph.origin.item()
     shortest_path_20 = dijkstra_shortest_path(
         different_env_state, different_origin, different_goal
     )
@@ -97,13 +97,12 @@ def test_find_optimal_path(printer):
     log_directory = os.path.join(parent_dir, "Logs/Unit_Tests")
     environment = CTP_environment.CTP(1, 1, 5, key, prop_stoch=0.4, grid_size=10)
     env_state, _ = environment.reset(key)
-    goal = environment.graph_realisation.graph.goal
-    origin = environment.graph_realisation.graph.origin
-    path_length, path = dijkstra_with_path(env_state)
+    goal = environment.graph_realisation.graph.goal.item()
+    origin = environment.graph_realisation.graph.origin.item()
+    path_length, next_node = dijkstra_with_path(env_state)
     true_path_length = dijkstra_shortest_path(env_state, origin, goal)
     environment.graph_realisation.plot_realised_graph(
         env_state[0, 1:, :], log_directory, "dijkstra_path.png"
     )
     assert path_length == true_path_length
-    assert path[0] == origin
-    assert path[-1] == goal
+    assert next_node == 2

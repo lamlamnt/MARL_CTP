@@ -399,7 +399,7 @@ if __name__ == "__main__":
         type=str,
         required=False,
         help="Options: CNN,Densenet,Resnet",
-        default="CNN",
+        default="Densenet",
     )
 
     # Args related to running/managing experiments
@@ -447,7 +447,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--graph_mode",
         type=str,
-        default="generate",
+        default="load",
         required=False,
         help="Options: generate,store,load",
     )
@@ -464,7 +464,7 @@ if __name__ == "__main__":
         type=int,
         help="How many timesteps to collect before updating the network",
         required=False,
-        default=600,
+        default=2400,
     )
     parser.add_argument(
         "--gae_lambda",
@@ -506,7 +506,7 @@ if __name__ == "__main__":
         type=str,
         required=False,
         help="Options: linear, sigmoid, plateau",
-        default="linear",
+        default="plateau",
     )
     parser.add_argument(
         "--division_plateau",

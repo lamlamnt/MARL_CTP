@@ -81,8 +81,8 @@ def get_expected_optimal_path_length(
         )
         path_length = optimal_path_length.dijkstra_shortest_path(
             env_state_simplified,
-            graphRealisation.graph.goal,
-            graphRealisation.graph.origin,
+            graphRealisation.graph.goal.item(),
+            graphRealisation.graph.origin.item(),
         )
         path_lengths = path_lengths.at[i].set(path_length)
     return jnp.mean(path_lengths)

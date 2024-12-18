@@ -156,8 +156,8 @@ class PPO:
             previous_episode_done,
             lambda _: dijkstra_shortest_path(
                 current_env_state,
-                jnp.array([origin]),
-                jnp.array([goal]),
+                origin,
+                goal,
             ),
             lambda _: jnp.array(0.0, dtype=jnp.float16),
             operand=None,

@@ -16,6 +16,7 @@ from datetime import datetime
 from Utils import generate_graphs
 from jax_tqdm import scan_tqdm
 import json
+import wandb
 
 
 def main(args):
@@ -78,7 +79,6 @@ def main(args):
         )
         action = action[0]
 
-        # Stop the episode and reset if exceed horizon length
         env_key, _ = jax.random.split(env_key)
 
         # Calculate shortest path at the beginning of the episode
@@ -91,8 +91,8 @@ def main(args):
             previous_episode_done,
             lambda _: dijkstra_shortest_path(
                 current_env_state,
-                jnp.array([origin]),
-                jnp.array([goal]),
+                origin,
+                goal,
             ),
             lambda _: jnp.array(0.0, dtype=jnp.float16),
             operand=None,
@@ -260,11 +260,21 @@ if __name__ == "__main__":
         default=2000,
     )
     args = parser.parse_args()
+
+    # Disable wandb logging
+    wandb.init(
+        project="baseline",
+        name=args.log_directory,
+        config=vars(args),
+        mode="disabled",
+    )
+
     current_directory = os.getcwd()
     log_directory = os.path.join(current_directory, "Logs", args.log_directory)
     if not os.path.exists(log_directory):
         os.makedirs(log_directory)
-    _, inference_graphs = generate_graphs.load_graphs(args)
+    if args.generalize:
+        _, inference_graphs = generate_graphs.load_graphs(args)
     main(args)
 
     # How to ensure same args as ppo. Store dict as .pickle and compare?
