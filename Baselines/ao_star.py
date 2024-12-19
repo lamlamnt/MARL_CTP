@@ -8,6 +8,7 @@ sys.path.append("..")
 from Environment import CTP_generator
 
 
+@jax.jit
 def get_optimistic_heuristic(belief_state: jnp.ndarray, node: int, goal: int) -> float:
     # Assume all unknown stochastic edges are not blocked
     belief_state = belief_state.at[0, 1:, :].set(

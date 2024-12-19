@@ -23,6 +23,7 @@ import wandb
 from distutils.util import strtobool
 from jax_tqdm import scan_tqdm
 import warnings
+from Utils.augmented_belief_state import get_augmented_optimistic_belief
 
 """
 warnings.simplefilter("error")
@@ -30,8 +31,7 @@ warnings.filterwarnings(
     "ignore", category=RuntimeWarning, message="overflow encountered in cast"
 )
 """
-
-NUM_CHANNELS_IN_BELIEF_STATE = 4
+NUM_CHANNELS_IN_BELIEF_STATE = 5
 
 
 def linear_schedule(count):
@@ -197,7 +197,8 @@ def main(args):
             loop_count,
             previous_episode_done,
         ) = runner_state
-        _, last_critic_val = model.apply(train_state.params, current_belief_state)
+        augmented_state = get_augmented_optimistic_belief(current_belief_state)
+        _, last_critic_val = model.apply(train_state.params, augmented_state)
         advantages, targets = agent.calculate_gae(traj_batch, last_critic_val)
         # advantages and targets are of shape (num_steps_before_update,)
 
@@ -343,14 +344,14 @@ if __name__ == "__main__":
         type=float,
         help="Should be equal to or more negative than -1",
         required=False,
-        default=-1.1,
+        default=-1.5,
     )
     parser.add_argument(
         "--horizon_length_factor",
         type=int,
         help="Factor to multiply with number of nodes to get the maximum horizon length",
         required=False,
-        default=5,
+        default=3,
     )
     parser.add_argument(
         "--factor_expensive_edge", type=float, required=False, default=1.0
@@ -455,7 +456,7 @@ if __name__ == "__main__":
         "--graph_identifier",
         type=str,
         required=False,
-        default="2000_prop_stoch_0.4",
+        default="node_10_relabel",
     )
 
     # Args specific to PPO:

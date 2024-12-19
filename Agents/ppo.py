@@ -10,6 +10,7 @@ from edited_jym.agents.base_agents import BaseDeepRLAgent
 from Environment import CTP_environment, CTP_generator, CTP_environment_generalize
 from Evaluation.optimal_path_length import dijkstra_shortest_path
 from Utils import coeff_schedule
+from Utils.augmented_belief_state import get_augmented_optimistic_belief
 import flax.linen as nn
 from typing import Sequence, NamedTuple, Any
 
@@ -81,7 +82,9 @@ class PPO:
     # For inference only
     @partial(jax.jit, static_argnums=(0,))
     def act(self, key, params, belief_state, unused):
-        pi, _ = self.model.apply(params, belief_state)
+        augmented_belief_state = get_augmented_optimistic_belief(belief_state)
+        pi, _ = self.model.apply(params, augmented_belief_state)
+
         action = jax.lax.cond(
             self.deterministic_inference_policy,
             lambda _: pi.mode(),
@@ -106,8 +109,11 @@ class PPO:
             previous_episode_done,
         ) = runner_state
         action_key, env_key = jax.random.split(key, 2)
+
         # Agent acts
-        pi, critic_value = self.model.apply(train_state.params, current_belief_state)
+        augmented_belief_state = get_augmented_optimistic_belief(current_belief_state)
+        pi, critic_value = self.model.apply(train_state.params, augmented_belief_state)
+
         action = pi.sample(seed=key)
         log_prob = pi.log_prob(action)
         original_key, action_key = jax.random.split(action_key)
@@ -210,8 +216,11 @@ class PPO:
 
     def _loss_fn(self, params, traj_batch: Transition, gae, targets, ent_coeff):
         # RERUN NETWORK
+        traj_batch_augmented_belief_state = jax.vmap(get_augmented_optimistic_belief)(
+            traj_batch.belief_state
+        )
         pi, value = jax.vmap(self.model.apply, in_axes=(None, 0))(
-            params, traj_batch.belief_state
+            params, traj_batch_augmented_belief_state
         )
         # pi, value = self.model.apply(params, traj_batch.belief_state)
         log_prob = pi.log_prob(traj_batch.action)
