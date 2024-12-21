@@ -7,7 +7,7 @@ import random
 def train():
     with wandb.init() as run:
         config = run.config
-        print(config)
+        print(run.name)
         """
         run.name = (
             f"lr_{config.learning_rate}_bs_{config.batch_size}_do_{config.dropout}"
@@ -34,7 +34,7 @@ def main():
     sweep_id = wandb.sweep(sweep_config, project="test_bayes_optimization_4")
 
     # Start the sweep agent
-    wandb.agent(sweep_id, function=train, count=5)
+    wandb.agent(sweep_id, function=train, count=3)
 
 
 if __name__ == "__main__":

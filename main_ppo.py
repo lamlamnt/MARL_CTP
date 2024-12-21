@@ -622,6 +622,7 @@ if __name__ == "__main__":
         wandb.finish()
     else:
         # Hyperparameter sweep
+        print("Running hyperparameter sweep ...")
         if args.wandb_mode != "online":
             raise ValueError("Wandb mode must be online for hyperparameter sweep")
         with open(args.yaml_file, "r") as file:
@@ -635,9 +636,9 @@ if __name__ == "__main__":
                 # Modify args based on config
                 for key in config:
                     args.key = config[key]
-                # Instead of using run.id, concatenate parameters
+                # Instead of using run.id, can concatenate parameters
                 log_directory = os.path.join(
-                    os.getcwd(), "Logs", args.wandb_project_name, run.id
+                    os.getcwd(), "Logs", args.wandb_project_name, run.name
                 )
                 args.log_directory = log_directory
                 main(args)
