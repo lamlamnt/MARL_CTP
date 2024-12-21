@@ -16,10 +16,14 @@ parameters:
     min: 0.0001
     max: 0.01
   num_update_epochs:
+    distribution: q_uniform
     min: 4
     max: 8
+    q: 2
   num_steps_before_update:
+    distribution: q_uniform
     min: 2400
     max: 3600
+    q: 192
   ent_coeff_schedule:
     values: ["sigmoid","plateau"]

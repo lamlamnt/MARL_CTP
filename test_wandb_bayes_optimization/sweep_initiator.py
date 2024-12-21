@@ -31,7 +31,11 @@ def main():
         sweep_config = yaml.safe_load(file)
 
     # Initialize the sweep
-    sweep_id = wandb.sweep(sweep_config, project="test_bayes_optimization_4")
+    sweep_id = wandb.sweep(
+        sweep_config,
+        project="test_bayes_optimization_4",
+        entity="lam-lam-university-of-oxford",
+    )
 
     # Start the sweep agent
     wandb.agent(sweep_id, function=train, count=3)

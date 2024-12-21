@@ -627,7 +627,11 @@ if __name__ == "__main__":
             raise ValueError("Wandb mode must be online for hyperparameter sweep")
         with open(args.yaml_file, "r") as file:
             sweep_config = yaml.safe_load(file)
-        sweep_id = wandb.sweep(sweep_config, project=args.wandb_project_name)
+        sweep_id = wandb.sweep(
+            sweep_config,
+            project=args.wandb_project_name,
+            entity="lam-lam-university-of-oxford",
+        )
 
         def wrapper_function():
             with wandb.init() as run:
@@ -635,7 +639,7 @@ if __name__ == "__main__":
                 # Don't need to name the run using config values (run.name = ...) because it will be very long
                 # Modify args based on config
                 for key in config:
-                    args.key = config[key]
+                    setattr(args, key, config[key])
                 # Instead of using run.id, can concatenate parameters
                 log_directory = os.path.join(
                     os.getcwd(), "Logs", args.wandb_project_name, run.name
