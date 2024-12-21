@@ -25,6 +25,8 @@ from jax_tqdm import scan_tqdm
 import warnings
 from Utils.augmented_belief_state import get_augmented_optimistic_belief
 import flax.linen as nn
+import sys
+import yaml
 
 """
 warnings.simplefilter("error")
@@ -51,6 +53,21 @@ def decide_hand_crafted_graph(args):
 
 
 def main(args):
+    current_directory = os.getcwd()
+    log_directory = os.path.join(current_directory, "Logs", args.log_directory)
+    if not os.path.exists(log_directory):
+        os.makedirs(log_directory)
+
+    num_loops = args.time_steps // args.num_steps_before_update
+
+    # Decide on num of nodes
+    if args.hand_crafted_graph == "diamond":
+        n_node, defined_graph = hand_crafted_graphs.get_diamond_shaped_graph()
+    elif args.hand_crafted_graph == "n_stochastic":
+        n_node, defined_graph = hand_crafted_graphs.get_stochastic_edge_graph()
+    else:
+        n_node = args.n_node
+
     # Initialize and setting things up
     print("Setting up the environment ...")
     print("Add expensive edge: ", args.deal_with_unsolvability)
@@ -449,6 +466,17 @@ if __name__ == "__main__":
         "--wandb_project_name", type=str, required=False, default="no_name"
     )
     parser.add_argument(
+        "--yaml_file", type=str, required=False, default="sweep_config_node_10.yaml"
+    )
+    parser.add_argument(
+        "--wandb_sweep",
+        type=lambda x: bool(strtobool(x)),
+        default=False,
+        required=False,
+        help="Whether to use yaml file to do hyperparameter sweep (Bayesian optimization)",
+    )
+    parser.add_argument("--sweep_run_count", type=int, required=False, default=3)
+    parser.add_argument(
         "--deal_with_unsolvability",
         type=str,
         default="expensive_if_unsolvable",
@@ -568,42 +596,50 @@ if __name__ == "__main__":
         help="How many different graphs will be seen by the agent",
         default=2000,
     )
-
     args = parser.parse_args()
-    current_directory = os.getcwd()
-    log_directory = os.path.join(current_directory, "Logs", args.log_directory)
-    if not os.path.exists(log_directory):
-        os.makedirs(log_directory)
 
-    num_loops = args.time_steps // args.num_steps_before_update
-
-    # Decide on num of nodes
-    if args.hand_crafted_graph == "diamond":
-        n_node, defined_graph = hand_crafted_graphs.get_diamond_shaped_graph()
-    elif args.hand_crafted_graph == "n_stochastic":
-        n_node, defined_graph = hand_crafted_graphs.get_stochastic_edge_graph()
+    if args.graph_mode == "store":
+        print("Generating graphs for storage ...")
+        generate_graphs.store_graphs(args)
+        sys.exit(0)
+    elif args.graph_mode == "generate":
+        training_graphs = None
+        inference_graphs = None
     else:
-        n_node = args.n_node
-
-    # Initialize wandb project
-    wandb.init(
-        project=args.wandb_project_name,
-        name=args.log_directory,
-        config=vars(args),
-        mode=args.wandb_mode,
-    )
-
-    if args.graph_mode == "load":
+        # Load
         print("Checking validity and loading graphs ...")
         # Check args match and load graphs
         training_graphs, inference_graphs = generate_graphs.load_graphs(args)
+    if args.wandb_sweep == False:
+        # Initialize wandb project
+        wandb.init(
+            project=args.wandb_project_name,
+            name=args.log_directory,
+            config=vars(args),
+            mode=args.wandb_mode,
+        )
         main(args)
-    elif args.graph_mode == "store":
-        print("Generating graphs for storage ...")
-        generate_graphs.store_graphs(args)
+        wandb.finish()
     else:
-        # Pre-generate on the fly and use
-        training_graphs = None
-        inference_graphs = None
-        main(args)
-    wandb.finish()
+        # Hyperparameter sweep
+        if args.wandb_mode != "online":
+            raise ValueError("Wandb mode must be online for hyperparameter sweep")
+        with open(args.yaml_file, "r") as file:
+            sweep_config = yaml.safe_load(file)
+        sweep_id = wandb.sweep(sweep_config, project=args.wandb_project_name)
+
+        def wrapper_function():
+            with wandb.init() as run:
+                config = run.config
+                # Don't need to name the run using config values (run.name = ...) because it will be very long
+                # Modify args based on config
+                for key in config:
+                    args.key = config[key]
+                # Instead of using run.id, concatenate parameters
+                log_directory = os.path.join(
+                    os.getcwd(), "Logs", args.wandb_project_name, run.id
+                )
+                args.log_directory = log_directory
+                main(args)
+
+        wandb.agent(sweep_id, function=wrapper_function, count=args.sweep_run_count)

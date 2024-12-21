@@ -1,0 +1,14 @@
+#program: sweep_initiator.py  # Script to run
+method: bayes               # Bayesian optimization
+metric:
+  name: validation_loss     # Metric to optimize
+  goal: minimize            # Whether to minimize or maximize
+parameters:
+  learning_rate:
+    min: 0.0001
+    max: 0.1
+  batch_size:
+    values: [16, 32, 64]    # Categorical values
+  dropout:
+    min: 0.1
+    max: 0.5
