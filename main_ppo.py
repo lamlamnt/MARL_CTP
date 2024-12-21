@@ -24,6 +24,7 @@ from distutils.util import strtobool
 from jax_tqdm import scan_tqdm
 import warnings
 from Utils.augmented_belief_state import get_augmented_optimistic_belief
+import flax.linen as nn
 
 """
 warnings.simplefilter("error")
@@ -126,7 +127,16 @@ def main(args):
         else:
             model = ActorCritic_CNN_30(n_node)
     elif args.network_type == "Densenet":
-        model = DenseNet_ActorCritic(n_node)
+        densenet_act_fn_dict = {"leaky_relu": nn.leaky_relu, "tanh": nn.tanh}
+        densenet_init_dict = {
+            "kaiming_normal": nn.initializers.kaiming_normal(),
+            "orthogonal": nn.initializers.orthogonal(jnp.sqrt(2)),
+        }
+        model = DenseNet_ActorCritic(
+            n_node,
+            act_fn=densenet_act_fn_dict[args.network_activation_fn],
+            densenet_kernel_init=densenet_init_dict[args.network_init],
+        )
     else:
         model = ResNet_ActorCritic(n_node)
 
@@ -402,6 +412,20 @@ if __name__ == "__main__":
         help="Options: CNN,Densenet,Resnet",
         default="Densenet",
     )
+    parser.add_argument(
+        "--network_activation_fn",
+        type=str,
+        required=False,
+        help="Options: leaky_relu, tanh",
+        default="leaky_relu",
+    )
+    parser.add_argument(
+        "--network_init",
+        type=str,
+        required=False,
+        help="Options: kaiming_normal (often goes with relu/leaky_relu), orthogonal (often goes with tanh activation)",
+        default="kaiming_normal",
+    )
 
     # Args related to running/managing experiments
     parser.add_argument(
@@ -456,7 +480,7 @@ if __name__ == "__main__":
         "--graph_identifier",
         type=str,
         required=False,
-        default="node_10_relabel",
+        default="node_10_relabel_0.4",
     )
 
     # Args specific to PPO:

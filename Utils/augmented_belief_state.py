@@ -44,6 +44,10 @@ def get_augmented_optimistic_belief(belief_state: jnp.ndarray):
     # Use vmap to compute shortest paths for all pairs of nodes
     vmap_func = jax.vmap(jax.vmap(partial(pairwise_dijkstra, optimistic_belief_state)))
     shortest_paths = vmap_func(node_pairs)
+
+    # Replace inf with -1. Possible that a node is not reachable from another node
+    shortest_paths = jnp.where(jnp.isinf(shortest_paths), -1, shortest_paths)
+
     empty = jnp.zeros((num_agents, num_nodes), dtype=jnp.float16)
     shortest_paths = jnp.concatenate((empty, shortest_paths), axis=0)
     augmented_belief_state = jnp.vstack(

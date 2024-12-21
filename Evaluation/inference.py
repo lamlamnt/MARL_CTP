@@ -47,6 +47,7 @@ def plotting_inference(
         out["all_rewards"],
         out["all_optimal_path_lengths"],
         log_directory,
+        reward_exceed_horizon=args.reward_exceed_horizon,
         training=True,
     )
 
@@ -155,6 +156,7 @@ def plotting_inference(
         test_all_rewards,
         test_all_optimal_path_lengths,
         log_directory,
+        reward_exceed_horizon=args.reward_exceed_horizon,
         training=False,
     )
 

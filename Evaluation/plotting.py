@@ -36,6 +36,7 @@ def save_data_and_plotting(
     all_rewards,
     all_optimal_path_lengths,
     directory,
+    reward_exceed_horizon,
     training=True,
     file_name_excel_sheet_episode="episode_output.xlsx",
     file_name_excel_sheet_timestep="timestep_output.xlsx",
@@ -99,7 +100,7 @@ def save_data_and_plotting(
     plt.plot(episodes_df.index, episodes_df["competitive_ratio"], linestyle="-")
     plt.xlabel("Episode number")
     plt.ylabel("Competitive Ratio")
-    plt.title("Compettive Ratio Over Time (By Episode)")
+    plt.title("Competitive Ratio Over Time (By Episode)")
     plt.savefig(
         os.path.join(directory, beginning_str + file_name_competitive_ratio_episode)
     )
@@ -155,6 +156,9 @@ def save_data_and_plotting(
             "max_reward": float(episodes_df["reward"].max()),
         }
     else:
+        num_reach_horizon = np.sum(
+            np.isclose(all_rewards, reward_exceed_horizon, atol=0.1)
+        )
         result_dict = {
             "average_regret": float(episodes_df["regret"].mean()),
             "average_competitive_ratio": float(episodes_df["competitive_ratio"].mean()),
@@ -163,6 +167,7 @@ def save_data_and_plotting(
             ),
             "max_competitive_ratio": float(episodes_df["competitive_ratio"].max()),
             "average_reward": float(episodes_df["reward"].mean()),
+            "failure_rate (%)": float(num_reach_horizon * 100 / episodes_df.shape[0]),
         }
         for key, value in result_dict.items():
             wandb.summary[key] = value

@@ -125,6 +125,7 @@ def main(args):
         test_all_rewards,
         test_all_optimal_path_lengths,
         log_directory,
+        reward_exceed_horizon=args.reward_exceed_horizon,
         training=False,
         file_name_excel_sheet_episode="optimistic_baseline_episode_output.xlsx",
         file_name_excel_sheet_timestep="optimistic_baseline_timestep_output.xlsx",
@@ -183,7 +184,7 @@ if __name__ == "__main__":
         type=float,
         help="Should be equal to or more negative than -1",
         required=False,
-        default=-1.1,
+        default=-1.5,
     )
     parser.add_argument(
         "--horizon_length_factor",
@@ -250,7 +251,7 @@ if __name__ == "__main__":
         "--graph_identifier",
         type=str,
         required=False,
-        default="2000_prop_stoch_0.4",
+        default="node_10_relabel_0.4",
     )
     parser.add_argument(
         "--num_stored_graphs",

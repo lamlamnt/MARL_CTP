@@ -10,13 +10,14 @@ from Agents.dqn_masking import DQN_Masking
 import os
 from Utils import invalid_action_masking
 from Networks import CNN
+from Utils.augmented_belief_state import get_augmented_optimistic_belief
 
 
 def test_dqn_masking(printer):
     key = jax.random.PRNGKey(0)
     current_directory = os.getcwd()
     parent_directory = os.path.dirname(current_directory)
-    logs_directory = os.path.join(parent_directory, "logs")
+    logs_directory = os.path.join(parent_directory, "Logs")
 
     key = jax.random.PRNGKey(30)
     key, subkey = jax.random.split(key)
@@ -46,3 +47,19 @@ def test_dqn_masking(printer):
             env_key, new_env_state, current_belief_state, action
         )
         assert reward > -190
+
+
+def test_ppo_masking(printer):
+    key = jax.random.PRNGKey(30)
+    key, subkey = jax.random.split(key)
+    env_key, action_key, buffer_key = jax.random.split(subkey, 3)
+    environment = CTP_environment.CTP(1, 1, 5, key, prop_stoch=0.4)
+    new_env_state, new_belief_state = environment.reset(env_key)
+    augmented_belief_state = get_augmented_optimistic_belief(new_belief_state)
+    invalid_action_mask_augmented = (
+        invalid_action_masking.decide_validity_of_action_space(augmented_belief_state)
+    )
+    invalid_action_mask_true = invalid_action_masking.decide_validity_of_action_space(
+        new_belief_state
+    )
+    assert jnp.array_equal(invalid_action_mask_augmented, invalid_action_mask_true)
