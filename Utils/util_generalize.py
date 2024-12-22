@@ -1,3 +1,4 @@
+from functools import partial
 import jax
 import jax.numpy as jnp
 import sys
@@ -11,6 +12,7 @@ NUM_SAMPLES_FACTOR = 10
 
 # Sample blocking status for several times, perform dijkstra and get the average path length
 # Need to be solvable realisation
+# Do not jax jit because graphRealisation will change frequently -> can't put as static
 def get_expected_optimal_path_length(
     graphRealisation: CTP_generator.CTPGraph_Realisation,
     key: jax.random.PRNGKey,
@@ -53,24 +55,26 @@ def get_expected_optimal_path_length(
     edge_weights_expensive = jnp.concatenate((empty, graph_weights), axis=0)
     edge_probs_expensive = jnp.concatenate((empty, blocking_prob), axis=0)
 
-    for i in range(num_samples):
-        blocking_status = graphRealisation.sample_blocking_status(key[i])
-        is_solvable = graphRealisation.is_solvable(blocking_status)
+    def _not_solvable(blocking_status):
+        blocking_status = blocking_status.at[
+            graphRealisation.graph.origin,
+            graphRealisation.graph.goal,
+        ].set(CTP_generator.UNBLOCKED)
+        blocking_status = blocking_status.at[
+            graphRealisation.graph.goal,
+            graphRealisation.graph.origin,
+        ].set(CTP_generator.UNBLOCKED)
+        return edge_weights_expensive, edge_probs_expensive, blocking_status
 
-        if is_solvable == jnp.bool_(False):
-            blocking_status = blocking_status.at[
-                graphRealisation.graph.origin,
-                graphRealisation.graph.goal,
-            ].set(CTP_generator.UNBLOCKED)
-            blocking_status = blocking_status.at[
-                graphRealisation.graph.goal,
-                graphRealisation.graph.origin,
-            ].set(CTP_generator.UNBLOCKED)
-            edge_weights = edge_weights_expensive
-            edge_probs = edge_probs_expensive
-        else:
-            edge_weights = edge_weights_not_expensive
-            edge_probs = edge_probs_not_expensive
+    def _solvable(blocking_status):
+        return edge_weights_not_expensive, edge_probs_not_expensive, blocking_status
+
+    def get_sampled_path_length(key):
+        blocking_status = graphRealisation.sample_blocking_status(key)
+        is_solvable = graphRealisation.is_solvable(blocking_status)
+        edge_weights, edge_probs, blocking_status = jax.lax.cond(
+            is_solvable, _solvable, _not_solvable, blocking_status
+        )
 
         # Convert graphRealisation to env_state (not exactly the right format for env_state, just include the info that dijkstra needs)
         blocking_status = jnp.concatenate((empty, blocking_status), axis=0)
@@ -84,7 +88,9 @@ def get_expected_optimal_path_length(
             graphRealisation.graph.goal.item(),
             graphRealisation.graph.origin.item(),
         )
-        path_lengths = path_lengths.at[i].set(path_length)
+        return path_length
+
+    path_lengths = jax.vmap(get_sampled_path_length)(key)
     return jnp.mean(path_lengths)
 
 
