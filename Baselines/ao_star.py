@@ -29,14 +29,26 @@ def get_optimistic_heuristic(belief_state: jnp.ndarray, node: int, goal: int) ->
     return optimal_path_length.dijkstra_shortest_path(belief_state, node, goal)
 
 
-# Heuristic used = optimistic path length
-# 2 separate functions: one returns the expected cost and the value of each node
+# Each node in the tree corresponds to a node in the graph and a belief state. But don't need to
+# store the belief state.
+class Node:
+    def __init__(self, graph_node: int, value: float):
+        self.graph_node = graph_node  # Corresponding node in the graph
+        self.value = value  # The current heuristic value of the node
+        self.successors = []  # Elements are of type Node
+        self.solved = False
+
+    def add_successor(self, successor):
+        self.successors.append(successor)
+
+
+# 2 separate functions: one returns the expected cost and the value of each node in the tree (more nodes than num nodes in the graph)
 # The other takes the value of each node and interacts with the environment
 # At each node, choose the node with the lowest expected cost + that edge cost (out of the connected nodes)
-def AO_Star(
+def AO_Star_Planning(
     belief_state: jnp.ndarray, origin: int, goal: int
 ) -> Tuple[List[int], float]:
-    # Returns Tuple of optimal path and total cost.
+    # Returns the expected cost and the Policy (Root Node)
     weights = belief_state[1, 1:, :]
     blocking_prob = belief_state[2, 1:, :]
     origin_optimistic_heuristic = get_optimistic_heuristic(belief_state, origin, goal)
@@ -115,3 +127,7 @@ def AO_Star(
         print(costs)
 
     return [], jnp.inf  # Return failure if no path is found
+
+
+def AO_Star_Execute():
+    pass

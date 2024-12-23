@@ -168,6 +168,9 @@ def save_data_and_plotting(
             "max_competitive_ratio": float(episodes_df["competitive_ratio"].max()),
             "average_reward": float(episodes_df["reward"].mean()),
             "failure_rate (%)": float(num_reach_horizon * 100 / episodes_df.shape[0]),
+            "standard deviation of competitive ratio": float(
+                episodes_df["competitive_ratio"].std()
+            ),
         }
         for key, value in result_dict.items():
             wandb.summary[key] = value
