@@ -31,10 +31,12 @@ def get_optimistic_heuristic(belief_state: jnp.ndarray, node: int, goal: int) ->
 
 # Each node in the tree corresponds to a node in the graph and a belief state. But don't need to
 # store the belief state.
+# Abstract base class
 class Node:
-    def __init__(self, graph_node: int, value: float):
+    def __init__(self, graph_node: int, value: float, parent):
         self.graph_node = graph_node  # Corresponding node in the graph
         self.value = value  # The current heuristic value of the node
+        self.parent = parent
         self.successors = []  # Elements are of type Node
         self.solved = False
 
@@ -42,13 +44,51 @@ class Node:
         self.successors.append(successor)
 
 
+class OR_Node(Node):
+    def __init__(self, graph_node: int, value: float):
+        super().__init__(graph_node, value)
+
+
+class AND_Node(Node):
+    def __init__(self, graph_node: int, value: float, blocking_prob):
+        super().__init__(graph_node, value)
+        self.blocking_prob = blocking_prob
+
+    def solve(self):
+        if self.solved:
+            return
+        if not self.successors:
+            self.expected_cost = self.value
+            return
+        for successor in self.successors:
+            successor.solve()
+            edge_cost = successor.graph_node.weights[self.graph_node]
+            block_prob = successor.graph_node.blocking_prob[self.graph_node]
+            weighted_traversable_cost = (1 - block_prob) * (
+                edge_cost + successor.expected_cost
+            )
+            untraversable_optimistic_heuristic = get_optimistic_heuristic(
+                successor.graph_node.belief_state,
+                self.graph_node,
+                successor.graph_node.goal,
+            )
+            weighted_untraversable_cost = (
+                block_prob * untraversable_optimistic_heuristic
+            )
+            expected_cost = weighted_traversable_cost + weighted_untraversable_cost
+            if expected_cost < self.expected_cost:
+                self.expected_cost = expected_cost
+                self.best_successor = successor
+        self.solved = True
+
+
 # 2 separate functions: one returns the expected cost and the value of each node in the tree (more nodes than num nodes in the graph)
 # The other takes the value of each node and interacts with the environment
 # At each node, choose the node with the lowest expected cost + that edge cost (out of the connected nodes)
-def AO_Star_Planning(
+def AO_Star_Planning_Wrong(
     belief_state: jnp.ndarray, origin: int, goal: int
 ) -> Tuple[List[int], float]:
-    # Returns the expected cost and the Policy (Root Node)
+    # Returns the expected cost and the Policy
     weights = belief_state[1, 1:, :]
     blocking_prob = belief_state[2, 1:, :]
     origin_optimistic_heuristic = get_optimistic_heuristic(belief_state, origin, goal)
@@ -127,6 +167,23 @@ def AO_Star_Planning(
         print(costs)
 
     return [], jnp.inf  # Return failure if no path is found
+
+
+def AO_Star_Planning(
+    belief_state: jnp.ndarray, origin: int, goal: int
+) -> Tuple[Node, float]:
+    # Returns the root node of the policy tree and the expected cost
+    # The belief state already disambiguates the edges connected to the origin, so root node is an OR node
+    root_node = OR_Node(
+        origin, get_optimistic_heuristic(belief_state, origin, goal), None
+    )
+    debug_counter = 0
+    current_node = root_node
+    while root_node.solved == False and debug_counter < 10:
+        debug_counter += 1
+        # Expansion
+
+        # Propagate upwards
 
 
 def AO_Star_Execute():

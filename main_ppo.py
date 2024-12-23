@@ -153,6 +153,13 @@ def main(args):
             n_node,
             act_fn=densenet_act_fn_dict[args.network_activation_fn],
             densenet_kernel_init=densenet_init_dict[args.network_init],
+            bn_size=args.densenet_bn_size,
+            growth_rate=args.densenet_growth_rate,
+            num_layers=(
+                args.densenet_num_layers,
+                args.densenet_num_layers,
+                args.densenet_num_layers,
+            ),
         )
     else:
         model = ResNet_ActorCritic(n_node)
@@ -442,6 +449,15 @@ if __name__ == "__main__":
         required=False,
         help="Options: kaiming_normal (often goes with relu/leaky_relu), orthogonal (often goes with tanh activation)",
         default="kaiming_normal",
+    )
+    parser.add_argument("--densenet_bn_size", type=int, required=False, default=4)
+    parser.add_argument("--densenet_growth_rate", type=int, required=False, default=32)
+    parser.add_argument(
+        "--densenet_num_layers",
+        type=int,
+        required=False,
+        help="Num group of layers per dense block. If 4 then 27 learnable layers",
+        default=4,
     )
 
     # Args related to running/managing experiments

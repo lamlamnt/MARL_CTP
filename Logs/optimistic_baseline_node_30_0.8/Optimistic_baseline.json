@@ -1,0 +1,14 @@
+{"n_node": 30, "n_agent": 1, "reward_for_invalid_action": -200.0, "reward_for_goal": 0, "reward_exceed_horizon": -1.5, "horizon_length_factor": 5, "factor_expensive_edge": 1.0, "deal_with_unsolvability": "expensive_if_unsolvable", "patience": 5, "prop_stoch": 0.8, "k_edges": null, "grid_size": null, "random_seed_for_inference": 40, "log_directory": "optimistic_baseline_node_30_0.8", "generalize": true, "factor_inference_timesteps": 500, "graph_identifier": "node_30_relabel_0.8", "num_stored_graphs": 2000}
+{
+    "current_datetime": "2024-12-23 15:25:46"
+}
+{"Total time in seconds": 401.8568687438965}
+{
+    "average_regret": 0.2649346888065338,
+    "average_competitive_ratio": 1.2427080869674683,
+    "median_competitive_ratio": 1.0975897312164307,
+    "max_competitive_ratio": 3.887249708175659,
+    "average_reward": -1.272098183631897,
+    "failure_rate (%)": 0.0,
+    "standard deviation of competitive ratio": 0.35735446214675903
+}
