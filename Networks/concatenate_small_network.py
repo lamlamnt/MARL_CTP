@@ -7,10 +7,10 @@ from flax.linen.initializers import constant, orthogonal, he_normal
 from typing import Sequence, NamedTuple, Any
 import distrax
 import sys
-from actor_critic_network import End_Block_30, Middle_FC_Block_30
 
 sys.path.append("..")
 from Utils.invalid_action_masking import decide_validity_of_action_space
+from Networks.actor_critic_network import End_Block_30, Middle_FC_Block_30
 
 
 class Beginning_CNN_Block_30_With_Concatenation(nn.Module):

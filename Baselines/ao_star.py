@@ -144,12 +144,13 @@ class OR_Node(Node):
                 # The edge cost is the shortest deterministic distance connecting the current node and the origin node, assuming all
                 # unknown edges are blocked!!
                 # If terminal node, then it is solved
+                pessimistic_path_length = get_pessimistic_heuristic(
+                    belief_state, successor_origin_list[i], goal
+                )
                 if (
                     successor_destination_list[i] == goal
-                    and self.belief[
-                        successor_origin_list[i], successor_destination_list[i]
-                    ]
-                    == CTP_generator.UNBLOCKED
+                    and pessimistic_path_length == risk_free_cost_to_goal
+                    and pessimistic_path_length < jnp.inf
                 ):
                     successor_node = AND_Node(
                         goal, 0, self, 0, self.belief, solved=True
@@ -215,7 +216,8 @@ class AND_Node(Node):
         super().__init__(graph_node, value, parent, belief, solved)
         # The graph node of AND_Node is the origin node of the edge
         self.blocking_prob = blocking_prob
-        # Also has attribute destination node
+        # Also has attribute destination node. None-expanded AND_Nodes will have this as None
+        self.destination_node_of_ambiguated_edge = None
 
     def expand(self, belief_state: jnp.ndarray, goal: int) -> List[Node]:
         # AND node only has 2 OR_Node successors: traversable and untraversable
@@ -306,20 +308,53 @@ def AO_Star_Planning(belief_state: jnp.ndarray, origin: int, goal: int) -> Node:
             current_node = current_node.parent
         print("Root node value: " + str(root_node.value))
     # Prune children of OR nodes starting from the root node
-    # OR Build a new tree with only the optimal path
     # use a recursive function to prune the tree
     _prune(root_node)
+    # OR_Nodes' successors and edge_cost_to_successor are now only 1 element each
     return root_node
 
 
 def _prune(node: OR_Node):
-    if node.successors != []:
-        node.successors = node.successors[0]
-        node = node.successors[0]  # AND_node
-        _prune(node.successors[0])
-        _prune(node.successors[1])
+    # Depth first search prune
+    if node.successors:
+        best_child_node = node.successors[
+            0
+        ]  # This is an AND_Node (best child of an OR_Node)
+        node.successors = best_child_node
+        node.edge_cost_to_successor = node.edge_cost_to_successor[0]
+        # Not all AND nodes have been expanded
+        if best_child_node.successors:
+            _prune(best_child_node.successors[0])
+            _prune(best_child_node.successors[1])
 
 
-def AO_Star_Execute(env_state: jnp.ndarray, root_node: OR_Node) -> float:
+# Chose to use env_state instead of interacting with the environment because
+# this will run faster (but easier to introduce bugs)
+def AO_Star_Execute(env_state: jnp.ndarray, root_node: OR_Node, goal: int) -> float:
     # At each AND_node, check whether the edge is traversable or not
-    pass
+    total_length = 0
+    current_node = root_node
+    while current_node.graph_node != goal:
+        # OR_Node
+        total_length += current_node.edge_cost_to_successor
+        current_node = current_node.successors
+        # And_Node
+        # Check whether the edge is traversable
+        destination_node = current_node.destination_node_of_ambiguated_edge
+        # Not all AND nodes are fully expanded
+        if current_node.successors:
+            if (
+                env_state[0, 1 + current_node.graph_node, destination_node]
+                == CTP_generator.UNBLOCKED
+            ):
+                current_node = current_node.successors[0]
+            else:
+                current_node = current_node.successors[1]
+    return total_length
+
+
+def AO_Star_Full(
+    env_state: jnp.ndarray, belief_state: jnp.ndarray, origin: int, goal: int
+) -> float:
+    root_node = AO_Star_Planning(belief_state, origin, goal)
+    return AO_Star_Execute(env_state, root_node, goal)
