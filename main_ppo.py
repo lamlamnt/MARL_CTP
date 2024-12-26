@@ -4,6 +4,8 @@ import jax.numpy as jnp
 from Networks.actor_critic_network import ActorCritic_CNN_10, ActorCritic_CNN_30
 from Networks.densenet import DenseNet_ActorCritic
 from Networks.resnet import ResNet_ActorCritic
+from Networks.concatenate_small_network import Small_Concatenate_CNN_30
+from Networks.densenet_float16 import DenseNet_ActorCritic_Float16
 from Environment import CTP_environment, CTP_generator, CTP_environment_generalize
 from Agents.ppo import PPO
 from Evaluation import plotting
@@ -155,12 +157,24 @@ def main(args):
             densenet_kernel_init=densenet_init_dict[args.network_init],
             bn_size=args.densenet_bn_size,
             growth_rate=args.densenet_growth_rate,
-            num_layers=(
-                args.densenet_num_layers,
-                args.densenet_num_layers,
-                args.densenet_num_layers,
-            ),
+            num_layers=tuple(map(int, (args.densenet_num_layers).split(","))),
         )
+    elif args.network_type == "Densenet_Float16":
+        densenet_act_fn_dict = {"leaky_relu": nn.leaky_relu, "tanh": nn.tanh}
+        densenet_init_dict = {
+            "kaiming_normal": nn.initializers.kaiming_normal(dtype=jnp.float16),
+            "orthogonal": nn.initializers.orthogonal(jnp.sqrt(2), dtype=jnp.float16),
+        }
+        model = DenseNet_ActorCritic_Float16(
+            n_node,
+            act_fn=densenet_act_fn_dict[args.network_activation_fn],
+            densenet_kernel_init=densenet_init_dict[args.network_init],
+            bn_size=args.densenet_bn_size,
+            growth_rate=args.densenet_growth_rate,
+            num_layers=tuple(map(int, (args.densenet_num_layers).split(","))),
+        )
+    elif args.network_type == "CNN_Concatenate":
+        model = Small_Concatenate_CNN_30(n_node)
     else:
         model = ResNet_ActorCritic(n_node)
 
@@ -433,7 +447,7 @@ if __name__ == "__main__":
         "--network_type",
         type=str,
         required=False,
-        help="Options: CNN,Densenet,Resnet",
+        help="Options: CNN,Densenet,Resnet, CNN_Concatenate, Densenet_Float16",
         default="Densenet",
     )
     parser.add_argument(
@@ -454,10 +468,10 @@ if __name__ == "__main__":
     parser.add_argument("--densenet_growth_rate", type=int, required=False, default=32)
     parser.add_argument(
         "--densenet_num_layers",
-        type=int,
+        type=str,
         required=False,
-        help="Num group of layers per dense block. If 4 then 27 learnable layers",
-        default=4,
+        help="Num group of layers for each dense block in string format",
+        default="4,4,4",
     )
 
     # Args related to running/managing experiments

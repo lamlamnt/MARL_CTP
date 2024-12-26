@@ -3,6 +3,7 @@ import jax
 import jax.numpy as jnp
 from Evaluation import optimal_path_length
 import sys
+from abc import ABC, abstractmethod
 
 sys.path.append("..")
 from Environment import CTP_generator
@@ -29,162 +30,296 @@ def get_optimistic_heuristic(belief_state: jnp.ndarray, node: int, goal: int) ->
     return optimal_path_length.dijkstra_shortest_path(belief_state, node, goal)
 
 
+# This can (and often will) return inf
+def get_pessimistic_heuristic(belief_state: jnp.ndarray, node: int, goal: int) -> float:
+    # Assume all unknown edges are blocked
+    belief_state = belief_state.at[0, 1:, :].set(
+        jnp.where(
+            belief_state[0, 1:, :] == CTP_generator.UNKNOWN,
+            CTP_generator.BLOCKED,
+            belief_state[0, 1:, :],
+        )
+    )
+    # dijkstra expects env_state. Change blocking_prob of known blocked edges to 1.
+    belief_state = belief_state.at[1, 1:, :].set(
+        jnp.where(
+            belief_state[0, 1:, :] == CTP_generator.BLOCKED,
+            1,
+            belief_state[1, 1:, :],
+        )
+    )
+    return optimal_path_length.dijkstra_shortest_path(belief_state, node, goal)
+
+
 # Each node in the tree corresponds to a node in the graph and a belief state. But don't need to
 # store the belief state.
 # Abstract base class
-class Node:
-    def __init__(self, graph_node: int, value: float, parent):
+class Node(ABC):
+    def __init__(self, graph_node: int, value: float, parent, belief, solved=False):
         self.graph_node = graph_node  # Corresponding node in the graph
         self.value = value  # The current heuristic value of the node
         self.parent = parent
         self.successors = []  # Elements are of type Node
-        self.solved = False
+        self.solved = solved
+        self.belief = belief  # dimension (num_nodes)x(num_nodes)
 
     def add_successor(self, successor):
         self.successors.append(successor)
 
+    @abstractmethod
+    def expand(self, belief_state, goal) -> List:
+        pass
+
+    @abstractmethod
+    def solve(self):
+        pass
+
 
 class OR_Node(Node):
-    def __init__(self, graph_node: int, value: float):
-        super().__init__(graph_node, value)
+    def __init__(
+        self,
+        graph_node: int,
+        value: float,
+        parent: Node,
+        belief: jnp.ndarray,
+        solved=False,
+    ):
+        super().__init__(graph_node, value, parent, belief, solved)
+        self.edge_cost_to_successor = jnp.array([])
 
+    def add_successor(self, successor, edge_cost):
+        self.successors.append(successor)
+        self.edge_cost_to_successor = jnp.concatenate(
+            [self.edge_cost_to_successor, jnp.array([edge_cost])]
+        )
 
-class AND_Node(Node):
-    def __init__(self, graph_node: int, value: float, blocking_prob):
-        super().__init__(graph_node, value)
-        self.blocking_prob = blocking_prob
-
-    def solve(self):
-        if self.solved:
-            return
+    # Successors are all reachable vertices undisambiguated edges (including deterministic edges and recently disambiguated edges from the parent node)
+    # Don't add successors if the edge costs between the parent to successor is greater than the risk-free cost from the parent to the goal
+    # Also don't add successors if the AND_node's children have the same shortest risk_free path to the goal
+    def expand(self, belief_state: jnp.ndarray, goal: int) -> List[Node]:
+        # Returns updated fringe list
+        belief_state = belief_state.at[0, 1:, :].set(self.belief)
         if not self.successors:
-            self.expected_cost = self.value
-            return
-        for successor in self.successors:
-            successor.solve()
-            edge_cost = successor.graph_node.weights[self.graph_node]
-            block_prob = successor.graph_node.blocking_prob[self.graph_node]
-            weighted_traversable_cost = (1 - block_prob) * (
-                edge_cost + successor.expected_cost
+            nodes = jnp.arange(self.belief.shape[0])
+            pessimistic_costs = jax.vmap(
+                get_pessimistic_heuristic, in_axes=(None, 0, None)
+            )(belief_state, nodes, self.graph_node)
+            risk_free_cost_to_goal = get_pessimistic_heuristic(
+                belief_state, self.graph_node, goal
             )
-            untraversable_optimistic_heuristic = get_optimistic_heuristic(
-                successor.graph_node.belief_state,
-                self.graph_node,
-                successor.graph_node.goal,
+            # Get list of nodes with pessimistic cost lower than the current node's pessimistic cost
+            # Don't want to include current node in the successor list
+            pessimistic_costs = pessimistic_costs.at[self.graph_node].set(jnp.inf)
+            successors = jnp.where(pessimistic_costs < risk_free_cost_to_goal)[0]
+            # Calculate heuristic for each successor
+            # Each successor is connected deterministically to the current node
+            # Each successor has multiple stochastic edges to other nodes
+            successor_origin_list = jnp.array([], dtype=jnp.int8)
+            successor_destination_list = jnp.array([], dtype=jnp.int8)
+            for successor in successors:
+                new_successors = jnp.where(
+                    self.belief[successor] == CTP_generator.UNKNOWN
+                )[0]
+                successor_origin_list = jnp.concatenate(
+                    [
+                        successor_origin_list,
+                        jnp.array([successor for i in range(len(new_successors))]),
+                    ]
+                )
+                successor_destination_list = jnp.concatenate(
+                    [successor_destination_list, new_successors]
+                )
+            if risk_free_cost_to_goal < jnp.inf:
+                # Add as a successor
+                successor_origin_list = jnp.concatenate(
+                    [successor_origin_list, jnp.array([self.graph_node])]
+                )
+                successor_destination_list = jnp.concatenate(
+                    [successor_destination_list, jnp.array([goal])]
+                )
+            new_fringe_nodes = []
+            successor_origin_list = successor_origin_list.astype(jnp.int8)
+            # Successor_destination list can contain nodes that are connected to both deterministic and stochastic edges
+            for i in range(len(successor_origin_list)):
+                # The edge cost is the shortest deterministic distance connecting the current node and the origin node, assuming all
+                # unknown edges are blocked!!
+                # If terminal node, then it is solved
+                if (
+                    successor_destination_list[i] == goal
+                    and self.belief[
+                        successor_origin_list[i], successor_destination_list[i]
+                    ]
+                    == CTP_generator.UNBLOCKED
+                ):
+                    successor_node = AND_Node(
+                        goal, 0, self, 0, self.belief, solved=True
+                    )
+                    edge_cost = risk_free_cost_to_goal
+                else:
+                    block_prob = belief_state[
+                        2, 1 + successor_origin_list[i], successor_destination_list[i]
+                    ]
+                    successor_node = AND_Node(
+                        successor_origin_list[i],
+                        get_optimistic_heuristic(
+                            belief_state, successor_origin_list[i], goal
+                        ),
+                        self,
+                        block_prob,
+                        self.belief,
+                        solved=False,
+                    )
+                    successor_node.destination_node_of_ambiguated_edge = (
+                        successor_destination_list[i]
+                    )
+                    new_fringe_nodes.append(successor_node)
+                    edge_cost = pessimistic_costs[successor_origin_list[i]]
+                self.add_successor(successor_node, edge_cost)
+        # Sort based on current estimated cost
+        values = jnp.zeros(len(self.successors))
+        for i in range(len(self.successors)):
+            values = values.at[i].set(
+                self.successors[i].value + self.edge_cost_to_successor[i]
             )
-            weighted_untraversable_cost = (
-                block_prob * untraversable_optimistic_heuristic
-            )
-            expected_cost = weighted_traversable_cost + weighted_untraversable_cost
-            if expected_cost < self.expected_cost:
-                self.expected_cost = expected_cost
-                self.best_successor = successor
-        self.solved = True
+        sorted_indices = jnp.argsort(values)
+        self.successors = [self.successors[i] for i in sorted_indices]
+        return new_fringe_nodes
+
+    def solve(self, belief_state: jnp.ndarray):
+        # Get min of successors'estimated cost+edge cost
+        # Assign this as the node's new value
+        costs = jnp.array(
+            [
+                self.successors[i].value + self.edge_cost_to_successor[i]
+                for i in range(len(self.successors))
+            ]
+        )
+        self.value = jnp.min(costs)
+        best_successor_node = self.successors[jnp.argmin(costs)]
+        # If the successor's status is solved, then the node is solved
+        if best_successor_node.solved is True:
+            self.solved = True
 
 
-# 2 separate functions: one returns the expected cost and the value of each node in the tree (more nodes than num nodes in the graph)
-# The other takes the value of each node and interacts with the environment
-# At each node, choose the node with the lowest expected cost + that edge cost (out of the connected nodes)
-def AO_Star_Planning_Wrong(
-    belief_state: jnp.ndarray, origin: int, goal: int
-) -> Tuple[List[int], float]:
-    # Returns the expected cost and the Policy
-    weights = belief_state[1, 1:, :]
-    blocking_prob = belief_state[2, 1:, :]
-    origin_optimistic_heuristic = get_optimistic_heuristic(belief_state, origin, goal)
-    open_nodes = [(origin, origin_optimistic_heuristic)]  # Open list: (node, cost)
-    costs = {origin: origin_optimistic_heuristic}  # Cost to reach each node
-    best_paths = {origin: origin}  # Best paths from nodes
-    debug = 0
+# And Nodes represent edges
+class AND_Node(Node):
+    def __init__(
+        self,
+        graph_node: int,
+        value: float,
+        parent: Node,
+        blocking_prob,
+        belief,
+        solved=False,
+    ):
+        super().__init__(graph_node, value, parent, belief, solved)
+        # The graph node of AND_Node is the origin node of the edge
+        self.blocking_prob = blocking_prob
+        # Also has attribute destination node
 
-    while open_nodes and debug < 10:
-        debug += 1
-        print(open_nodes)
-        # Sort nodes by cost (ascending)
-        open_nodes = sorted(open_nodes, key=lambda x: x[1])
-        current_node, current_cost = open_nodes.pop(0)
-        if type(current_node) != int:
-            current_node = current_node.item()
+    def expand(self, belief_state: jnp.ndarray, goal: int) -> List[Node]:
+        # AND node only has 2 OR_Node successors: traversable and untraversable
+        # belief_state with that edge blocked
+        destination_node = self.destination_node_of_ambiguated_edge
+        untraversable_belief_state = belief_state.at[
+            0, 1 + self.graph_node, destination_node
+        ].set(CTP_generator.BLOCKED)
+        untraversable_belief_state = untraversable_belief_state.at[
+            0, 1 + destination_node, self.graph_node
+        ].set(CTP_generator.BLOCKED)
+        untraversal_value = get_optimistic_heuristic(
+            untraversable_belief_state, self.graph_node, goal
+        )
+        traversable_belief_state = belief_state.at[
+            0, 1 + self.graph_node, destination_node
+        ].set(CTP_generator.UNBLOCKED)
+        traversable_belief_state = traversable_belief_state.at[
+            0, 1 + destination_node, self.graph_node
+        ].set(CTP_generator.UNBLOCKED)
+        traversal_child_node = OR_Node(
+            self.graph_node,
+            get_optimistic_heuristic(belief_state, self.graph_node, goal),
+            self,
+            traversable_belief_state[0, 1:, :],
+            solved=self.graph_node == goal,
+        )
+        untraversal_child_node = OR_Node(
+            self.graph_node,
+            untraversal_value,
+            self,
+            untraversable_belief_state[0, 1:, :],
+        )
+        self.add_successor(traversal_child_node)
+        self.add_successor(untraversal_child_node)
+        return [traversal_child_node, untraversal_child_node]
 
-        # Check if we reached the goal
-        if current_node == goal:
-            # Reconstruct path
-            path = [origin, best_paths[origin]]
-            while path[-1] != goal:
-                path.append(best_paths[path[-1]])
-            return path, costs[origin]
-
-        # Expand current node
-        successors = jnp.where(weights[current_node] != CTP_generator.NOT_CONNECTED)[
+    def solve(self, belief_state: jnp.ndarray):
+        # No cost for disambiguation
+        self.value = (1 - self.blocking_prob) * self.successors[
             0
-        ]  # Nodes reachable from current_node
-        min_cost = jnp.inf
-        best_successor = None
-
-        # This is the OR node
-        for successor in successors:
-            edge_cost = weights[current_node, successor]
-            block_prob = blocking_prob[current_node, successor]
-
-            # Compute expected cost for stochastic edge
-            optimistic_heuristic = get_optimistic_heuristic(
-                belief_state, successor, goal
-            )
-
-            # Compute expected cost
-            weighted_traversable_cost = (1 - block_prob) * (
-                edge_cost + optimistic_heuristic
-            )
-            untraversable_belief_state = belief_state.at[
-                0, 1 + current_node, successor
-            ].set(CTP_generator.BLOCKED)
-            untraversable_belief_state = untraversable_belief_state.at[
-                0, successor + 1, current_node
-            ].set(CTP_generator.BLOCKED)
-            untraversable_optimistic_heuristic = get_optimistic_heuristic(
-                untraversable_belief_state, current_node, goal
-            )
-            weighted_untraversable_cost = block_prob * (
-                untraversable_optimistic_heuristic
-            )
-            # This is the AND node
-            expected_cost = weighted_traversable_cost + weighted_untraversable_cost
-
-            # Update best path and minimum cost
-            if expected_cost < min_cost:
-                min_cost = expected_cost
-                best_successor = successor
-
-        # Update open list and paths
-        if best_successor is not None:
-            costs[current_node] = min_cost
-            best_paths[current_node] = best_successor.item()
-            open_nodes.append((best_successor, min_cost))
-        else:
-            # No successor - leaf node -> propagate upwards
-            pass
-        print(best_paths)
-        print(costs)
-
-    return [], jnp.inf  # Return failure if no path is found
+        ].value + self.blocking_prob * self.successors[1].value
+        if self.successors[0].solved is True and self.successors[1].solved is True:
+            self.solved = True
 
 
-def AO_Star_Planning(
-    belief_state: jnp.ndarray, origin: int, goal: int
-) -> Tuple[Node, float]:
-    # Returns the root node of the policy tree and the expected cost
+# Don't pass the whole belief state around - just the relevant parts
+def AO_Star_Planning(belief_state: jnp.ndarray, origin: int, goal: int) -> Node:
+    # Returns the root node of the policy tree
     # The belief state already disambiguates the edges connected to the origin, so root node is an OR node
     root_node = OR_Node(
-        origin, get_optimistic_heuristic(belief_state, origin, goal), None
+        origin,
+        get_optimistic_heuristic(belief_state, origin, goal),
+        None,
+        belief_state[0, 1:, :],
     )
-    debug_counter = 0
+    iteration_num = 0
+    max_iterations = 10
+    fringe_list = [root_node]
     current_node = root_node
-    while root_node.solved == False and debug_counter < 10:
-        debug_counter += 1
-        # Expansion
+    while (
+        root_node.solved == False
+        and root_node.value != jnp.inf
+        and iteration_num < max_iterations
+    ):
+        iteration_num += 1
+        # Pick the node to expand -> Choose a fringe node with the lowest estimated cost
+        fringe_node_values = jnp.array([node.value for node in fringe_list])
+        print("Fringe node values: " + str(fringe_node_values))
+        current_node = fringe_list[jnp.argmin(fringe_node_values)]
+        print("Current node: " + str(current_node.graph_node))
+        print("Current node value: " + str(current_node.value))
 
-        # Propagate upwards
+        # Expansion (different depending on the type of node)
+        fringe_list.remove(current_node)
+        new_fringe_nodes = current_node.expand(belief_state, goal)
+        fringe_list += new_fringe_nodes
+
+        for node in current_node.successors:
+            print("Current node's successor: " + str(node.graph_node))
+            print("Current node's successor value: " + str(node.value))
+        if type(current_node) is OR_Node:
+            print("Edge cost to successor:" + str(current_node.edge_cost_to_successor))
+        # Propagate upwards to the root
+        while current_node != None:  # not root node
+            if current_node.successors != []:
+                current_node.solve(belief_state)
+            current_node = current_node.parent
+        print("Root node value: " + str(root_node.value))
+    # Prune children of OR nodes starting from the root node
+    # OR Build a new tree with only the optimal path
+    # use a recursive function to prune the tree
+    _prune(root_node)
+    return root_node
 
 
-def AO_Star_Execute():
+def _prune(node: OR_Node):
+    if node.successors != []:
+        node.successors = node.successors[0]
+        node = node.successors[0]  # AND_node
+        _prune(node.successors[0])
+        _prune(node.successors[1])
+
+
+def AO_Star_Execute(env_state: jnp.ndarray, root_node: OR_Node) -> float:
+    # At each AND_node, check whether the edge is traversable or not
     pass
