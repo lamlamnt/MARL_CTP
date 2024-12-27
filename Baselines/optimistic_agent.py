@@ -35,8 +35,36 @@ class Optimistic_Agent:
     @partial(jit, static_argnums=(0, 1))
     def get_path_length(
         self,
-        environment,
+        environment: CTP_environment_generalize.CTP_General,
         initial_belief_state: jnp.ndarray,
         initial_env_state: jnp.ndarray,
-    ):
-        pass
+        env_key: jax.random.PRNGKey,
+    ) -> float:
+        def cond_fn(carry):
+            _, _, _, done, _ = carry
+            return ~done  # Continue while not done
+
+        def body_fn(carry):
+            env_state, belief_state, total_path_length, done, env_key = carry
+            action = self.act(belief_state)
+            action = jnp.array([action])
+            env_state, belief_state, reward, done, env_key = environment.step(
+                env_key, env_state, belief_state, action
+            )
+            action = action[0]
+            total_path_length += -reward
+            env_key, _ = jax.random.split(env_key)  # technically not needed
+            return env_state, belief_state, total_path_length, done, env_key
+
+        total_path_length = 0.0
+        carry = (
+            initial_env_state,
+            initial_belief_state,
+            total_path_length,
+            False,
+            env_key,
+        )
+        final_carry = jax.lax.while_loop(cond_fn, body_fn, carry)
+        total_path_length = final_carry[2]
+
+        return total_path_length

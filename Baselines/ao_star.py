@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 
 sys.path.append("..")
 from Environment import CTP_generator
+import numpy as np
 
 
 @jax.jit
@@ -294,9 +295,9 @@ def AO_Star_Planning(belief_state: jnp.ndarray, origin: int, goal: int) -> Node:
     ):
         iteration_num += 1
         # Pick the node to expand -> Choose a fringe node with the lowest estimated cost
-        fringe_node_values = jnp.array([node.value for node in fringe_list])
-        # print("Fringe node values before removal: " + str(fringe_node_values))
-        current_node = fringe_list[jnp.argmin(fringe_node_values)]
+        # fringe_node_values = jnp.array([node.value for node in fringe_list])
+        # current_node = fringe_list[jnp.argmin(fringe_node_values)]
+        current_node = fringe_list[0]
         # print("Current node: " + str(current_node.graph_node))
         # print("Current node value: " + str(current_node.value))
 
@@ -304,7 +305,13 @@ def AO_Star_Planning(belief_state: jnp.ndarray, origin: int, goal: int) -> Node:
         fringe_list.remove(current_node)
         fringe_node_values = jnp.array([node.value for node in fringe_list])
         new_fringe_nodes = current_node.expand(belief_state, goal)
-        fringe_list += new_fringe_nodes
+        # depth first search like expansion
+        new_fringe_node_values = jnp.array([node.value for node in new_fringe_nodes])
+        sort_indices = jnp.argsort(new_fringe_node_values)
+        sort_indices_np = np.array(sort_indices)
+        new_fringe_nodes = [new_fringe_nodes[i] for i in sort_indices_np]
+        fringe_list = new_fringe_nodes + fringe_list
+        # fringe_list += new_fringe_nodes
 
         """
         for node in current_node.successors:
@@ -319,8 +326,8 @@ def AO_Star_Planning(belief_state: jnp.ndarray, origin: int, goal: int) -> Node:
             if current_node.successors != []:
                 current_node.solve(belief_state)
             current_node = current_node.parent
-    # if iteration_num == max_iterations:
-    #    raise Exception("Max iterations reached")
+    if iteration_num == max_iterations:
+        raise Exception("Max iterations reached")
     # Prune children of OR nodes starting from the root node
     # use a recursive function to prune the tree
     _prune(root_node)
@@ -352,8 +359,8 @@ def AO_Star_Execute(env_state: jnp.ndarray, root_node: OR_Node, goal: int) -> fl
     while current_node.graph_node != goal:
         # OR_Node
         print("Current node: " + str(current_node.graph_node))
-        total_length += current_node.edge_cost_to_successor[0]
-        current_node = current_node.successors[0]  # And_Node
+        total_length += current_node.edge_cost_to_successor
+        current_node = current_node.successors  # And_Node
         # Check whether the edge is traversable
         destination_node = current_node.destination_node_of_ambiguated_edge
         # Not all AND nodes are fully expanded.

@@ -166,6 +166,7 @@ def test_AO_Star_custom_small_2(printer):
 
 # Check that doesn't time out or memory warning for 30 nodes
 # def test_AO_Star_30_node():
+"""
 if __name__ == "__main__":
     key = jax.random.PRNGKey(1)
     environment = CTP_environment.CTP(1, 1, 10, key, prop_stoch=0.4)
@@ -186,7 +187,22 @@ if __name__ == "__main__":
     )
     print("Actual path length: " + str(actual_path_length))
     assert actual_path_length < jnp.inf
+"""
 
 
-def test_one_episode_optimistic_baseline():
-    pass
+def test_one_episode_optimistic_baseline(printer):
+    key = jax.random.PRNGKey(1)
+    env_key = jax.random.PRNGKey(2)
+    environment = CTP_environment.CTP(1, 1, 5, key, prop_stoch=0.4)
+    initial_env_state, initial_belief_state = environment.reset(key)
+    current_directory = os.getcwd()
+    parent_directory = os.path.dirname(current_directory)
+    log_dir = os.path.join(parent_directory, "Logs", "Unit_Tests")
+    environment.graph_realisation.plot_realised_graph(
+        initial_env_state[0, 1:, :], log_dir, "test_optimistic_baseline.png"
+    )
+    agent = Optimistic_Agent()
+    path_length = agent.get_path_length(
+        environment, initial_belief_state, initial_env_state, env_key
+    )
+    assert jnp.isclose(path_length, 0.416, atol=0.001)
