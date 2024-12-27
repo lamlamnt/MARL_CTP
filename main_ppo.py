@@ -4,7 +4,7 @@ import jax.numpy as jnp
 from Networks.actor_critic_network import ActorCritic_CNN_10, ActorCritic_CNN_30
 from Networks.densenet import DenseNet_ActorCritic
 from Networks.resnet import ResNet_ActorCritic
-from Networks.concatenate_small_network import Small_Concatenate_CNN_30
+from Networks.big_cnn import Big_CNN_30
 from Networks.densenet_float16 import DenseNet_ActorCritic_Float16
 from Environment import CTP_environment, CTP_generator, CTP_environment_generalize
 from Agents.ppo import PPO
@@ -173,8 +173,8 @@ def main(args):
             growth_rate=args.densenet_growth_rate,
             num_layers=tuple(map(int, (args.densenet_num_layers).split(","))),
         )
-    elif args.network_type == "CNN_Concatenate":
-        model = Small_Concatenate_CNN_30(n_node)
+    elif args.network_type == "Big_CNN":
+        model = Big_CNN_30(n_node)
     else:
         model = ResNet_ActorCritic(n_node)
 
@@ -447,7 +447,7 @@ if __name__ == "__main__":
         "--network_type",
         type=str,
         required=False,
-        help="Options: CNN,Densenet,Resnet, CNN_Concatenate, Densenet_Float16",
+        help="Options: CNN,Densenet,Resnet, Big_CNN, Densenet_Float16",
         default="Densenet",
     )
     parser.add_argument(

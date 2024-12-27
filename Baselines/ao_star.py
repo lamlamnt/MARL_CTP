@@ -139,6 +139,13 @@ class OR_Node(Node):
                 )
             new_fringe_nodes = []
             successor_origin_list = successor_origin_list.astype(jnp.int8)
+            # Remove duplicates
+            combined = jnp.stack(
+                [successor_origin_list, successor_destination_list], axis=-1
+            )
+            unique_combined = jnp.unique(combined, axis=0)
+            successor_origin_list = unique_combined[:, 0]
+            successor_destination_list = unique_combined[:, 1]
             # Successor_destination list can contain nodes that are connected to both deterministic and stochastic edges
             for i in range(len(successor_origin_list)):
                 # The edge cost is the shortest deterministic distance connecting the current node and the origin node, assuming all
@@ -184,6 +191,8 @@ class OR_Node(Node):
             )
         sorted_indices = jnp.argsort(values)
         self.successors = [self.successors[i] for i in sorted_indices]
+        # Sort edge costs to match the sorted successors
+        self.edge_cost_to_successor = self.edge_cost_to_successor[sorted_indices]
         return new_fringe_nodes
 
     def solve(self, belief_state: jnp.ndarray):
@@ -275,7 +284,7 @@ def AO_Star_Planning(belief_state: jnp.ndarray, origin: int, goal: int) -> Node:
         belief_state[0, 1:, :],
     )
     iteration_num = 0
-    max_iterations = 10
+    max_iterations = 40 * belief_state.shape[2]
     fringe_list = [root_node]
     current_node = root_node
     while (
@@ -286,27 +295,32 @@ def AO_Star_Planning(belief_state: jnp.ndarray, origin: int, goal: int) -> Node:
         iteration_num += 1
         # Pick the node to expand -> Choose a fringe node with the lowest estimated cost
         fringe_node_values = jnp.array([node.value for node in fringe_list])
-        print("Fringe node values: " + str(fringe_node_values))
+        # print("Fringe node values before removal: " + str(fringe_node_values))
         current_node = fringe_list[jnp.argmin(fringe_node_values)]
-        print("Current node: " + str(current_node.graph_node))
-        print("Current node value: " + str(current_node.value))
+        # print("Current node: " + str(current_node.graph_node))
+        # print("Current node value: " + str(current_node.value))
 
         # Expansion (different depending on the type of node)
         fringe_list.remove(current_node)
+        fringe_node_values = jnp.array([node.value for node in fringe_list])
         new_fringe_nodes = current_node.expand(belief_state, goal)
         fringe_list += new_fringe_nodes
 
+        """
         for node in current_node.successors:
             print("Current node's successor: " + str(node.graph_node))
             print("Current node's successor value: " + str(node.value))
+            print("Current node's status: " + str(node.solved))
         if type(current_node) is OR_Node:
             print("Edge cost to successor:" + str(current_node.edge_cost_to_successor))
+        """
         # Propagate upwards to the root
         while current_node != None:  # not root node
             if current_node.successors != []:
                 current_node.solve(belief_state)
             current_node = current_node.parent
-        print("Root node value: " + str(root_node.value))
+    # if iteration_num == max_iterations:
+    #    raise Exception("Max iterations reached")
     # Prune children of OR nodes starting from the root node
     # use a recursive function to prune the tree
     _prune(root_node)
@@ -334,14 +348,15 @@ def AO_Star_Execute(env_state: jnp.ndarray, root_node: OR_Node, goal: int) -> fl
     # At each AND_node, check whether the edge is traversable or not
     total_length = 0
     current_node = root_node
+    # Always end with an AND node that's not fully expanded
     while current_node.graph_node != goal:
         # OR_Node
-        total_length += current_node.edge_cost_to_successor
-        current_node = current_node.successors
-        # And_Node
+        print("Current node: " + str(current_node.graph_node))
+        total_length += current_node.edge_cost_to_successor[0]
+        current_node = current_node.successors[0]  # And_Node
         # Check whether the edge is traversable
         destination_node = current_node.destination_node_of_ambiguated_edge
-        # Not all AND nodes are fully expanded
+        # Not all AND nodes are fully expanded.
         if current_node.successors:
             if (
                 env_state[0, 1 + current_node.graph_node, destination_node]

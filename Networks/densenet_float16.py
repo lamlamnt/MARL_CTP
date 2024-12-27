@@ -27,7 +27,7 @@ class DenseLayer(nn.Module):
             self.bn_size * self.growth_rate,
             kernel_size=(1, 1),
             kernel_init=self.densenet_kernel_init,
-            bias_init=constant(0.0),
+            bias_init=constant(0.0, dtype=jnp.float16),
             dtype=jnp.float16,
         )(z)
         z = self.act_fn(z)
@@ -35,7 +35,7 @@ class DenseLayer(nn.Module):
             self.growth_rate,
             kernel_size=(3, 3),
             kernel_init=self.densenet_kernel_init,
-            bias_init=constant(0.0),
+            bias_init=constant(0.0, dtype=jnp.float16),
             dtype=jnp.float16,
         )(z)
         x_out = jnp.concatenate([x, z], axis=-1)
@@ -73,7 +73,7 @@ class TransitionLayer(nn.Module):
             self.c_out,
             kernel_size=(1, 1),
             kernel_init=self.densenet_kernel_init,
-            bias_init=constant(0.0),
+            bias_init=constant(0.0, dtype=jnp.float16),
             dtype=jnp.float16,
         )(x)
         x = nn.max_pool(x, (2, 2), strides=(2, 2))
@@ -128,6 +128,7 @@ class DenseNet_ActorCritic_Float16(nn.Module):
 
     @nn.compact
     def __call__(self, x: jnp.ndarray) -> tuple[distrax.Categorical, float]:
+        x = x.astype(jnp.float16)
         action_mask = decide_validity_of_action_space(x)
         actor_mean = DenseNet(
             act_fn=self.act_fn,
@@ -137,7 +138,9 @@ class DenseNet_ActorCritic_Float16(nn.Module):
             densenet_kernel_init=self.densenet_kernel_init,
         )(x)
         actor_mean = nn.Dense(
-            self.num_classes, kernel_init=orthogonal(0.01), bias_init=constant(0.0)
+            self.num_classes,
+            kernel_init=orthogonal(0.01, dtype=jnp.float16),
+            bias_init=constant(0.0, dtype=jnp.float16),
         )(actor_mean)
         actor_mean = jnp.where(action_mask == -jnp.inf, -jnp.inf, actor_mean)
         pi = distrax.Categorical(logits=actor_mean)
@@ -149,8 +152,10 @@ class DenseNet_ActorCritic_Float16(nn.Module):
             growth_rate=self.growth_rate,
             densenet_kernel_init=self.densenet_kernel_init,
         )(x)
-        critic = nn.Dense(1, kernel_init=orthogonal(1.0), bias_init=constant(0.0))(
-            critic
-        )
+        critic = nn.Dense(
+            1,
+            kernel_init=orthogonal(1.0, dtype=jnp.float16),
+            bias_init=constant(0.0, dtype=jnp.float16),
+        )(critic)
 
         return pi, jnp.squeeze(critic, axis=-1)

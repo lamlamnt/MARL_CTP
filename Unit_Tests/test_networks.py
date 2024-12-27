@@ -7,6 +7,7 @@ import sys
 
 sys.path.append("..")
 from Networks import MLP, CNN, actor_critic_network, densenet, resnet
+from Networks.big_cnn import Big_CNN_30
 
 
 # Test that the forward pass does not error
@@ -90,4 +91,13 @@ def test_resnet():
     params = model.init(key, jnp.ones((4, 11, 10)))
     action_values, critic = model.apply(params, jnp.ones((4, 11, 10)))
     assert action_values.probs.shape == (10,)
+    assert critic.shape == ()
+
+
+def test_bigger_cnn():
+    model = Big_CNN_30(30)
+    key = jax.random.PRNGKey(100)
+    params = model.init(key, jnp.ones((5, 30, 30)))
+    action_values, critic = model.apply(params, jnp.ones((5, 30, 30)))
+    assert action_values.probs.shape == (30,)
     assert critic.shape == ()

@@ -31,3 +31,12 @@ class Optimistic_Agent:
         )
         path_length, next_node = optimal_path_length.dijkstra_with_path(belief_state)
         return next_node
+
+    @partial(jit, static_argnums=(0, 1))
+    def get_path_length(
+        self,
+        environment,
+        initial_belief_state: jnp.ndarray,
+        initial_env_state: jnp.ndarray,
+    ):
+        pass
