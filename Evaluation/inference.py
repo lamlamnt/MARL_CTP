@@ -173,9 +173,9 @@ def plotting_inference(
         test_all_done,
         test_all_rewards,
         test_all_optimal_path_lengths,
-        test_optimistic_baseline,
         log_directory,
         reward_exceed_horizon=args.reward_exceed_horizon,
+        all_optimistic_baseline=test_optimistic_baseline,
         training=False,
     )
 
