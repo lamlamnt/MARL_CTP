@@ -70,16 +70,20 @@ def store_graphs(args):
 
 def load_graphs(args) -> tuple[jnp.ndarray, jnp.ndarray]:
     directory = os.path.join(os.getcwd(), "Generated_graphs", args.graph_identifier)
-    with open(os.path.join(directory, "graph_info.pkl"), "rb") as f:
-        graph_info = pickle.load(f)
-    assert graph_info["n_node"] == args.n_node
-    assert graph_info["prop_stoch"] == args.prop_stoch
-    assert graph_info["k_edges"] == args.k_edges
-    assert graph_info["grid_size"] == args.grid_size
-    assert graph_info["factor_expensive_edge"] == args.factor_expensive_edge
-    assert graph_info["deal_with_unsolvability"] == args.deal_with_unsolvability
-    assert graph_info["num_stored_graphs"] == args.num_stored_graphs
-    assert graph_info["factor_inference_timesteps"] == args.factor_inference_timesteps
+    graph_info_file = os.path.join(directory, "graph_info.pkl")
+    if os.path.exists(graph_info_file):
+        with open(graph_info_file, "rb") as f:
+            graph_info = pickle.load(f)
+        assert graph_info["n_node"] == args.n_node
+        assert graph_info["prop_stoch"] == args.prop_stoch
+        assert graph_info["k_edges"] == args.k_edges
+        assert graph_info["grid_size"] == args.grid_size
+        assert graph_info["factor_expensive_edge"] == args.factor_expensive_edge
+        assert graph_info["deal_with_unsolvability"] == args.deal_with_unsolvability
+        assert graph_info["num_stored_graphs"] == args.num_stored_graphs
+        assert (
+            graph_info["factor_inference_timesteps"] == args.factor_inference_timesteps
+        )
 
     # Load the graphs
     training_graph_npy_file = os.path.join(directory, "training_graphs.npy")
