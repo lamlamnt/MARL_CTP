@@ -35,6 +35,7 @@ def save_data_and_plotting(
     all_done,
     all_rewards,
     all_optimal_path_lengths,
+    all_optimistic_baseline,
     directory,
     reward_exceed_horizon,
     training=True,
@@ -49,20 +50,41 @@ def save_data_and_plotting(
     else:
         beginning_str = "testing_"
 
-    df = pd.DataFrame(
-        data={
-            "episode": all_done.cumsum(),
-            "reward": all_rewards,
-            "optimal_path_length": all_optimal_path_lengths,
-        },
-    )
-    df["episode"] = df["episode"].shift().fillna(0)
-    episodes_df = (
-        df.groupby("episode")
-        .agg("sum")
-        .astype(np.float32)
-        .round({"reward": 3, "optimal_path_length": 3})
-    )
+    if training == True:
+        df = pd.DataFrame(
+            data={
+                "episode": all_done.cumsum(),
+                "reward": all_rewards,
+                "optimal_path_length": all_optimal_path_lengths,
+            },
+        )
+        df["episode"] = df["episode"].shift().fillna(0)
+        episodes_df = (
+            df.groupby("episode")
+            .agg("sum")
+            .astype(np.float32)
+            .round({"reward": 3, "optimal_path_length": 3})
+        )
+    else:
+        # For inference, get the additional optimistic baseline
+        df = pd.DataFrame(
+            data={
+                "episode": all_done.cumsum(),
+                "reward": all_rewards,
+                "optimal_path_length": all_optimal_path_lengths,
+                "optimistic_baseline": all_optimistic_baseline,
+            },
+        )
+        df["episode"] = df["episode"].shift().fillna(0)
+        episodes_df = (
+            df.groupby("episode")
+            .agg("sum")
+            .astype(np.float32)
+            .round({"reward": 3, "optimal_path_length": 3, "optimistic_baseline": 3})
+        )
+        episodes_df["competitive_ratio_optimistic_baseline"] = (
+            episodes_df["optimistic_baseline"] / episodes_df["optimal_path_length"]
+        )
     episodes_df = episodes_df.iloc[:-1]
     episodes_df["regret"] = (
         episodes_df["reward"].abs() - episodes_df["optimal_path_length"]
@@ -170,6 +192,12 @@ def save_data_and_plotting(
             "failure_rate (%)": float(num_reach_horizon * 100 / episodes_df.shape[0]),
             "standard deviation of competitive ratio": float(
                 episodes_df["competitive_ratio"].std()
+            ),
+            "average_competitive_ratio_of_otimistic_baseline": float(
+                episodes_df["competitive_ratio_optimistic_baseline"].mean()
+            ),
+            "standard_deviation_competitive_ratio_of_otimistic_baseline": float(
+                episodes_df["competitive_ratio_optimistic_baseline"].std()
             ),
         }
         for key, value in result_dict.items():

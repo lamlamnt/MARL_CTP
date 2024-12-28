@@ -10,6 +10,7 @@ from Evaluation import plotting
 from Environment import CTP_environment, CTP_environment_generalize
 from Evaluation.optimal_path_length import dijkstra_shortest_path
 from Evaluation import visualize_policy
+from Baselines.optimistic_agent import Optimistic_Agent
 from Utils.get_params import extract_params
 from datetime import datetime
 import json
@@ -59,6 +60,7 @@ def plotting_inference(
         jnp.arange(3) + args.random_seed_for_inference
     )
     new_env_state, new_belief_state = environment.reset(init_key)
+    optimistic_agent = Optimistic_Agent()
 
     @scan_tqdm(num_steps_for_inference)
     def _one_step_inference(runner_state, unused):
@@ -123,6 +125,14 @@ def plotting_inference(
             lambda _: jnp.array(0.0, dtype=jnp.float16),
             operand=None,
         )
+        optimistic_baseline = jax.lax.cond(
+            previous_episode_done,
+            lambda _: optimistic_agent.get_path_length(
+                environment, current_belief_state, current_env_state, env_key
+            ),
+            lambda _: jnp.array(0.0, dtype=jnp.float16),
+            operand=None,
+        )
         position = jnp.argmax(current_env_state[0, : args.n_agent]).astype(jnp.int8)
 
         runner_state = (
@@ -132,7 +142,14 @@ def plotting_inference(
             timestep_in_episode,
             done,
         )
-        transition = (done, action, reward, shortest_path, position)
+        transition = (
+            done,
+            action,
+            reward,
+            shortest_path,
+            position,
+            optimistic_baseline,
+        )
         return runner_state, transition
 
     runner_state = (
@@ -150,11 +167,13 @@ def plotting_inference(
     test_all_rewards = inference_traj_batch[2]
     test_all_optimal_path_lengths = inference_traj_batch[3]
     test_all_positions = inference_traj_batch[4]
+    test_optimistic_baseline = inference_traj_batch[5]
 
     testing_result_dict = plotting.save_data_and_plotting(
         test_all_done,
         test_all_rewards,
         test_all_optimal_path_lengths,
+        test_optimistic_baseline,
         log_directory,
         reward_exceed_horizon=args.reward_exceed_horizon,
         training=False,
