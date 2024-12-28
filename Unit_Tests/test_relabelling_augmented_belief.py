@@ -7,7 +7,10 @@ import os
 
 sys.path.append("..")
 from Environment import CTP_generator, CTP_environment
-from Utils.augmented_belief_state import get_augmented_optimistic_belief
+from Utils.augmented_belief_state import (
+    get_augmented_optimistic_belief,
+    get_augmented_optimistic_pessimistic_belief,
+)
 
 
 # Test that the origin is 0 and goal is num_nodes -1
@@ -37,3 +40,33 @@ def test_augmented_optimistic_belief_state():
         augmented_belief_state[4, 1:, :], augmented_belief_state[4, 1:, :].T
     )
     assert jnp.all(jnp.diag(augmented_belief_state[4, 1:, :]) == 0)
+
+
+def test_augmented_optimistic_pessimistic_belief_state(printer):
+    key = jax.random.PRNGKey(1)
+    environment = CTP_environment.CTP(1, 1, 5, key, 0.4)
+    initial_env_state, initial_belief_state = environment.reset(key)
+    augmented_belief_state = get_augmented_optimistic_pessimistic_belief(
+        initial_belief_state
+    )
+    assert jnp.array_equal(initial_belief_state, augmented_belief_state[:4, :, :])
+    assert jnp.array_equal(
+        augmented_belief_state[4, 1:, :], augmented_belief_state[4, 1:, :].T
+    )
+    assert jnp.array_equal(
+        augmented_belief_state[5, 1:, :], augmented_belief_state[5, 1:, :].T
+    )
+    assert jnp.all(jnp.diag(augmented_belief_state[4, 1:, :]) == 0)
+    assert jnp.all(jnp.diag(augmented_belief_state[5, 1:, :]) == 0)
+    printer(augmented_belief_state)
+
+    # for prop_stoch = 0, pessimistic and optimistic the same
+    key = jax.random.PRNGKey(1)
+    environment = CTP_environment.CTP(1, 1, 5, key, 0)
+    initial_env_state, initial_belief_state = environment.reset(key)
+    augmented_belief_state = get_augmented_optimistic_pessimistic_belief(
+        initial_belief_state
+    )
+    assert jnp.array_equal(
+        augmented_belief_state[4, :, :], augmented_belief_state[5, :, :]
+    )

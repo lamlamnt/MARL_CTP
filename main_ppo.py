@@ -25,7 +25,10 @@ import wandb
 from distutils.util import strtobool
 from jax_tqdm import scan_tqdm
 import warnings
-from Utils.augmented_belief_state import get_augmented_optimistic_belief
+from Utils.augmented_belief_state import (
+    get_augmented_optimistic_belief,
+    get_augmented_optimistic_pessimistic_belief,
+)
 import flax.linen as nn
 import sys
 import yaml
@@ -36,12 +39,7 @@ warnings.filterwarnings(
     "ignore", category=RuntimeWarning, message="overflow encountered in cast"
 )
 """
-NUM_CHANNELS_IN_BELIEF_STATE = 5
-
-
-def linear_schedule(count):
-    frac = 1.0 - (count // args.num_minibatches * args.num_update_epochs) / num_loops
-    return args.learning_rate * frac
+NUM_CHANNELS_IN_BELIEF_STATE = 6
 
 
 def decide_hand_crafted_graph(args):
@@ -61,6 +59,12 @@ def main(args):
         os.makedirs(log_directory)
 
     num_loops = args.time_steps // args.num_steps_before_update
+
+    def linear_schedule(count):
+        frac = (
+            1.0 - (count // args.num_minibatches * args.num_update_epochs) / num_loops
+        )
+        return args.learning_rate * frac
 
     # Decide on num of nodes
     if args.hand_crafted_graph == "diamond":
@@ -245,7 +249,9 @@ def main(args):
             loop_count,
             previous_episode_done,
         ) = runner_state
-        augmented_state = get_augmented_optimistic_belief(current_belief_state)
+        augmented_state = get_augmented_optimistic_pessimistic_belief(
+            current_belief_state
+        )
         _, last_critic_val = model.apply(train_state.params, augmented_state)
         advantages, targets = agent.calculate_gae(traj_batch, last_critic_val)
         # advantages and targets are of shape (num_steps_before_update,)
