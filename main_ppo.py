@@ -186,6 +186,13 @@ def main(args):
     init_params = model.init(
         jax.random.PRNGKey(0), jax.random.normal(online_key, state_shape)
     )
+    # Load in pre-trained network weights
+    if args.load_network_directory is not None:
+        network_file_path = os.path.join(
+            current_directory, "Logs", args.load_network_directory, "weights.flax"
+        )
+        with open(network_file_path, "rb") as f:
+            init_params = flax.serialization.from_bytes(init_params, f.read())
 
     # Clip by global norm can be an args
     if args.anneal_lr:
@@ -455,7 +462,7 @@ if __name__ == "__main__":
         "--network_type",
         type=str,
         required=False,
-        help="Options: CNN,Densenet,Resnet, Big_CNN, Densenet_Float16",
+        help="Options: CNN,Densenet,Resnet, Big_CNN, Densenet_Float16 (do not choose this one)",
         default="Densenet",
     )
     parser.add_argument(
@@ -554,6 +561,12 @@ if __name__ == "__main__":
         required=False,
         default=-1,
         help="To facilitate curriculum learning. If -1, then origin will be node 0 (or whatever the original origin is). The higher the node number, the easier it should be.",
+    )
+    parser.add_argument(
+        "--load_network_directory",
+        type=str,
+        default=None,
+        help="Directory to load trained network weights from",
     )
 
     # Args specific to PPO:

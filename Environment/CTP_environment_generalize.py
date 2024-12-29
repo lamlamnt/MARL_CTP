@@ -100,11 +100,11 @@ class CTP_General(MultiAgentEnv):
                     expensive_edge=auto_expensive_edge,
                 )
 
-                # Change origin here so that the expensive edge is added if not solvable in the function below
+                # Change origin here so that the normalization is done with the new origin in mine
                 graph_realisation.graph.origin = jax.lax.cond(
                     self.origin_node == -1,
                     lambda _: graph_realisation.graph.origin,
-                    lambda _: self.origin_node.astype(jnp.int16),
+                    lambda _: jnp.array([self.origin_node]),
                     operand=None,
                 )
 
