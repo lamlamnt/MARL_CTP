@@ -15,7 +15,10 @@ def test_origin_closer_to_goal(printer):
     current_directory = os.getcwd()
     parent_directory = os.path.dirname(current_directory)
     graph_file = os.path.join(
-        parent_directory, "Generated_graphs", "node_30_origin_20", "training_graphs.npy"
+        parent_directory,
+        "Generated_graphs",
+        "node_30_origin_20_prop_0.4",
+        "training_graphs.npy",
     )
     training_graphs = np.load(graph_file)
     # Convert to jax array
