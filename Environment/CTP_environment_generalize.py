@@ -86,7 +86,6 @@ class CTP_General(MultiAgentEnv):
             self.stored_graphs = jnp.zeros(
                 (num_stored_graphs, 3, num_nodes, num_nodes), dtype=jnp.float16
             )
-            print("Generating graphs...")
             for i in tqdm(range(num_stored_graphs)):
                 key, subkey = jax.random.split(subkey)
                 graph_realisation = CTP_generator.CTPGraph_Realisation(

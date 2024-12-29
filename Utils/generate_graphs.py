@@ -44,6 +44,7 @@ def store_graphs(args):
         patience=args.patience,
         num_stored_graphs=args.num_stored_graphs,
         loaded_graphs=None,
+        origin_node=args.origin_node,
     )
     training_graph_npy_file = os.path.join(directory, "training_graphs.npy")
     np.save(training_graph_npy_file, np.array(training_environment.stored_graphs))
@@ -63,6 +64,7 @@ def store_graphs(args):
         patience=args.patience,
         num_stored_graphs=args.factor_inference_timesteps // 2,
         loaded_graphs=None,
+        origin_node=args.origin_node,
     )
     inference_graph_npy_file = os.path.join(directory, "inference_graphs.npy")
     np.save(inference_graph_npy_file, np.array(inference_environment.stored_graphs))
