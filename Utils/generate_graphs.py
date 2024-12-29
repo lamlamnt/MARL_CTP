@@ -68,10 +68,11 @@ def store_graphs(args):
     np.save(inference_graph_npy_file, np.array(inference_environment.stored_graphs))
 
 
-def load_graphs(args) -> tuple[jnp.ndarray, jnp.ndarray]:
+def load_graphs(args) -> tuple[jnp.ndarray, jnp.ndarray, int, int]:
     directory = os.path.join(os.getcwd(), "Generated_graphs", args.graph_identifier)
     graph_info_file = os.path.join(directory, "graph_info.pkl")
     if os.path.exists(graph_info_file):
+        # All graphs have the same prop stoch
         with open(graph_info_file, "rb") as f:
             graph_info = pickle.load(f)
         assert graph_info["n_node"] == args.n_node
@@ -90,4 +91,8 @@ def load_graphs(args) -> tuple[jnp.ndarray, jnp.ndarray]:
     training_graphs = jnp.array(np.load(training_graph_npy_file))
     inference_graph_npy_file = os.path.join(directory, "inference_graphs.npy")
     inference_graphs = jnp.array(np.load(inference_graph_npy_file))
-    return training_graphs, inference_graphs
+
+    # Get number of training and inference graphs
+    num_training_graphs = training_graphs.shape[0]
+    num_inference_graphs = inference_graphs.shape[0]
+    return training_graphs, inference_graphs, num_training_graphs, num_inference_graphs

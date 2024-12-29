@@ -7,3 +7,5 @@ CUDA_VISIBLE_DEVICES=1 python main_ppo.py --n_node 10 --log_directory "pessimist
 
 #do it for 0, 0.2, and 0.8 10 nodes
 #30 nodes cnn
+#Just train for 3 mil timesteps maybe?
+#Don't need to train for 6 mil timesteps

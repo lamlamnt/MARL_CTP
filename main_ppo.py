@@ -105,7 +105,7 @@ def main(args):
             factor_expensive_edge=args.factor_expensive_edge,
             deal_with_unsolvability=args.deal_with_unsolvability,
             patience=args.patience,
-            num_stored_graphs=args.num_stored_graphs,
+            num_stored_graphs=num_training_graphs,
             loaded_graphs=training_graphs,
             origin_node=args.origin_node,
         )
@@ -331,7 +331,7 @@ def main(args):
             factor_expensive_edge=args.factor_expensive_edge,
             deal_with_unsolvability=args.deal_with_unsolvability,
             patience=args.patience,
-            num_stored_graphs=args.factor_inference_timesteps // 2,
+            num_stored_graphs=num_inference_graphs,
             loaded_graphs=inference_graphs,
             origin_node=args.origin_node,
         )
@@ -654,7 +654,9 @@ if __name__ == "__main__":
         # Load
         print("Checking validity and loading graphs ...")
         # Check args match and load graphs
-        training_graphs, inference_graphs = generate_graphs.load_graphs(args)
+        training_graphs, inference_graphs, num_training_graphs, num_inference_graphs = (
+            generate_graphs.load_graphs(args)
+        )
     if args.wandb_sweep == False:
         # Initialize wandb project
         wandb.init(

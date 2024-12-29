@@ -100,6 +100,14 @@ class CTP_General(MultiAgentEnv):
                     expensive_edge=auto_expensive_edge,
                 )
 
+                # Change origin here so that the expensive edge is added if not solvable in the function below
+                graph_realisation.graph.origin = jax.lax.cond(
+                    self.origin_node == -1,
+                    lambda _: graph_realisation.graph.origin,
+                    lambda _: self.origin_node.astype(jnp.int16),
+                    operand=None,
+                )
+
                 # Normalize the weights using expected optimal path length
                 expected_optimal_path_length = (
                     util_generalize.get_expected_optimal_path_length(
@@ -138,12 +146,7 @@ class CTP_General(MultiAgentEnv):
         )
         current_graph_weights = self.stored_graphs[index, 0, :, :]
         current_graph_blocking_prob = self.stored_graphs[index, 1, :, :]
-        current_graph_origin = jax.lax.cond(
-            self.origin_node == -1,
-            lambda _: self.stored_graphs[index, 2, 0, 0].astype(jnp.int16),
-            lambda _: self.origin_node.astype(jnp.int16),
-            operand=None,
-        )
+        current_graph_origin = self.stored_graphs[index, 2, 0, 0].astype(jnp.int16)
         current_graph_goal = self.stored_graphs[index, 2, 0, 1].astype(jnp.int16)
 
         # Get solvable realisation - add expensive edge if unsolvable
