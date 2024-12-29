@@ -196,8 +196,18 @@ def save_data_and_plotting(
             "average_competitive_ratio_of_otimistic_baseline": float(
                 episodes_df["competitive_ratio_optimistic_baseline"].mean()
             ),
+            "max_competitive_ratio_of_otimistic_baseline": float(
+                episodes_df["competitive_ratio_optimistic_baseline"].max()
+            ),
             "standard_deviation_competitive_ratio_of_otimistic_baseline": float(
                 episodes_df["competitive_ratio_optimistic_baseline"].std()
+            ),
+            "percentage_RL_beats_optimistic_baseline": float(
+                (
+                    episodes_df["competitive_ratio"]
+                    > episodes_df["competitive_ratio_optimistic_baseline"]
+                ).mean()
+                * 100
             ),
         }
         for key, value in result_dict.items():

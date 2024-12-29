@@ -39,6 +39,7 @@ class CTP_General(MultiAgentEnv):
         patience=5,
         num_stored_graphs=10,
         loaded_graphs=None,
+        origin_node=-1,
     ):
         """
         List of attributes:
@@ -60,6 +61,9 @@ class CTP_General(MultiAgentEnv):
         self.patience = patience
         self.num_stored_graphs = num_stored_graphs
         self.factor_expensive_edge = factor_expensive_edge
+        self.origin_node = origin_node
+
+        assert origin_node < num_nodes
 
         if handcrafted_graph is not None:
             raise ValueError("Generalizing. Cannot use handcrafted graph.")
@@ -134,7 +138,12 @@ class CTP_General(MultiAgentEnv):
         )
         current_graph_weights = self.stored_graphs[index, 0, :, :]
         current_graph_blocking_prob = self.stored_graphs[index, 1, :, :]
-        current_graph_origin = self.stored_graphs[index, 2, 0, 0].astype(jnp.int16)
+        current_graph_origin = jax.lax.cond(
+            self.origin_node == -1,
+            lambda _: self.stored_graphs[index, 2, 0, 0].astype(jnp.int16),
+            lambda _: self.origin_node.astype(jnp.int16),
+            operand=None,
+        )
         current_graph_goal = self.stored_graphs[index, 2, 0, 1].astype(jnp.int16)
 
         # Get solvable realisation - add expensive edge if unsolvable

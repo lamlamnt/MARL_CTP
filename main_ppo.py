@@ -107,6 +107,7 @@ def main(args):
             patience=args.patience,
             num_stored_graphs=args.num_stored_graphs,
             loaded_graphs=training_graphs,
+            origin_node=args.origin_node,
         )
         end_time_environment_creation = time.time()
         time_environment_creation = (
@@ -332,6 +333,7 @@ def main(args):
             patience=args.patience,
             num_stored_graphs=args.factor_inference_timesteps // 2,
             loaded_graphs=inference_graphs,
+            origin_node=args.origin_node,
         )
         # Choose num_stored_graphs to be equal to the factor_inference_timesteps because I want the
         # number of graphs generated to be roughly equal to the number of inference episodes/2
@@ -545,6 +547,13 @@ if __name__ == "__main__":
         type=str,
         required=False,
         default="node_10_relabel_0.4",
+    )
+    parser.add_argument(
+        "--origin_node",
+        type=int,
+        required=False,
+        default=-1,
+        help="To facilitate curriculum learning. If -1, then origin will be node 0 (or whatever the original origin is). The higher the node number, the easier it should be.",
     )
 
     # Args specific to PPO:

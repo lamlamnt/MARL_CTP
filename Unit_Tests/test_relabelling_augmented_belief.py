@@ -44,7 +44,7 @@ def test_augmented_optimistic_belief_state():
 
 def test_augmented_optimistic_pessimistic_belief_state(printer):
     key = jax.random.PRNGKey(1)
-    environment = CTP_environment.CTP(1, 1, 5, key, 0.4)
+    environment = CTP_environment.CTP(1, 1, 5, key, 0.8)
     initial_env_state, initial_belief_state = environment.reset(key)
     augmented_belief_state = get_augmented_optimistic_pessimistic_belief(
         initial_belief_state
@@ -58,6 +58,9 @@ def test_augmented_optimistic_pessimistic_belief_state(printer):
     )
     assert jnp.all(jnp.diag(augmented_belief_state[4, 1:, :]) == 0)
     assert jnp.all(jnp.diag(augmented_belief_state[5, 1:, :]) == 0)
+
+    # Asser that all elements in the optimistic belief are equal to or smaller than the pessimistic belief
+    assert jnp.all(augmented_belief_state[4, :, :] <= augmented_belief_state[5, :, :])
     printer(augmented_belief_state)
 
     # for prop_stoch = 0, pessimistic and optimistic the same
