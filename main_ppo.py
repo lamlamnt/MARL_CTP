@@ -437,10 +437,10 @@ if __name__ == "__main__":
         "--grid_size", type=int, help="Size of the grid", required=False, default=None
     )
     parser.add_argument(
-        "--random_seed_for_training", type=int, required=False, default=30
+        "--random_seed_for_training", type=int, required=False, default=100
     )
     parser.add_argument(
-        "--random_seed_for_inference", type=int, required=False, default=40
+        "--random_seed_for_inference", type=int, required=False, default=101
     )
     parser.add_argument("--discount_factor", type=float, required=False, default=1.0)
     parser.add_argument(

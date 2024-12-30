@@ -62,7 +62,7 @@ def store_graphs(args):
         factor_expensive_edge=args.factor_expensive_edge,
         deal_with_unsolvability=args.deal_with_unsolvability,
         patience=args.patience,
-        num_stored_graphs=args.factor_inference_timesteps // 2,
+        num_stored_graphs=args.factor_inference_timesteps,
         loaded_graphs=None,
         origin_node=args.origin_node,
     )

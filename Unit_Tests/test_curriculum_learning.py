@@ -28,5 +28,5 @@ def test_origin_closer_to_goal(printer):
     current_graph_blocking_prob = first_training_graph[1, :, :]
     current_graph_origin = first_training_graph[2, 0, 0].astype(jnp.int16)
     current_graph_goal = first_training_graph[2, 0, 1].astype(jnp.int16)
-    assert current_graph_origin == 20
-    assert current_graph_goal == 29
+    assert current_graph_origin.item() == 20
+    assert current_graph_goal.item() == 29
