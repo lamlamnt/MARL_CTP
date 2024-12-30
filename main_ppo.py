@@ -414,7 +414,7 @@ if __name__ == "__main__":
         type=int,
         help="Factor to multiply with number of nodes to get the maximum horizon length",
         required=False,
-        default=3,
+        default=2,
     )
     parser.add_argument(
         "--factor_expensive_edge", type=float, required=False, default=1.0

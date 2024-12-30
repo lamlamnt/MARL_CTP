@@ -17,7 +17,7 @@ def test_origin_closer_to_goal(printer):
     graph_file = os.path.join(
         parent_directory,
         "Generated_graphs",
-        "node_30_origin_20_prop_0.4",
+        "node_30_origin_10_prop_0.4",
         "training_graphs.npy",
     )
     training_graphs = np.load(graph_file)
@@ -28,5 +28,5 @@ def test_origin_closer_to_goal(printer):
     current_graph_blocking_prob = first_training_graph[1, :, :]
     current_graph_origin = first_training_graph[2, 0, 0].astype(jnp.int16)
     current_graph_goal = first_training_graph[2, 0, 1].astype(jnp.int16)
-    assert current_graph_origin.item() == 20
+    assert current_graph_origin.item() == 10
     assert current_graph_goal.item() == 29
