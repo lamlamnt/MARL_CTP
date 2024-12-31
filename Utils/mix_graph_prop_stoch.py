@@ -17,8 +17,8 @@ if __name__ == "__main__":
     current_directory = os.getcwd()
     parent_directory = os.path.dirname(current_directory)
     log_directory = os.path.join(parent_directory, "Generated_graphs")
-    all_training_graphs = np.empty((0, 3, 30, 30))
-    all_inference_graphs = np.empty((0, 3, 30, 30))
+    all_training_graphs = np.empty((0, 3, 10, 10))
+    all_inference_graphs = np.empty((0, 3, 10, 10))
 
     for name in names:
         directory = os.path.join(log_directory, name)
@@ -27,12 +27,11 @@ if __name__ == "__main__":
         inference_graph_npy_file = os.path.join(directory, "inference_graphs.npy")
         inference_graphs = np.load(inference_graph_npy_file)
         all_training_graphs = np.append(
-            all_training_graphs[:2001], training_graphs, axis=0
+            all_training_graphs, training_graphs[:625], axis=0
         )
         all_inference_graphs = np.append(
-            all_inference_graphs[:2001], inference_graphs, axis=0
+            all_inference_graphs, inference_graphs[:250], axis=0
         )
-
     print(all_training_graphs.shape)
     print(all_inference_graphs.shape)
     # Save to a file

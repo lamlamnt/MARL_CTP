@@ -1,0 +1,10 @@
+#Store 30-node graphs with origin 20 and 10
+CUDA_VISIBLE_DEVICES="" python main_ppo.py --n_node 30 --log_directory "store" --graph_mode "store" --graph_identifier "node_30_origin_20_prop_0.4" --num_stored_graphs 2000 --origin_node 20 --prop_stoch 0.4
+CUDA_VISIBLE_DEVICES="" python main_ppo.py --n_node 30 --log_directory "store" --graph_mode "store" --graph_identifier "node_30_origin_10_prop_0.4" --num_stored_graphs 2000 --origin_node 10 --prop_stoch 0.4
+CUDA_VISIBLE_DEVICES="" python main_ppo.py --n_node 30 --log_directory "store" --graph_mode "store" --graph_identifier "node_30_origin_20_prop_0.8" --num_stored_graphs 2000 --origin_node 20 --prop_stoch 0.8
+CUDA_VISIBLE_DEVICES="" python main_ppo.py --n_node 30 --log_directory "store" --graph_mode "store" --graph_identifier "node_30_origin_10_prop_0.8" --num_stored_graphs 2000 --origin_node 10 --prop_stoch 0.8
+
+#Curriculum learning using big CNN
+#CUDA_VISIBLE_DEVICES=1 python main_ppo.py --n_node 30 --log_directory "node_30_origin_20" --network_type "Big_CNN" --time_steps 4000000 --learning_rate 0.001 --num_steps_before_update 3600 --clip_eps 0.2 --num_update_epochs 6 --division_plateau 5 --ent_coeff_schedule "sigmoid" --vf_coeff 0.15 --ent_coeff 0.12 --graph_identifier "node_30_origin_20_prop_0.4" --prop_stoch 0.4 
+#CUDA_VISIBLE_DEVICES=1 python main_ppo.py --n_node 30 --log_directory "node_30_origin_10" --network_type "Big_CNN" --time_steps 4000000 --learning_rate 0.001 --num_steps_before_update 4800 --clip_eps 0.2 --num_update_epochs 6 --division_plateau 5 --ent_coeff_schedule "sigmoid" --vf_coeff 0.15 --ent_coeff 0.12 --graph_identifier "node_30_origin_10_prop_0.4" --prop_stoch 0.4 --load_network_directory "node_30_origin_20"
+#CUDA_VISIBLE_DEVICES=1 python main_ppo.py --n_node 30 --log_directory "node_30_origin_final" --network_type "Big_CNN" --time_steps 4000000 --learning_rate 0.001 --num_steps_before_update 4800 --clip_eps 0.2 --num_update_epochs 6 --division_plateau 5 --ent_coeff_schedule "sigmoid" --vf_coeff 0.15 --ent_coeff 0.12 --graph_identifier "node_30_relabel_0.4" --prop_stoch 0.4 --load_network_directory "node_30_origin_10"
