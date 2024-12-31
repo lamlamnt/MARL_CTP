@@ -5,20 +5,22 @@ import jax.numpy as jnp
 if __name__ == "__main__":
     # Load the files, concatenate the list, and save the files
     # names = ["node_5_relabel_0.4", "node_5_relabel_0.8"]
+    """
     names = [
         "node_10_0",
         "node_10_0.2",
         "node_10_0.4",
         "node_10_0.8",
     ]
-    # names = ["node_30_relabel_0.4", "node_30_relabel_0.8"]
-    mixed_name = "node_10_mixed"
+    """
+    names = ["node_30_relabel_0.4", "node_30_relabel_0.8"]
+    mixed_name = "node_30_mixed"
 
     current_directory = os.getcwd()
     parent_directory = os.path.dirname(current_directory)
     log_directory = os.path.join(parent_directory, "Generated_graphs")
-    all_training_graphs = np.empty((0, 3, 10, 10))
-    all_inference_graphs = np.empty((0, 3, 10, 10))
+    all_training_graphs = np.empty((0, 3, 30, 30))
+    all_inference_graphs = np.empty((0, 3, 30, 30))
 
     for name in names:
         directory = os.path.join(log_directory, name)
@@ -26,11 +28,9 @@ if __name__ == "__main__":
         training_graphs = np.load(training_graph_npy_file)
         inference_graph_npy_file = os.path.join(directory, "inference_graphs.npy")
         inference_graphs = np.load(inference_graph_npy_file)
-        all_training_graphs = np.append(
-            all_training_graphs, training_graphs[:625], axis=0
-        )
+        all_training_graphs = np.append(all_training_graphs, training_graphs, axis=0)
         all_inference_graphs = np.append(
-            all_inference_graphs, inference_graphs[:250], axis=0
+            all_inference_graphs, inference_graphs[:200], axis=0
         )
     print(all_training_graphs.shape)
     print(all_inference_graphs.shape)
