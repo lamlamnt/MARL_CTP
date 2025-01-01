@@ -261,6 +261,17 @@ class PPO:
 
     @partial(jax.jit, static_argnums=(0,))
     def _update_epoch(self, update_state, unused):
+        train_state, traj_batch, advantages, targets, rng, loop_count = update_state
+        rng, _rng = jax.random.split(rng)
+        permutation = jax.random.permutation(_rng, self.batch_size)
+        batch = (traj_batch, advantages, targets)
+        batch = jax.tree_util.tree_map(
+            lambda x: x.reshape((self.batch_size,) + x.shape[1:]), batch
+        )
+        shuffled_batch = jax.tree_util.tree_map(
+            lambda x: jnp.take(x, permutation, axis=0), batch
+        )
+
         def _update_minbatch(train_state, batch_info):
             traj_batch, advantages, targets = batch_info
             train_state, traj_batch, advantages, targets, rng, loop_count = update_state
@@ -277,17 +288,6 @@ class PPO:
             )
             train_state = train_state.apply_gradients(grads=grads)
             return train_state, total_loss
-
-        train_state, traj_batch, advantages, targets, rng, loop_count = update_state
-        rng, _rng = jax.random.split(rng)
-        permutation = jax.random.permutation(_rng, self.batch_size)
-        batch = (traj_batch, advantages, targets)
-        batch = jax.tree_util.tree_map(
-            lambda x: x.reshape((self.batch_size,) + x.shape[1:]), batch
-        )
-        shuffled_batch = jax.tree_util.tree_map(
-            lambda x: jnp.take(x, permutation, axis=0), batch
-        )
 
         # Mini-batch Updates
         minibatches = jax.tree_util.tree_map(

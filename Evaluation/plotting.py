@@ -193,16 +193,16 @@ def save_data_and_plotting(
             "standard deviation of competitive ratio": float(
                 episodes_df["competitive_ratio"].std()
             ),
-            "average_competitive_ratio_of_otimistic_baseline": float(
+            "average_competitive_ratio_of_optimistic_baseline": float(
                 episodes_df["competitive_ratio_optimistic_baseline"].mean()
             ),
-            "max_competitive_ratio_of_otimistic_baseline": float(
+            "max_competitive_ratio_of_optimistic_baseline": float(
                 episodes_df["competitive_ratio_optimistic_baseline"].max()
             ),
-            "median_competitive_ratio_of_otimistic_baseline": float(
+            "median_competitive_ratio_of_optimistic_baseline": float(
                 episodes_df["competitive_ratio_optimistic_baseline"].median()
             ),
-            "standard_deviation_competitive_ratio_of_otimistic_baseline": float(
+            "standard_deviation_competitive_ratio_of_optimistic_baseline": float(
                 episodes_df["competitive_ratio_optimistic_baseline"].std()
             ),
             "percentage_RL_beats_optimistic_baseline": float(
