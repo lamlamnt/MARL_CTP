@@ -2,7 +2,7 @@ import os
 import jax
 import jax.numpy as jnp
 from Networks.actor_critic_network import ActorCritic_CNN_10, ActorCritic_CNN_30
-from Networks.densenet import DenseNet_ActorCritic
+from Networks.densenet import DenseNet_ActorCritic, DenseNet_ActorCritic_Same
 from Networks.resnet import ResNet_ActorCritic
 from Networks.big_cnn import Big_CNN_30
 from Networks.densenet_float16 import DenseNet_ActorCritic_Float16
@@ -150,20 +150,30 @@ def main(args):
             model = ActorCritic_CNN_10(n_node)
         else:
             model = ActorCritic_CNN_30(n_node)
-    elif args.network_type == "Densenet":
+    elif args.network_type == "Densenet" or args.network_type == "Densenet_Same":
         densenet_act_fn_dict = {"leaky_relu": nn.leaky_relu, "tanh": nn.tanh}
         densenet_init_dict = {
             "kaiming_normal": nn.initializers.kaiming_normal(),
             "orthogonal": nn.initializers.orthogonal(jnp.sqrt(2)),
         }
-        model = DenseNet_ActorCritic(
-            n_node,
-            act_fn=densenet_act_fn_dict[args.network_activation_fn],
-            densenet_kernel_init=densenet_init_dict[args.network_init],
-            bn_size=args.densenet_bn_size,
-            growth_rate=args.densenet_growth_rate,
-            num_layers=tuple(map(int, (args.densenet_num_layers).split(","))),
-        )
+        if args.network_type == "Densenet":
+            model = DenseNet_ActorCritic(
+                n_node,
+                act_fn=densenet_act_fn_dict[args.network_activation_fn],
+                densenet_kernel_init=densenet_init_dict[args.network_init],
+                bn_size=args.densenet_bn_size,
+                growth_rate=args.densenet_growth_rate,
+                num_layers=tuple(map(int, (args.densenet_num_layers).split(","))),
+            )
+        else:
+            model = DenseNet_ActorCritic_Same(
+                n_node,
+                act_fn=densenet_act_fn_dict[args.network_activation_fn],
+                densenet_kernel_init=densenet_init_dict[args.network_init],
+                bn_size=args.densenet_bn_size,
+                growth_rate=args.densenet_growth_rate,
+                num_layers=tuple(map(int, (args.densenet_num_layers).split(","))),
+            )
     elif args.network_type == "Densenet_Float16":
         densenet_act_fn_dict = {"leaky_relu": nn.leaky_relu, "tanh": nn.tanh}
         densenet_init_dict = {
@@ -462,7 +472,7 @@ if __name__ == "__main__":
         "--network_type",
         type=str,
         required=False,
-        help="Options: CNN,Densenet,Resnet, Big_CNN, Densenet_Float16 (do not choose this one)",
+        help="Options: CNN,Densenet,Densenet_Same, Resnet, Big_CNN, Densenet_Float16 (do not choose this one)",
         default="Densenet",
     )
     parser.add_argument(
@@ -539,7 +549,7 @@ if __name__ == "__main__":
         "--factor_inference_timesteps",
         type=int,
         required=False,
-        default=500,
+        default=1000,
         help="Number to multiply with the number of nodes to get the total number of inference timesteps",
     )
     parser.add_argument(

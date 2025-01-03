@@ -151,3 +151,34 @@ class DenseNet_ActorCritic(nn.Module):
         )
 
         return pi, jnp.squeeze(critic, axis=-1)
+
+
+class DenseNet_ActorCritic_Same(nn.Module):
+    num_classes: int
+    act_fn: callable = nn.leaky_relu
+    num_layers: tuple = (4, 4, 4)
+    bn_size: int = 4
+    growth_rate: int = 32
+    densenet_kernel_init: callable = nn.initializers.kaiming_normal()
+
+    @nn.compact
+    def __call__(self, x: jnp.ndarray) -> tuple[distrax.Categorical, float]:
+        action_mask = decide_validity_of_action_space(x)
+        actor_mean_same = DenseNet(
+            act_fn=self.act_fn,
+            num_layers=self.num_layers,
+            bn_size=self.bn_size,
+            growth_rate=self.growth_rate,
+            densenet_kernel_init=self.densenet_kernel_init,
+        )(x)
+        actor_mean = nn.Dense(
+            self.num_classes, kernel_init=orthogonal(0.01), bias_init=constant(0.0)
+        )(actor_mean_same)
+        actor_mean = jnp.where(action_mask == -jnp.inf, -jnp.inf, actor_mean)
+        pi = distrax.Categorical(logits=actor_mean)
+
+        critic = nn.Dense(1, kernel_init=orthogonal(1.0), bias_init=constant(0.0))(
+            actor_mean_same
+        )
+
+        return pi, jnp.squeeze(critic, axis=-1)
