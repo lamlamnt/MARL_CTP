@@ -10,9 +10,12 @@ if __name__ == "__main__":
         "node_10_0.2",
         "node_10_0.4",
         "node_10_0.8",
+        "node_10_0",
+        "node_10_0.2",
+        "node_10_0.4",
     ]
     # names = ["node_30_relabel_0.4", "node_30_relabel_0.8"]
-    mixed_name = "node_10_mixed_full"
+    mixed_name = "dummy_14k"
 
     current_directory = os.getcwd()
     parent_directory = os.path.dirname(current_directory)
@@ -28,7 +31,7 @@ if __name__ == "__main__":
         inference_graphs = np.load(inference_graph_npy_file)
         all_training_graphs = np.append(all_training_graphs, training_graphs, axis=0)
         all_inference_graphs = np.append(
-            all_inference_graphs, inference_graphs[:250], axis=0
+            all_inference_graphs, inference_graphs[:143], axis=0
         )
     print(all_training_graphs.shape)
     print(all_inference_graphs.shape)
