@@ -212,6 +212,13 @@ def save_data_and_plotting(
                 ).mean()
                 * 100
             ),
+            "percentage_RL_equals_to_optimistic_baseline": float(
+                (
+                    episodes_df["competitive_ratio"]
+                    == episodes_df["competitive_ratio_optimistic_baseline"]
+                ).mean()
+                * 100
+            ),
         }
         for key, value in result_dict.items():
             wandb.summary[key] = value

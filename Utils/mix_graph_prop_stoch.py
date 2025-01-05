@@ -6,16 +6,12 @@ if __name__ == "__main__":
     # Load the files, concatenate the list, and save the files
     # names = ["node_5_relabel_0.4", "node_5_relabel_0.8"]
     names = [
-        "node_10_0",
-        "node_10_0.2",
-        "node_10_0.4",
-        "node_10_0.8",
-        "node_10_0",
-        "node_10_0.2",
-        "node_10_0.4",
+        "node_10_0.2_training_14k",
+        "node_10_0.4_training_14k",
+        "node_10_0.8_training_14k",
     ]
     # names = ["node_30_relabel_0.4", "node_30_relabel_0.8"]
-    mixed_name = "dummy_14k"
+    mixed_name = "node_10_mixed_training_14k"
 
     current_directory = os.getcwd()
     parent_directory = os.path.dirname(current_directory)
@@ -29,9 +25,11 @@ if __name__ == "__main__":
         training_graphs = np.load(training_graph_npy_file)
         inference_graph_npy_file = os.path.join(directory, "inference_graphs.npy")
         inference_graphs = np.load(inference_graph_npy_file)
-        all_training_graphs = np.append(all_training_graphs, training_graphs, axis=0)
+        all_training_graphs = np.append(
+            all_training_graphs, training_graphs[:4667], axis=0
+        )
         all_inference_graphs = np.append(
-            all_inference_graphs, inference_graphs[:143], axis=0
+            all_inference_graphs, inference_graphs[:334], axis=0
         )
     print(all_training_graphs.shape)
     print(all_inference_graphs.shape)
