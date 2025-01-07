@@ -207,17 +207,17 @@ def main(args):
     # Clip by global norm can be an args
     if args.anneal_lr:
         optimizer = optax.chain(
-            optax.clip_by_global_norm(0.5),
+            optax.clip_by_global_norm(args.optimizer_norm_clip),
             optax.adam(learning_rate=linear_schedule, eps=1e-5),
         )
     elif args.network_type == "Resnet":
         optimizer = optax.chain(
-            optax.clip_by_global_norm(0.5),
+            optax.clip_by_global_norm(args.optimizer_norm_clip),
             optax.sgd(learning_rate=args.learning_rate, momentum=0.9),
         )
     else:
         optimizer = optax.chain(
-            optax.clip_by_global_norm(0.5),
+            optax.clip_by_global_norm(args.optimizer_norm_clip),
             optax.adam(learning_rate=args.learning_rate, eps=1e-5),
         )
 
@@ -497,6 +497,13 @@ if __name__ == "__main__":
         required=False,
         help="Num group of layers for each dense block in string format",
         default="4,4,4",
+    )
+    parser.add_argument(
+        "--optimizer_norm_clip",
+        type=float,
+        required=False,
+        help="optimizer.clip_by_global_norm(value)",
+        default=0.5,
     )
 
     # Args related to running/managing experiments

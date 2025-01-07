@@ -1,0 +1,90 @@
+{"n_node": 30, "n_agent": 1, "time_steps": 6000000, "reward_for_invalid_action": -200.0, "reward_for_goal": 0, "reward_exceed_horizon": -1.5, "horizon_length_factor": 1, "factor_expensive_edge": 1.0, "prop_stoch": 0.8, "k_edges": null, "grid_size": null, "random_seed_for_training": 100, "random_seed_for_inference": 101, "discount_factor": 1.0, "anneal_lr": false, "learning_rate": 0.001, "num_update_epochs": 10, "network_type": "Densenet_Same", "network_activation_fn": "leaky_relu", "network_init": "kaiming_normal", "densenet_bn_size": 2, "densenet_growth_rate": 20, "densenet_num_layers": "4,4,4", "log_directory": "node_30_0.8_same_critic_narrow_densenet", "hand_crafted_graph": "None", "wandb_mode": "disabled", "wandb_project_name": "no_name", "yaml_file": "sweep_config_node_10.yaml", "wandb_sweep": false, "sweep_run_count": 3, "deal_with_unsolvability": "expensive_if_unsolvable", "generalize": true, "factor_inference_timesteps": 500, "graph_mode": "load", "graph_identifier": "node_30_relabel_0.8", "origin_node": -1, "load_network_directory": null, "num_steps_before_update": 2000, "gae_lambda": 0.95, "clip_eps": 0.1, "vf_coeff": 0.13, "ent_coeff": 0.2, "anneal_ent_coeff": true, "ent_coeff_schedule": "plateau", "division_plateau": 4, "num_minibatches": 1, "deterministic_inference_policy": false, "patience": 5, "num_stored_graphs": 2000}
+{
+    "current_datetime": "2025-01-06 13:40:58"
+}
+{"Total environment creation time in seconds": 0.014592647552490234}
+{"Total training time in seconds": 46129.30842924118}
+{"Total time in seconds": 46789.572719335556}
+{"Total Loss": 0.05414307862520218, "Weighted Value Loss": 0.07823069453239441, "Actor Loss": -0.024087605997920036, "Weighted Entropy Loss": 0.05831208825111389}
+Training results: 
+{
+    "final_regret": 0.3859999179840088,
+    "final_competitive_ratio": 1.3359441757202148,
+    "avg_reward_last_episode": -1.779699981212616,
+    "max_reward": -0.2720000147819519
+}
+Testing results: 
+{
+    "average_regret": 1.054684042930603,
+    "average_competitive_ratio": 1.9704176187515259,
+    "median_competitive_ratio": 1.2179752588272095,
+    "max_competitive_ratio": 16.432693481445312,
+    "average_reward": -2.0538885593414307,
+    "failure_rate (%)": 17.381489841986458,
+    "standard deviation of competitive ratio": 1.621144413948059,
+    "average_competitive_ratio_of_optimistic_baseline": 1.2555171251296997,
+    "max_competitive_ratio_of_optimistic_baseline": 5.0363945960998535,
+    "median_competitive_ratio_of_optimistic_baseline": 1.0957684516906738,
+    "standard_deviation_competitive_ratio_of_optimistic_baseline": 0.3851282000541687,
+    "percentage_RL_beats_optimistic_baseline": 22.94958615500376,
+    "percentage_RL_equals_to_optimistic_baseline": 14.823175319789314
+}
+
+Network architecture: 
+params/DenseNet_0/DenseBlock_0/DenseLayer_0/Conv_0/bias: (40,)
+params/DenseNet_0/DenseBlock_0/DenseLayer_0/Conv_0/kernel: (1, 1, 6, 40)
+params/DenseNet_0/DenseBlock_0/DenseLayer_0/Conv_1/bias: (20,)
+params/DenseNet_0/DenseBlock_0/DenseLayer_0/Conv_1/kernel: (3, 3, 40, 20)
+params/DenseNet_0/DenseBlock_0/DenseLayer_1/Conv_0/bias: (40,)
+params/DenseNet_0/DenseBlock_0/DenseLayer_1/Conv_0/kernel: (1, 1, 26, 40)
+params/DenseNet_0/DenseBlock_0/DenseLayer_1/Conv_1/bias: (20,)
+params/DenseNet_0/DenseBlock_0/DenseLayer_1/Conv_1/kernel: (3, 3, 40, 20)
+params/DenseNet_0/DenseBlock_0/DenseLayer_2/Conv_0/bias: (40,)
+params/DenseNet_0/DenseBlock_0/DenseLayer_2/Conv_0/kernel: (1, 1, 46, 40)
+params/DenseNet_0/DenseBlock_0/DenseLayer_2/Conv_1/bias: (20,)
+params/DenseNet_0/DenseBlock_0/DenseLayer_2/Conv_1/kernel: (3, 3, 40, 20)
+params/DenseNet_0/DenseBlock_0/DenseLayer_3/Conv_0/bias: (40,)
+params/DenseNet_0/DenseBlock_0/DenseLayer_3/Conv_0/kernel: (1, 1, 66, 40)
+params/DenseNet_0/DenseBlock_0/DenseLayer_3/Conv_1/bias: (20,)
+params/DenseNet_0/DenseBlock_0/DenseLayer_3/Conv_1/kernel: (3, 3, 40, 20)
+params/DenseNet_0/DenseBlock_1/DenseLayer_0/Conv_0/bias: (40,)
+params/DenseNet_0/DenseBlock_1/DenseLayer_0/Conv_0/kernel: (1, 1, 60, 40)
+params/DenseNet_0/DenseBlock_1/DenseLayer_0/Conv_1/bias: (20,)
+params/DenseNet_0/DenseBlock_1/DenseLayer_0/Conv_1/kernel: (3, 3, 40, 20)
+params/DenseNet_0/DenseBlock_1/DenseLayer_1/Conv_0/bias: (40,)
+params/DenseNet_0/DenseBlock_1/DenseLayer_1/Conv_0/kernel: (1, 1, 80, 40)
+params/DenseNet_0/DenseBlock_1/DenseLayer_1/Conv_1/bias: (20,)
+params/DenseNet_0/DenseBlock_1/DenseLayer_1/Conv_1/kernel: (3, 3, 40, 20)
+params/DenseNet_0/DenseBlock_1/DenseLayer_2/Conv_0/bias: (40,)
+params/DenseNet_0/DenseBlock_1/DenseLayer_2/Conv_0/kernel: (1, 1, 100, 40)
+params/DenseNet_0/DenseBlock_1/DenseLayer_2/Conv_1/bias: (20,)
+params/DenseNet_0/DenseBlock_1/DenseLayer_2/Conv_1/kernel: (3, 3, 40, 20)
+params/DenseNet_0/DenseBlock_1/DenseLayer_3/Conv_0/bias: (40,)
+params/DenseNet_0/DenseBlock_1/DenseLayer_3/Conv_0/kernel: (1, 1, 120, 40)
+params/DenseNet_0/DenseBlock_1/DenseLayer_3/Conv_1/bias: (20,)
+params/DenseNet_0/DenseBlock_1/DenseLayer_3/Conv_1/kernel: (3, 3, 40, 20)
+params/DenseNet_0/DenseBlock_2/DenseLayer_0/Conv_0/bias: (40,)
+params/DenseNet_0/DenseBlock_2/DenseLayer_0/Conv_0/kernel: (1, 1, 70, 40)
+params/DenseNet_0/DenseBlock_2/DenseLayer_0/Conv_1/bias: (20,)
+params/DenseNet_0/DenseBlock_2/DenseLayer_0/Conv_1/kernel: (3, 3, 40, 20)
+params/DenseNet_0/DenseBlock_2/DenseLayer_1/Conv_0/bias: (40,)
+params/DenseNet_0/DenseBlock_2/DenseLayer_1/Conv_0/kernel: (1, 1, 90, 40)
+params/DenseNet_0/DenseBlock_2/DenseLayer_1/Conv_1/bias: (20,)
+params/DenseNet_0/DenseBlock_2/DenseLayer_1/Conv_1/kernel: (3, 3, 40, 20)
+params/DenseNet_0/DenseBlock_2/DenseLayer_2/Conv_0/bias: (40,)
+params/DenseNet_0/DenseBlock_2/DenseLayer_2/Conv_0/kernel: (1, 1, 110, 40)
+params/DenseNet_0/DenseBlock_2/DenseLayer_2/Conv_1/bias: (20,)
+params/DenseNet_0/DenseBlock_2/DenseLayer_2/Conv_1/kernel: (3, 3, 40, 20)
+params/DenseNet_0/DenseBlock_2/DenseLayer_3/Conv_0/bias: (40,)
+params/DenseNet_0/DenseBlock_2/DenseLayer_3/Conv_0/kernel: (1, 1, 130, 40)
+params/DenseNet_0/DenseBlock_2/DenseLayer_3/Conv_1/bias: (20,)
+params/DenseNet_0/DenseBlock_2/DenseLayer_3/Conv_1/kernel: (3, 3, 40, 20)
+params/DenseNet_0/TransitionLayer_0/Conv_0/bias: (60,)
+params/DenseNet_0/TransitionLayer_0/Conv_0/kernel: (1, 1, 86, 60)
+params/DenseNet_0/TransitionLayer_1/Conv_0/bias: (70,)
+params/DenseNet_0/TransitionLayer_1/Conv_0/kernel: (1, 1, 140, 70)
+params/Dense_0/bias: (30,)
+params/Dense_0/kernel: (150, 30)
+params/Dense_1/bias: (1,)
+params/Dense_1/kernel: (150, 1)
+Total number of parameters in the network: 143051
