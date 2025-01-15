@@ -296,6 +296,9 @@ def main(args):
             previous_episode_done,
         )
 
+        # Perform inference (using testing environment) for 100 timesteps (if loop_count divisible by 50 - tunable) and store rewards and optimistic path length
+        # Get average (not including last episode) and store in metrics, just like loss
+
         # Collect metrics
         metrics = {
             "losses": total_loss,
@@ -584,6 +587,20 @@ if __name__ == "__main__":
         type=str,
         default=None,
         help="Directory to load trained network weights from",
+    )
+    parser.add_argument(
+        "--factor_testing_timesteps",
+        type=int,
+        required=False,
+        default=10,
+        help="Factor to multiple with number of nodes to get the number of timesteps to perform testing on during training (in order to plot the learning curve)",
+    )
+    parser.add_argument(
+        "--frequency_factor_testing",
+        type=int,
+        required=False,
+        default=50,
+        help="How many updates before performing testing during training to plot the learning curve",
     )
 
     # Args specific to PPO:
