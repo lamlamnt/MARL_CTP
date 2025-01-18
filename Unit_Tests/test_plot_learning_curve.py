@@ -10,6 +10,7 @@ from Networks.big_cnn import Big_CNN_30
 from Evaluation.inference_during_training import get_average_testing_stats
 from Agents.ppo import PPO
 import argparse
+from flax.core.frozen_dict import FrozenDict
 
 
 def test_get_testing_stats(printer):
@@ -23,51 +24,61 @@ def test_get_testing_stats(printer):
     init_params = model.init(
         jax.random.PRNGKey(0), jax.random.normal(online_key, state_shape)
     )
-    agent = PPO(model, testing_environment)
+    agent = PPO(
+        model,
+        testing_environment,
+        discount_factor=1.0,
+        gae_lambda=0.95,
+        clip_eps=0.2,
+        vf_coeff=0.15,
+        ent_coeff=0.15,
+        batch_size=100,
+        num_minibatches=1,
+        horizon_length=10,
+        reward_exceed_horizon=-1.5,
+        num_loops=3,
+        anneal_ent_coeff=True,
+        deterministic_inference_policy=True,
+        ent_coeff_schedule="sigmoid",
+        division_plateau=5,
+    )
 
-    simulated_args = [
-        "--random_seed_for_inference",
-        "1",
-        "--factor_testing_timesteps",
-        "3",
-        "--n_node",
-        "5",
-    ]
-    parser = argparse.ArgumentParser(description="Simulate argparse without CLI")
-    parser.add_argument(
-        "--reward_exceed_horizon",
-        type=float,
-        help="Should be equal to or more negative than -1",
-        required=False,
-        default=-1.5,
+    arguments = FrozenDict(
+        {
+            "factor_testing_timesteps": 7,
+            "n_node": 5,
+            "reward_exceed_horizon": -1.5,
+            "horizon_length_factor": 2,
+            "random_seed_for_inference": 1,
+        }
     )
-    parser.add_argument(
-        "--horizon_length_factor",
-        type=int,
-        help="Factor to multiply with number of nodes to get the maximum horizon length",
-        required=False,
-        default=2,
-    )
-    parser.add_argument(
-        "--random_seed_for_inference", type=int, required=False, default=101
-    )
-    parser.add_argument(
-        "--factor_testing_timesteps",
-        type=int,
-        required=False,
-        default=10,
-        help="Factor to multiple with number of nodes to get the number of timesteps to perform testing on during training (in order to plot the learning curve)",
-    )
-    parser.add_argument(
-        "--n_node",
-        type=int,
-        help="Number of nodes in the graph",
-        required=False,
-        default=5,
-    )
-    args = parser.parse_args(simulated_args)
 
     average_competitive_ratio = get_average_testing_stats(
-        testing_environment, agent, init_params, args
+        testing_environment, agent, init_params, arguments
     )
     printer(average_competitive_ratio)
+    assert jnp.isclose(average_competitive_ratio, 4.31, atol=0.01)
+
+    loop_count = 1
+    frequency_testing = 5
+    testing_average_competitive_ratio = jax.lax.cond(
+        loop_count % frequency_testing == 0,
+        lambda _: get_average_testing_stats(
+            testing_environment, agent, init_params, arguments
+        ),
+        lambda _: jnp.float16(0.0),
+        None,
+    )
+    assert testing_average_competitive_ratio == 0
+
+    loop_count = 5
+    frequency_testing = 5
+    testing_average_competitive_ratio = jax.lax.cond(
+        loop_count % frequency_testing == 0,
+        lambda _: get_average_testing_stats(
+            testing_environment, agent, init_params, arguments
+        ),
+        lambda _: jnp.float16(0.0),
+        None,
+    )
+    assert testing_average_competitive_ratio != 0

@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import wandb
 from jax_tqdm import scan_tqdm
+from Evaluation.plot_learning_curve import plot_learning_curve
 
 
 def plotting_inference(
@@ -51,6 +52,9 @@ def plotting_inference(
         reward_exceed_horizon=args.reward_exceed_horizon,
         training=True,
     )
+
+    # Plot the learning curve
+    plot_learning_curve(out["testing_average_competitive_ratio"], log_directory, args)
 
     # Evaluate the model
     # Test on the same graph

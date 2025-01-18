@@ -29,9 +29,11 @@ from Utils.augmented_belief_state import (
     get_augmented_optimistic_belief,
     get_augmented_optimistic_pessimistic_belief,
 )
+from Evaluation.inference_during_training import get_average_testing_stats
 import flax.linen as nn
 import sys
 import yaml
+from flax.core.frozen_dict import FrozenDict
 
 """
 warnings.simplefilter("error")
@@ -90,6 +92,7 @@ def main(args):
     subkeys = jax.random.split(key, num=2)
     online_key, environment_key = subkeys
 
+    # Create the training environment
     if args.generalize:
         start_time_environment_creation = time.time()
         environment = CTP_environment_generalize.CTP_General(
@@ -143,6 +146,28 @@ def main(args):
             )
         environment.graph_realisation.graph.plot_nx_graph(
             directory=log_directory, file_name="training_graph.png"
+        )
+
+    # Create a new environment to get unseen graphs for testing
+    if args.generalize:
+        inference_key = jax.random.PRNGKey(args.random_seed_for_inference)
+        print("Start generating graphs for inference ...")
+        testing_environment = CTP_environment_generalize.CTP_General(
+            args.n_agent,
+            1,
+            n_node,
+            inference_key,
+            prop_stoch=args.prop_stoch,
+            k_edges=args.k_edges,
+            grid_size=args.grid_size,
+            reward_for_invalid_action=args.reward_for_invalid_action,
+            reward_for_goal=args.reward_for_goal,
+            factor_expensive_edge=args.factor_expensive_edge,
+            deal_with_unsolvability=args.deal_with_unsolvability,
+            patience=args.patience,
+            num_stored_graphs=num_inference_graphs,
+            loaded_graphs=inference_graphs,
+            origin_node=args.origin_node,
         )
 
     if args.network_type == "CNN":
@@ -248,6 +273,17 @@ def main(args):
         division_plateau=args.division_plateau,
     )
 
+    # For the purpose of plotting the learning curve
+    arguments = FrozenDict(
+        {
+            "factor_testing_timesteps": args.factor_testing_timesteps,
+            "n_node": args.n_node,
+            "reward_exceed_horizon": args.reward_exceed_horizon,
+            "horizon_length_factor": args.horizon_length_factor,
+            "random_seed_for_inference": args.random_seed_for_inference,
+        }
+    )
+
     print("Start training ...")
 
     @scan_tqdm(num_loops)
@@ -296,8 +332,16 @@ def main(args):
             previous_episode_done,
         )
 
-        # Perform inference (using testing environment) for 100 timesteps (if loop_count divisible by 50 - tunable) and store rewards and optimistic path length
-        # Get average (not including last episode) and store in metrics, just like loss
+        # Perform inference (using testing environment) (if loop_count divisible by 50 - tunable)
+        # Get average and store in metrics, just like loss
+        testing_average_competitive_ratio = jax.lax.cond(
+            loop_count % args.frequency_testing == 0,
+            lambda _: get_average_testing_stats(
+                testing_environment, agent, train_state.params, arguments
+            ),
+            lambda _: jnp.float16(0.0),
+            None,
+        )
 
         # Collect metrics
         metrics = {
@@ -305,6 +349,7 @@ def main(args):
             "all_rewards": traj_batch.reward,
             "all_done": traj_batch.done,
             "all_optimal_path_lengths": traj_batch.shortest_path,
+            "testing_average_competitive_ratio": testing_average_competitive_ratio,
         }
 
         return runner_state, metrics
@@ -334,30 +379,6 @@ def main(args):
     loss_actor = out["losses"][1][1]
     entropy_loss = out["losses"][1][2]
 
-    # Create a new environment to get unseen graphs for inference
-    if args.generalize:
-        inference_key = jax.random.PRNGKey(args.random_seed_for_inference)
-        print("Start generating graphs for inference ...")
-        environment = CTP_environment_generalize.CTP_General(
-            args.n_agent,
-            1,
-            n_node,
-            inference_key,
-            prop_stoch=args.prop_stoch,
-            k_edges=args.k_edges,
-            grid_size=args.grid_size,
-            reward_for_invalid_action=args.reward_for_invalid_action,
-            reward_for_goal=args.reward_for_goal,
-            factor_expensive_edge=args.factor_expensive_edge,
-            deal_with_unsolvability=args.deal_with_unsolvability,
-            patience=args.patience,
-            num_stored_graphs=num_inference_graphs,
-            loaded_graphs=inference_graphs,
-            origin_node=args.origin_node,
-        )
-        # Choose num_stored_graphs to be equal to the factor_inference_timesteps because I want the
-        # number of graphs generated to be roughly equal to the number of inference episodes/2
-
     # Put the different times in a dictionary
     time_info = {
         "start_training_time": start_training_time,
@@ -365,12 +386,15 @@ def main(args):
         "start_time": start_time_environment_creation,
     }
 
+    if args.generalize is False:
+        testing_environment = environment
+
     plotting_inference(
         log_directory,
         time_info,
         train_state.params,
         out,
-        environment,
+        testing_environment,
         agent,
         args,
         n_node,
@@ -596,7 +620,7 @@ if __name__ == "__main__":
         help="Factor to multiple with number of nodes to get the number of timesteps to perform testing on during training (in order to plot the learning curve)",
     )
     parser.add_argument(
-        "--frequency_factor_testing",
+        "--frequency_testing",
         type=int,
         required=False,
         default=50,

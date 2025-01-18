@@ -1,3 +1,4 @@
+from functools import partial
 import jax
 import jax.numpy as jnp
 import sys
@@ -11,14 +12,16 @@ from jax_tqdm import scan_tqdm
 
 # For the purpose of plotting the learning curve
 # Deterministic inference
+@partial(jax.jit, static_argnums=(0, 1, 3))
 def get_average_testing_stats(
-    environment: CTP_environment, agent, model_params, args
+    environment: CTP_environment, agent, model_params, arguments
 ) -> float:
+    # The last argument is a Frozen Dictionary of relevant hyperparameters
     init_key, env_key = jax.vmap(jax.random.PRNGKey)(
-        jnp.arange(2) + args.random_seed_for_inference
+        jnp.arange(2) + arguments["random_seed_for_inference"]
     )
     new_env_state, new_belief_state = environment.reset(init_key)
-    num_testing_timesteps = args.factor_testing_timesteps * args.n_node
+    num_testing_timesteps = arguments["factor_testing_timesteps"] * arguments["n_node"]
 
     @scan_tqdm(num_testing_timesteps)
     def _one_step_inference(runner_state, unused):
@@ -49,10 +52,11 @@ def get_average_testing_stats(
         # Reset if exceed horizon length. Otherwise, increment
         new_env_state, new_belief_state, reward, timestep_in_episode, done = (
             jax.lax.cond(
-                timestep_in_episode >= args.horizon_length_factor * args.n_node,
+                timestep_in_episode
+                >= arguments["horizon_length_factor"] * arguments["n_node"],
                 lambda _: (
                     *environment.reset(reset_key),
-                    jnp.float16(args.reward_exceed_horizon),
+                    jnp.float16(arguments["reward_exceed_horizon"]),
                     0,
                     True,
                 ),
@@ -112,25 +116,26 @@ def get_average_testing_stats(
     test_all_rewards = inference_traj_batch[1]
     test_all_optimal_path_lengths = inference_traj_batch[2]
 
-    # Eliminate the last few timesteps that did not finish the episode
     # Calculate competitive ratio without using pandas
     episode_numbers = jnp.cumsum(test_all_done)
     shifted_episode_numbers = jnp.concatenate([jnp.array([0]), episode_numbers[:-1]])
 
-    def aggregate_by_episode(episode_numbers, values):
-        num_episodes = jnp.max(episode_numbers) + 1
-        aggregated = jax.vmap(
-            lambda ep: jnp.sum(jnp.where(episode_numbers == ep, values, 0))
-        )(jnp.arange(num_episodes))
-        return aggregated
+    def aggregate_by_episode(episode_numbers, values, num_segments):
+        return jax.ops.segment_sum(values, episode_numbers, num_segments=num_segments)
 
-    aggregated_rewards = aggregate_by_episode(shifted_episode_numbers, test_all_rewards)
-    aggregated_optimal_path_lengths = aggregate_by_episode(
-        shifted_episode_numbers, test_all_optimal_path_lengths
+    # In order to jax jit, the number of episodes must be known. So we will take the first n episodes only
+    min_num_episodes = num_testing_timesteps // (
+        arguments["horizon_length_factor"] * arguments["n_node"] + 1
     )
-    episodes_to_keep = aggregated_rewards.shape[0] - 1
-    aggregated_rewards = aggregated_rewards[:episodes_to_keep]
-    aggregated_optimal_path_lengths = aggregated_optimal_path_lengths[:episodes_to_keep]
+    aggregated_rewards = aggregate_by_episode(
+        shifted_episode_numbers, test_all_rewards, num_segments=min_num_episodes
+    )
+    aggregated_optimal_path_lengths = aggregate_by_episode(
+        shifted_episode_numbers,
+        test_all_optimal_path_lengths,
+        num_segments=min_num_episodes,
+    )
+    # Don't need to remove the last incomplete episode because we are using the first n complete episodes
     competitive_ratio = jnp.abs(aggregated_rewards) / aggregated_optimal_path_lengths
 
     # Get average competitive ratio
