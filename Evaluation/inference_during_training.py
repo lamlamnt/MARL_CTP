@@ -7,7 +7,6 @@ sys.path.append("..")
 from Environment import CTP_environment
 from Evaluation.optimal_path_length import dijkstra_shortest_path
 from Baselines.optimistic_agent import Optimistic_Agent
-from jax_tqdm import scan_tqdm
 
 
 # For the purpose of plotting the learning curve
@@ -23,7 +22,6 @@ def get_average_testing_stats(
     new_env_state, new_belief_state = environment.reset(init_key)
     num_testing_timesteps = arguments["factor_testing_timesteps"] * arguments["n_node"]
 
-    @scan_tqdm(num_testing_timesteps)
     def _one_step_inference(runner_state, unused):
         (
             current_env_state,

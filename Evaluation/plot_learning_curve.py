@@ -9,14 +9,13 @@ def plot_learning_curve(testing_average_competitive_ratio, log_directory, args):
     ]
     plt.figure(figsize=(10, 6))
     plt.plot(
-        args.num_steps_before_update * jnp.arange(len(learning_curve_values)),
+        args.num_steps_before_update
+        * args.frequency_testing
+        * jnp.arange(len(learning_curve_values)),
         learning_curve_values,
-        marker="o",
         linestyle="-",
     )
     plt.title("Learning Curve")
-    plt.xlabel("Episodes")
+    plt.xlabel("Training Timesteps")
     plt.ylabel("Average Competitive Ratio")
-    plt.legend()
-    # plt.grid(True)
     plt.savefig(os.path.join(log_directory, "Learning_curve.png"))

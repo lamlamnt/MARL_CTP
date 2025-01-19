@@ -675,7 +675,7 @@ if __name__ == "__main__":
         type=str,
         required=False,
         help="Options: linear, sigmoid, plateau",
-        default="plateau",
+        default="sigmoid",
     )
     parser.add_argument(
         "--division_plateau",
@@ -689,7 +689,7 @@ if __name__ == "__main__":
         help="Related to how the trajectory batch is split up for performing updating of the network",
         type=int,
         required=False,
-        default=4,
+        default=1,
     )
     parser.add_argument(
         "--deterministic_inference_policy",
