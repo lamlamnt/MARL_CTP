@@ -43,7 +43,7 @@ def plot_learning_curve(testing_average_competitive_ratio, log_directory, args):
         color="blue",
         alpha=0.2,
     )
-    plt.title("Learning Curve with Rolling Average and Standard Dev")
+    plt.title("Learning Curve with Rolling Average")
     plt.xlabel("Training Timesteps")
     plt.ylabel("Average Competitive Ratio")
     plt.savefig(os.path.join(log_directory, "Smoothened_Learning_Curve.png"))
