@@ -168,6 +168,20 @@ def save_data_and_plotting(
         episodes_df["reward"].rolling(window=N_EPISODES_TO_AVERAGE_OVER).mean()
     )
 
+    # Get the mean competitive ratio excluding the failed episodes
+    if training == False:
+        filtered_df = df.groupby("episode").filter(
+            lambda group: (group["reward"] != -1.5).all()
+        )
+        filtered_episodes_df = (
+            filtered_df.groupby("episode").agg("sum").astype(np.float32)
+        )
+        filtered_episodes_df = filtered_episodes_df.iloc[:-1]
+        filtered_episodes_df["competitive_ratio"] = (
+            filtered_episodes_df["reward"].abs()
+            / filtered_episodes_df["optimal_path_length"]
+        )
+
     if training == True:
         result_dict = {
             "final_regret": float(episodes_df["regret"].iloc[-1]),
@@ -181,9 +195,13 @@ def save_data_and_plotting(
         num_reach_horizon = np.sum(
             np.isclose(all_rewards, reward_exceed_horizon, atol=0.1)
         )
+
         result_dict = {
             "average_regret": float(episodes_df["regret"].mean()),
             "average_competitive_ratio": float(episodes_df["competitive_ratio"].mean()),
+            "average_competitive_ratio_excluding_failed_episodes": float(
+                filtered_episodes_df["competitive_ratio"].mean()
+            ),
             "median_competitive_ratio": float(
                 episodes_df["competitive_ratio"].median()
             ),

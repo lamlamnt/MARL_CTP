@@ -616,14 +616,14 @@ if __name__ == "__main__":
         "--factor_testing_timesteps",
         type=int,
         required=False,
-        default=10,
+        default=50,
         help="Factor to multiple with number of nodes to get the number of timesteps to perform testing on during training (in order to plot the learning curve)",
     )
     parser.add_argument(
         "--frequency_testing",
         type=int,
         required=False,
-        default=50,
+        default=20,
         help="How many updates before performing testing during training to plot the learning curve",
     )
 
@@ -633,7 +633,7 @@ if __name__ == "__main__":
         type=int,
         help="How many timesteps to collect before updating the network",
         required=False,
-        default=2400,
+        default=3600,
     )
     parser.add_argument(
         "--gae_lambda",
@@ -647,21 +647,21 @@ if __name__ == "__main__":
         help="Related to how big of an update can be made",
         type=float,
         required=False,
-        default=0.2,
+        default=0.14,
     )
     parser.add_argument(
         "--vf_coeff",
         help="Contribution of the value loss to the total loss",
         type=float,
         required=False,
-        default=0.05,
+        default=0.128,
     )
     parser.add_argument(
         "--ent_coeff",
         help="Exploration coefficient",
         type=float,
         required=False,
-        default=0.05,
+        default=0.174,
     )
     parser.add_argument(
         "--anneal_ent_coeff",
@@ -694,7 +694,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--deterministic_inference_policy",
         type=lambda x: bool(strtobool(x)),
-        default=False,
+        default=True,
         required=False,
         help="Whether to choose the action with the highest probability instead of sampling from the distribution",
     )
