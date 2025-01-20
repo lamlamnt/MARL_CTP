@@ -1,6 +1,6 @@
-jaxlib==0.4.17
-jax==0.4.17
-flax==0.7.4
+jaxlib
+jax
+flax
 jaxmarl
 numpy
 matplotlib
@@ -16,3 +16,4 @@ chex
 openpyxl
 wandb
 tqdm
+distrax
