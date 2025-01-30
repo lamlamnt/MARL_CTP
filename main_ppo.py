@@ -626,6 +626,12 @@ if __name__ == "__main__":
         default=20,
         help="How many updates before performing testing during training to plot the learning curve",
     )
+    parser.add_argument(
+        "--learning_curve_average_window",
+        type=int,
+        default=5,
+        help="Number of points to average over for the smoothened learning curve plot",
+    )
 
     # Args specific to PPO:
     parser.add_argument(

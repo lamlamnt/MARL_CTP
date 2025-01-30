@@ -6,24 +6,11 @@ if __name__ == "__main__":
     # Load the files, concatenate the list, and save the files
     # names = ["node_5_relabel_0.4", "node_5_relabel_0.8"]
     names = [
-        "node_30_0.4_1",
-        "node_30_0.4_3",
-        "node_30_0.4_5",
-        "node_30_0.4_7",
-        "node_30_0.4_9",
-        "node_30_0.4_11",
-        "node_30_0.4_13",
-        "node_30_0.4_15",
-        "node_30_0.4_17",
-        "node_30_0.4_19",
-        "node_30_0.4_21",
-        "node_30_0.4_23",
-        "node_30_0.4_25",
-        "node_30_0.4_27",
-        "node_30_0.4_29",
+        "node_30_0.4_training_30k_inference_1k",
+        "node_30_0.8_training_30k_inference_1k",
     ]
     # names = ["node_30_relabel_0.4", "node_30_relabel_0.8"]
-    mixed_name = "node_30_0.4_training_30k_inference_1k"
+    mixed_name = "node_30_mixed_training_30k_inference_1k"
 
     current_directory = os.getcwd()
     parent_directory = os.path.dirname(current_directory)
@@ -37,9 +24,11 @@ if __name__ == "__main__":
         training_graphs = np.load(training_graph_npy_file)
         inference_graph_npy_file = os.path.join(directory, "inference_graphs.npy")
         inference_graphs = np.load(inference_graph_npy_file)
-        all_training_graphs = np.append(all_training_graphs, training_graphs, axis=0)
+        all_training_graphs = np.append(
+            all_training_graphs, training_graphs[:15000], axis=0
+        )
         all_inference_graphs = np.append(
-            all_inference_graphs, inference_graphs[:67], axis=0
+            all_inference_graphs, inference_graphs[:500], axis=0
         )
     # assert that they are different
     print(all_training_graphs.shape)

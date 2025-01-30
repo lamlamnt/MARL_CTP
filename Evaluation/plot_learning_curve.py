@@ -23,8 +23,12 @@ def plot_learning_curve(testing_average_competitive_ratio, log_directory, args):
 
     # Plot rolling average (mean and std) of competitive ratio
     learning_curve_series = pd.Series(learning_curve_values)
-    rolling_mean = learning_curve_series.rolling(window=3, min_periods=1).mean()
-    rolling_std = learning_curve_series.rolling(window=3, min_periods=1).std()
+    rolling_mean = learning_curve_series.rolling(
+        window=args.learning_curve_average_window, min_periods=1
+    ).mean()
+    rolling_std = learning_curve_series.rolling(
+        window=args.learning_curve_average_window, min_periods=1
+    ).std()
     plt.figure(figsize=(10, 6))
     plt.plot(
         args.num_steps_before_update
