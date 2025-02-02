@@ -47,6 +47,8 @@ class PPO:
         deterministic_inference_policy: bool,
         ent_coeff_schedule: str,
         division_plateau: int,
+        sigmoid_beginning_offset_num: int,
+        sigmoid_total_nums_all: int,
     ) -> None:
         self.model = model
         self.environment = environment
@@ -64,6 +66,8 @@ class PPO:
         self.deterministic_inference_policy = deterministic_inference_policy
         self.ent_coeff_schedule = ent_coeff_schedule
         self.division_plateau = division_plateau
+        self.sigmoid_beginning_offset_num = sigmoid_beginning_offset_num
+        self.sigmoid_total_nums_all = sigmoid_total_nums_all
 
     def _ent_coeff_schedule(self, loop_count):
         # linear or sigmoid or plateau schedule
@@ -73,8 +77,25 @@ class PPO:
             lambda _: jax.lax.cond(
                 self.ent_coeff_schedule == "sigmoid",
                 lambda _: 1 / (1 + jnp.exp(10 * (loop_count / self.num_loops - 0.5))),
-                lambda _: coeff_schedule.ent_coeff_plateau_decay(
-                    loop_count, self.num_loops, division=self.division_plateau
+                lambda _: jax.lax.cond(
+                    self.ent_coeff_schedule == "sigmoid_checkpoint",
+                    lambda _: 1
+                    / (
+                        1
+                        + jnp.exp(
+                            10
+                            * (
+                                loop_count
+                                + self.sigmoid_beginning_offset_num
+                                / self.sigmoid_total_nums_all
+                                - 0.5
+                            )
+                        )
+                    ),
+                    lambda _: coeff_schedule.ent_coeff_plateau_decay(
+                        loop_count, self.num_loops, division=self.division_plateau
+                    ),
+                    operand=None,
                 ),
                 operand=None,
             ),

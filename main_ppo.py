@@ -61,6 +61,9 @@ def main(args):
         os.makedirs(log_directory)
 
     num_loops = args.time_steps // args.num_steps_before_update
+    if args.ent_coeff_schedule == "sigmoid_checkpoint":
+        assert num_loops < args.sigmoid_total_nums_all
+        assert args.sigmoid_beginning_offset_num < args.sigmoid_total_nums_all
 
     def linear_schedule(count):
         frac = (
@@ -271,6 +274,8 @@ def main(args):
         deterministic_inference_policy=args.deterministic_inference_policy,
         ent_coeff_schedule=args.ent_coeff_schedule,
         division_plateau=args.division_plateau,
+        sigmoid_beginning_offset_num=args.sigmoid_beginning_offset_num,
+        sigmoid_total_nums_all=args.sigmoid_total_nums_all,
     )
 
     # For the purpose of plotting the learning curve
@@ -680,7 +685,7 @@ if __name__ == "__main__":
         "--ent_coeff_schedule",
         type=str,
         required=False,
-        help="Options: linear, sigmoid, plateau",
+        help="Options: linear, sigmoid, plateau, sigmoid_checkpoint (for checkpoint training)",
         default="sigmoid",
     )
     parser.add_argument(
@@ -717,6 +722,20 @@ if __name__ == "__main__":
         required=False,
         help="How many different graphs will be seen by the agent",
         default=2000,
+    )
+    parser.add_argument(
+        "--sigmoid_beginning_offset_num",
+        type=int,
+        required=False,
+        default=0,
+        help="For sigmoid ent coeff schedule checkpoint training",
+    )
+    parser.add_argument(
+        "--sigmoid_total_nums_all",
+        type=int,
+        required=False,
+        default=10,
+        help="For sigmoid ent coeff schedule checkpoint training",
     )
     args = parser.parse_args()
 
