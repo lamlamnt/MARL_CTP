@@ -62,7 +62,7 @@ def main(args):
 
     num_loops = args.time_steps // args.num_steps_before_update
     if args.ent_coeff_schedule == "sigmoid_checkpoint":
-        assert num_loops < args.sigmoid_total_nums_all
+        assert num_loops < args.sigmoid_total_nums_all // args.num_steps_before_update
         assert args.sigmoid_beginning_offset_num < args.sigmoid_total_nums_all
 
     def linear_schedule(count):
@@ -274,8 +274,10 @@ def main(args):
         deterministic_inference_policy=args.deterministic_inference_policy,
         ent_coeff_schedule=args.ent_coeff_schedule,
         division_plateau=args.division_plateau,
-        sigmoid_beginning_offset_num=args.sigmoid_beginning_offset_num,
-        sigmoid_total_nums_all=args.sigmoid_total_nums_all,
+        sigmoid_beginning_offset_num=args.sigmoid_beginning_offset_num
+        // args.num_steps_before_update,
+        sigmoid_total_nums_all=args.sigmoid_total_nums_all
+        // args.num_steps_before_update,
     )
 
     # For the purpose of plotting the learning curve
@@ -728,14 +730,14 @@ if __name__ == "__main__":
         type=int,
         required=False,
         default=0,
-        help="For sigmoid ent coeff schedule checkpoint training",
+        help="For sigmoid ent coeff schedule checkpoint training. Unit: in number of timesteps. In the script, it will be divided by num_steps_before_update to convert to num_loops unit",
     )
     parser.add_argument(
         "--sigmoid_total_nums_all",
         type=int,
         required=False,
         default=10,
-        help="For sigmoid ent coeff schedule checkpoint training",
+        help="For sigmoid ent coeff schedule checkpoint training. Unit: in number of timesteps. In the script, it will be divided by num_steps_before_update to convert to num_loops unit",
     )
     args = parser.parse_args()
 

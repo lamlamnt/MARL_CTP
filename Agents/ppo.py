@@ -85,9 +85,10 @@ class PPO:
                         + jnp.exp(
                             10
                             * (
-                                loop_count
-                                + self.sigmoid_beginning_offset_num
-                                / self.sigmoid_total_nums_all
+                                (
+                                    (loop_count + self.sigmoid_beginning_offset_num)
+                                    / self.sigmoid_total_nums_all
+                                )
                                 - 0.5
                             )
                         )
