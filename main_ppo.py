@@ -64,6 +64,8 @@ def main(args):
     if args.ent_coeff_schedule == "sigmoid_checkpoint":
         assert num_loops < args.sigmoid_total_nums_all // args.num_steps_before_update
         assert args.sigmoid_beginning_offset_num < args.sigmoid_total_nums_all
+        if args.sigmoid_beginning_offset_num > 0:
+            assert args.load_network_directory is not None
 
     def linear_schedule(count):
         frac = (

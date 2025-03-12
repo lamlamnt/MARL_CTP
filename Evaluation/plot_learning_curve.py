@@ -51,3 +51,11 @@ def plot_learning_curve(testing_average_competitive_ratio, log_directory, args):
     plt.xlabel("Training Timesteps")
     plt.ylabel("Average Competitive Ratio")
     plt.savefig(os.path.join(log_directory, "Smoothened_Learning_Curve.png"))
+    plt.close()
+
+    learning_curve_series = pd.Series(learning_curve_values)
+    learning_curve_series.to_csv(
+        os.path.join(log_directory, "learning_curve_series.csv"),
+        index=False,
+        encoding="utf-8",
+    )
