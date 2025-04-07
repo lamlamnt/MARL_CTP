@@ -217,7 +217,8 @@ def plotting_inference(
         plt.ylabel("Loss")
         plt.title("Loss Plot")
         plt.legend()
-        plt.savefig(os.path.join(log_directory, "PPO_Loss.png"))
+        plt.savefig(os.path.join(log_directory, "PPO_Loss.pdf"), bbox_inches="tight")
+        plt.close()
         loss = {
             "Total Loss": total_losses[-1].astype(float),
             "Weighted Value Loss": args.vf_coeff * value_loss[-1].astype(float),
