@@ -47,10 +47,16 @@ def plot_learning_curve(testing_average_competitive_ratio, log_directory, args):
         color="blue",
         alpha=0.2,
     )
-    plt.title("Learning Curve with Rolling Average")
+    plt.axhline(
+        y=1.0, color="green", linestyle="--", label="y = 1.0"
+    )  # horizontal line
+    # plt.title("Learning Curve with Rolling Average")
     plt.xlabel("Training Timesteps")
     plt.ylabel("Average Competitive Ratio")
-    plt.savefig(os.path.join(log_directory, "Smoothened_Learning_Curve.png"))
+    plt.savefig(
+        os.path.join(log_directory, "Smoothened_Learning_Curve.pdf"),
+        bbox_inches="tight",
+    )
     plt.close()
 
     learning_curve_series = pd.Series(learning_curve_values)
