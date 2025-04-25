@@ -8,7 +8,7 @@ python main_ppo.py --n_node 30 --log_directory "node_30_example" --network_type 
 ```
 
 **Note**
-Only for single agent for now. Multi-agent will be in a different repo. 
+<br>Only for single agent for now. Multi-agent is in a different repo https://github.com/lamlamnt/MARL_CTP_2. 
 
 
 
